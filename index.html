@@ -1432,8 +1432,19 @@ function renderProcs(){
   el.innerHTML=lista.map(p=>`<div class="prc ${p.prio==='Critica'?'urg':''}" onclick="abrirProc(${p.id})">
     <div><div class="prc-t">${p.nome}</div>
     <div class="prc-m"><strong>${p.macro}</strong> · ${p.area} · Dono: <strong>${p.dono}</strong> · EP: <strong>${p.resp_ep}</strong></div></div>
-    <div class="prc-r">${fBadge(p.etapa)}${eBadge(p.etapa)}${pBadge(p.prio)}</div>
+    <div class="prc-r">${fBadge(p.etapa)}${eBadge(p.etapa)}${pBadge(p.prio)}${isEP()?`<button class="btn" style="font-size:11px;padding:3px 9px;color:var(--red);border-color:var(--red-b);margin-left:4px" onclick="event.stopPropagation();excluirMapeamento(${p.id})">× Excluir</button>`:''}</div>
   </div>`).join('');
+}
+function excluirMapeamento(id){
+  if(!isEP()){alert('Ação restrita ao EP.');return;}
+  const p=processos.find(x=>x.id===id);
+  if(!p)return;
+  if(!confirm('Excluir o mapeamento "'+p.nome+'" permanentemente?\nEsta ação não pode ser desfeita.'))return;
+  processos=processos.filter(x=>x.id!==id);
+  renderProcs();
+  updCounts();
+  fbAutoSave('excluirMapeamento');
+  toast('Mapeamento "'+p.nome+'" excluído.','var(--red)');
 }
 function abrirProc(id){
   curProc=processos.find(p=>p.id===id);
