@@ -12,6 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <!-- Firebase -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -861,17 +862,17 @@ const ETAPAS = [
   {id:'reuniao',lb:'Reunião entend.',fase:'Entendimento',cor:'pip-e',resp:'ep'},
   {id:'questionario',lb:'Quest. maturidade',fase:'Entendimento',cor:'pip-e',resp:'dono'},
   {id:'mapeamento',lb:'Mapeamento',fase:'Entendimento',cor:'pip-e',resp:'ep'},
-  {id:'analise_asis',lb:'Análise AS IS',fase:'Entendimento',cor:'pip-e',resp:'ep'},
   // Modelagem
   {id:'esboco',lb:'Esboço AS IS / TO BE',fase:'Modelagem',cor:'pip-m',resp:'ep'},
   {id:'det_etapas',lb:'Detalhamento etapas',fase:'Modelagem',cor:'pip-m',resp:'ep'},
+  {id:'analise_asis',lb:'Análise inteligente',fase:'Modelagem',cor:'pip-m',resp:'ep'},
   {id:'valid_dono',lb:'Validação dono',fase:'Modelagem',cor:'pip-m',resp:'dono'},
   // Formalização
   {id:'desenho_final',lb:'Desenho final',fase:'Formalizacao',cor:'pip-f',resp:'ep'},
-  {id:'aprovacao',lb:'Aprovação gestor',fase:'Formalizacao',cor:'pip-f',resp:'gestor'},
+  {id:'aprovacao',lb:'Aprov. dono',fase:'Formalizacao',cor:'pip-f',resp:'dono'},
   {id:'pop',lb:'Construção POP',fase:'Formalizacao',cor:'pip-f',resp:'ep'},
-  {id:'complement',lb:'Complementação',fase:'Formalizacao',cor:'pip-f',resp:'ep'},
-  {id:'apresentacao',lb:'Apresentação',fase:'Formalizacao',cor:'pip-f',resp:'patrocinador'},
+  {id:'complement',lb:'Complement. dono',fase:'Formalizacao',cor:'pip-f',resp:'dono'},
+  {id:'apresentacao',lb:'Aprov. patrocinador',fase:'Formalizacao',cor:'pip-f',resp:'patrocinador'},
   {id:'publicacao',lb:'Publicação',fase:'Formalizacao',cor:'pip-f',resp:'ep'},
   // Operação
   {id:'acompanha',lb:'Acompanhamento',fase:'Operacao',cor:'pip-o',resp:'ep'},
@@ -881,7 +882,7 @@ const ETAPAS = [
 ];
 const FASES = ['Entendimento','Modelagem','Formalizacao','Operacao','Auditoria'];
 const FASE_COR = {Entendimento:'bt',Modelagem:'bp',Formalizacao:'ba',Operacao:'bb',Auditoria:'br'};
-const EBADGE = {abertura:'bt',questionario:'bt',reuniao:'bt',mapeamento:'bt',analise_asis:'bt',esboco:'bp',det_etapas:'bp',valid_dono:'bp',desenho_final:'ba',aprovacao:'ba',pop:'ba',complement:'ba',apresentacao:'ba',publicacao:'ba',acompanha:'bb',monitora:'bb',auditoria:'br'};
+const EBADGE = {abertura:'bt',reuniao:'bt',questionario:'bt',mapeamento:'bt',esboco:'bp',det_etapas:'bp',analise_asis:'bp',valid_dono:'bp',desenho_final:'ba',aprovacao:'ba',pop:'ba',complement:'ba',apresentacao:'ba',publicacao:'ba',acompanha:'bb',monitora:'bb',auditoria:'br'};
 
 function etIdx(id){return ETAPAS.findIndex(e=>e.id===id);}
 function etFase(id){return ETAPAS.find(e=>e.id===id)?.fase||'';}
@@ -1026,7 +1027,7 @@ function ibBadge(v){return '<span class="badge '+({Baixo:'bg',Medio:'ba',Alto:'b
 function mBadge(s){return '<span class="badge '+({Identificada:'bsl','Em analise':'bp','Em execucao':'bb',Concluida:'bg'}[s]||'bgr')+'">'+s+'</span>';}
 function updCounts(){
   document.getElementById('nb-total').textContent=processos.length;
-  document.getElementById('nb-pend').textContent=processos.filter(p=>['valid_dono','aprovacao','apresentacao'].includes(p.etapa)).length;
+  document.getElementById('nb-pend').textContent=processos.filter(p=>['valid_dono','aprovacao','complement','apresentacao'].includes(p.etapa)).length;
   document.getElementById('nb-mc').textContent=melhorias.filter(m=>m.status!=='Concluida').length;
   document.getElementById('nb-fila-cnt').textContent=getTarefasUsr().length;
   document.getElementById('nb-notif-cnt').textContent=notifs.filter(n=>!n.lida).length;
@@ -1334,7 +1335,7 @@ function rDash(){
         <div class="pip-dot"></div>${e.lb}${cnt[e.id]>0?' <strong style="margin-left:auto">'+cnt[e.id]+'</strong>':''}
       </div>`).join('')}
     </div></div>`).join('');
-  const pend=processos.filter(p=>['valid_dono','aprovacao','apresentacao'].includes(p.etapa));
+  const pend=processos.filter(p=>['valid_dono','aprovacao','complement','apresentacao'].includes(p.etapa));
   document.getElementById('dash-pend').innerHTML=pend.length?pend.map(p=>`<div class="prc" onclick="abrirProc(${p.id})" style="margin-bottom:7px"><div><div class="prc-t">${p.nome}</div><div class="prc-m">${p.dono}</div></div><div>${eBadge(p.etapa)}</div></div>`).join(''):'<div class="ib ibg">Nenhuma aprovação pendente.</div>';
   const ma=melhorias.filter(m=>m.status!=='Concluida').slice(0,4);
   document.getElementById('dash-melh').innerHTML=ma.length?ma.map(m=>`<div class="prc" onclick="go('melhorias',document.getElementById('nb-melh'))" style="margin-bottom:7px"><div><div class="prc-t">${m.titulo}</div><div class="prc-m"><strong>${m.pnome}</strong> · ${m.resp}</div></div><div>${mBadge(m.status)}</div></div>`).join(''):'<div class="ib ibg">Nenhuma melhoria pendente.</div>';
@@ -1770,13 +1771,13 @@ const ACOES = {
     ${prazoField('desenho_final')}
     <div class="btn-row"><button class="btn btn-p" onclick="av('desenho_final','EP','Desenho final concluído','prazo-desenho_final',curProc?.pat)">Encaminhar para aprovação →</button></div>`},
 
-  aprovacao:{titulo:'Aprovação formal',sub:'Gestor / adjunto aprova antes da construção do POP.',role:'Gestor / Adjunto',rk:'gestor',
-    form:p=>`<div class="ib iba">Verifique o processo modelado antes de autorizar a construção do POP.</div>
-    <div class="fg"><label class="fl">Comentários</label><textarea class="fi" id="aobs" style="min-height:60px" placeholder="Deixe em branco se aprovado..."></textarea></div>
+  aprovacao:{titulo:'Aprovação pelo Dono do Processo',sub:'O dono revisa o desenho final e aprova para construção do POP.',role:'Dono do processo',rk:'dono',
+    form:p=>`<div class="ib iba">Revise o modelo do processo (AS IS / TO BE e etapas detalhadas) antes de aprovar a construção do POP.</div>
+    <div class="fg"><label class="fl">Comentários / solicitação de ajustes</label><textarea class="fi" id="aobs" style="min-height:70px" placeholder="Deixe em branco se aprovado..."></textarea></div>
     ${prazoField('aprovacao')}
     <div class="btn-row">
-      <button class="btn btn-a" onclick="reprovar('desenho_final','Gestor','Gestor solicitou ajustes')">Solicitar ajustes</button>
-      <button class="btn btn-g" onclick="av('aprovacao','Gestor','Aprovado para construção do POP','prazo-aprovacao')">Aprovar ✓</button>
+      <button class="btn btn-a" onclick="reprovar('desenho_final','Dono','Dono solicitou ajustes no modelo')">Solicitar ajustes</button>
+      <button class="btn btn-g" onclick="av('aprovacao','Dono','Modelo aprovado pelo dono — construção do POP autorizada','prazo-aprovacao')">Aprovar modelo ✓</button>
     </div>`},
 
   pop:{titulo:'Construção do POP',sub:'Redigir o Procedimento Operacional Padrão no modelo CAGE.',role:'EP',rk:'ep',
@@ -1813,21 +1814,29 @@ const ACOES = {
       <button class="btn btn-a" onclick="salvarPOP()">Salvar e avançar →</button>
     </div>`},
 
-  complement:{titulo:'Complementação',sub:'FAQ, formulários e links de sistemas.',role:'EP',rk:'ep',
-    form:p=>`<div class="ib iba">Adicione FAQ, formulários e links que apoiam a execução do processo.</div>
-    <div class="fg"><label class="fl">FAQ</label><textarea class="fi" id="afaq" style="min-height:80px" placeholder="P: Pergunta\nR: Resposta"></textarea></div>
-    <div class="fg"><label class="fl">Formulários / templates</label><input class="fi" id="aforms" placeholder="Nome ou link"></div>
-    <div class="fg"><label class="fl">Links de sistemas</label><input class="fi" id="alinks" placeholder="Ex: Zeev — https://..."></div>
+  complement:{titulo:'Complementação pelo Dono',sub:'O dono do processo complementa o POP com informações operacionais.',role:'Dono do processo',rk:'dono',
+    form:p=>`<div class="ib iba">Revise o POP elaborado e adicione informações que só você, como responsável pelo processo, pode fornecer.</div>
+    <div class="fg"><label class="fl">Perguntas frequentes (FAQ)</label><textarea class="fi" id="afaq" style="min-height:80px" placeholder="P: Pergunta frequente\nR: Resposta\n\nP: Outra pergunta\nR: Resposta">${p.form?.faq||''}</textarea></div>
+    <div class="fg"><label class="fl">Exceções / casos especiais</label><textarea class="fi" id="a-excecoes" style="min-height:70px" placeholder="Situações fora do fluxo padrão que devem ser documentadas...">${p.form?.excecoes||''}</textarea></div>
+    <div class="fg"><label class="fl">Contatos-chave do processo</label><textarea class="fi" id="a-contatos" style="min-height:60px" placeholder="Nome — Função — E-mail ou ramal">${p.form?.contatos||''}</textarea></div>
+    <div class="fg"><label class="fl">Formulários / sistemas utilizados</label><input class="fi" id="aforms" placeholder="Nome do formulário ou sistema — link se houver" value="${p.form?.forms||''}"></div>
+    <div class="fg"><label class="fl">Observações ou correções ao POP</label><textarea class="fi" id="aobs" style="min-height:60px" placeholder="Aponte qualquer ajuste necessário no documento..."></textarea></div>
     ${prazoField('complement')}
-    <div class="btn-row"><button class="btn btn-a" onclick="av('complement','EP','Complementação concluída','prazo-complement',curProc?.pat)">Agendar apresentação →</button></div>`},
+    <div class="btn-row"><button class="btn btn-g" onclick="salvarComplementacaoDono()">Enviar complementação →</button></div>`},
 
-  apresentacao:{titulo:'Apresentação ao patrocinador',sub:'Aprovação de alta gestão antes da publicação.',role:'Patrocinador',rk:'patrocinador',
-    form:p=>`<div class="ib iba">Aprovação final antes da publicação oficial.</div>
+  apresentacao:{titulo:'Aprovação pelo Patrocinador',sub:'Aprovação de alta gestão antes da publicação. Apresentação executiva gerada por IA.',role:'Patrocinador',rk:'patrocinador',
+    form:p=>`<div class="ib iba">Aprovação final antes da publicação oficial. Gere a apresentação executiva com IA e compartilhe com o patrocinador.</div>
+    <div style="background:var(--bg2);border-radius:8px;padding:1rem;margin-bottom:1rem;border:1px solid var(--bdr)">
+      <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:.4rem">📊 Apresentação executiva (PowerPoint)</div>
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:.8rem">A IA irá montar uma apresentação .pptx com base em todo o conteúdo do mapeamento.</div>
+      <button class="btn btn-p" id="btn-gerar-ppt" onclick="gerarApresentacaoPPT()">✨ Gerar apresentação com IA</button>
+      <span id="ppt-status" style="font-size:11px;color:var(--ink3);margin-left:.8rem"></span>
+    </div>
     <div class="g2">
-      <div class="fg"><label class="fl">Data da apresentação</label><input class="fi" id="adt" type="date"></div>
+      <div class="fg"><label class="fl">Data da reunião de apresentação</label><input class="fi" id="adt" type="date"></div>
       <div class="fg"><label class="fl">Participantes</label><input class="fi" id="apart" placeholder="Nomes dos presentes"></div>
     </div>
-    <div class="fg"><label class="fl">Decisão / encaminhamentos</label><textarea class="fi" id="aobs" style="min-height:70px" placeholder="Decisão do patrocinador..."></textarea></div>
+    <div class="fg"><label class="fl">Decisão / encaminhamentos do patrocinador</label><textarea class="fi" id="aobs" style="min-height:70px" placeholder="Decisão do patrocinador..."></textarea></div>
     <div class="btn-row">
       <button class="btn btn-a" onclick="reprovar('complement','Patrocinador','Patrocinador solicitou revisão')">Solicitar revisão</button>
       <button class="btn btn-g" onclick="salvarApresentacao()">Autorizar publicação ✓</button>
@@ -1967,9 +1976,10 @@ function salvarRetroativo(etId){
     },
     complement:()=>{
       p.form=p.form||{};
-      p.form.faq=document.getElementById('cf-faq')?.value||p.form.faq;
-      p.form.links=document.getElementById('cf-links')?.value||p.form.links;
-      p.form.forms=document.getElementById('cf-forms')?.value||p.form.forms;
+      p.form.faq=document.getElementById('afaq')?.value||p.form.faq;
+      p.form.excecoes=document.getElementById('a-excecoes')?.value||p.form.excecoes;
+      p.form.contatos=document.getElementById('a-contatos')?.value||p.form.contatos;
+      p.form.forms=document.getElementById('aforms')?.value||p.form.forms;
     },
     publicacao:()=>{
       p.form=p.form||{};
@@ -2129,12 +2139,153 @@ function salvarPOP(){
   p.form.pop_ok=true;
   av('pop','EP','POP construído no padrão CAGE','prazo-pop');
 }
+function salvarComplementacaoDono(){
+  const p=curProc;
+  if(!p.form)p.form={};
+  p.form.faq=document.getElementById('afaq')?.value||p.form.faq||'';
+  p.form.excecoes=document.getElementById('a-excecoes')?.value||p.form.excecoes||'';
+  p.form.contatos=document.getElementById('a-contatos')?.value||p.form.contatos||'';
+  p.form.forms=document.getElementById('aforms')?.value||p.form.forms||'';
+  const obs=document.getElementById('aobs')?.value||'';
+  if(obs) p.form.obs_complement=obs;
+  av('complement','Dono','Complementação fornecida pelo dono do processo','prazo-complement');
+}
 function salvarApresentacao(){
   const obs=document.getElementById('aobs')?.value||'';
   const p=curProc;
   if(!p.form)p.form={pop_ok:false,pop:null,apresent:''};
   p.form.apresent='Aprovado pelo patrocinador em '+now()+(obs?'. '+obs:'');
   av('apresentacao','Patrocinador','Aprovado pelo patrocinador para publicação','prazo-apresentacao');
+}
+
+// ── GERAÇÃO DE APRESENTAÇÃO PPT COM IA ──
+async function gerarApresentacaoPPT(){
+  const p=curProc;
+  if(!p){alert('Nenhum processo selecionado.');return;}
+  const cfg=getAzureConfig();
+  if(!cfg.endpoint||!cfg.key){alert('Configure o Azure OpenAI nas configurações antes de gerar a apresentação.');return;}
+  const btn=document.getElementById('btn-gerar-ppt');
+  const st=document.getElementById('ppt-status');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Gerando...';}
+  if(st) st.textContent='Chamando IA para montar o conteúdo...';
+  try{
+    // Montar contexto do processo
+    const a=p.ent?.analise||{};
+    const ctx=`Processo: ${p.nome}
+Área: ${p.area||'—'}
+Macroprocesso: ${p.macro||'—'}
+Objetivo: ${p.objetivo||'—'}
+Gerente/Dono: ${p.dono||'—'}
+Equipe: ${p.ent?.equipe||'—'}
+Data início: ${p.ent?.dt_inicio||'—'}
+Maturidade (nível 1-5): ${p.ent?.mat||'—'}
+Execuções/período: ${p.ent?.vol?.exec||'—'}
+Tempo ciclo médio: ${p.ent?.vol?.tempo||'—'}
+Complexidade: ${a.complexidade||'—'}
+Gargalos identificados: ${(a.gargalos||[]).join('; ')||'—'}
+Retrabalhos: ${(a.retrabalhos||[]).join('; ')||'—'}
+Oportunidades de melhoria: ${(a.oportunidades||[]).join('; ')||'—'}
+Etapas do processo: ${(p.mod?.etapas_proc||[]).slice(0,8).map(e=>e.desc).join('; ')||'—'}
+Objetivo estratégico: ${p.ent?.obj_est||'—'}`;
+
+    const prompt=`Você é especialista em gestão de processos e criação de apresentações executivas.
+Com base nas informações abaixo, gere um JSON com o conteúdo para uma apresentação PowerPoint executiva sobre o mapeamento deste processo. Seja direto, profissional e conciso.
+
+INFORMAÇÕES DO PROCESSO:
+${ctx}
+
+Retorne APENAS um JSON válido com esta estrutura (sem texto fora do JSON):
+{
+  "titulo_geral": "título executivo da apresentação",
+  "subtitulo": "subtítulo",
+  "slides": [
+    {"titulo": "Agenda", "bullets": ["item1","item2","item3","item4","item5"]},
+    {"titulo": "Visão Geral do Processo", "bullets": ["...","...","..."]},
+    {"titulo": "Situação Atual (AS IS)", "bullets": ["...","...","...","..."]},
+    {"titulo": "Gargalos e Oportunidades", "bullets": ["...","...","...","..."]},
+    {"titulo": "Situação Proposta (TO BE)", "bullets": ["...","...","...","..."]},
+    {"titulo": "Indicadores de Desempenho", "bullets": ["...","...","..."]},
+    {"titulo": "Próximos Passos", "bullets": ["...","...","...","..."]},
+    {"titulo": "Conclusão", "bullets": ["...","...","..."]}
+  ]
+}`;
+
+    const resp=await fetch(cfg.endpoint,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','api-key':cfg.key},
+      body:JSON.stringify({messages:[{role:'user',content:prompt}],max_tokens:1500,temperature:0.3})
+    });
+    if(!resp.ok) throw new Error('API: '+resp.status+' '+resp.statusText);
+    const data=await resp.json();
+    const raw=data.choices?.[0]?.message?.content||'';
+    const jsonMatch=raw.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('Resposta da IA não contém JSON válido.');
+    const slides=JSON.parse(jsonMatch[0]);
+    if(st) st.textContent='Montando o arquivo PowerPoint...';
+    await montarPPT(slides, p);
+    if(st) st.textContent='✓ Apresentação gerada e baixada!';
+  } catch(e){
+    console.error('gerarApresentacaoPPT:',e);
+    if(st) st.textContent='⚠ Erro: '+e.message;
+    alert('Erro ao gerar apresentação: '+e.message);
+  } finally {
+    if(btn){btn.disabled=false;btn.textContent='✨ Gerar apresentação com IA';}
+  }
+}
+async function montarPPT(dados, p){
+  if(typeof PptxGenJS==='undefined') throw new Error('Biblioteca PptxGenJS não carregada.');
+  const pptx=new PptxGenJS();
+  pptx.layout='LAYOUT_WIDE';
+  pptx.author='EP·CAGE';
+  pptx.company='CAGE/Sefaz-RS';
+  pptx.subject=p.nome;
+
+  // Paleta de cores
+  const C1='1E3A5F'; // azul escuro
+  const C2='2E7D8F'; // teal
+  const C3='F5F7FA'; // fundo claro
+  const CW='FFFFFF';
+  const CG='4A4A4A';
+
+  // ── SLIDE 1: Capa ──
+  let sl=pptx.addSlide();
+  sl.background={color:C1};
+  sl.addShape(pptx.ShapeType.rect,{x:0,y:3.5,w:'100%',h:0.08,fill:{color:C2}});
+  sl.addText(dados.titulo_geral||p.nome,{x:0.8,y:1.2,w:10,h:1.2,fontSize:28,bold:true,color:CW,fontFace:'Calibri'});
+  sl.addText(dados.subtitulo||'Escritório de Processos — CAGE/Sefaz-RS',{x:0.8,y:2.6,w:10,h:0.5,fontSize:14,color:'A8C4D4',fontFace:'Calibri'});
+  sl.addText('Processo: '+p.nome+' | Área: '+(p.area||'—')+' | '+now(),{x:0.8,y:4.2,w:11,h:0.4,fontSize:11,color:'8A9BB0',fontFace:'Calibri'});
+
+  // ── SLIDES de conteúdo ──
+  const CORES_ACCENT=['2E7D8F','1E6B78','0D4F5C','3A8A9A','156070'];
+  (dados.slides||[]).forEach((slide,idx)=>{
+    sl=pptx.addSlide();
+    sl.background={color:C3};
+    // Cabeçalho colorido
+    const corAc=CORES_ACCENT[idx%CORES_ACCENT.length];
+    sl.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:1.1,fill:{color:corAc}});
+    sl.addShape(pptx.ShapeType.rect,{x:0,y:1.1,w:'100%',h:0.06,fill:{color:C2}});
+    sl.addText(slide.titulo||'',{x:0.5,y:0.2,w:11,h:0.7,fontSize:20,bold:true,color:CW,fontFace:'Calibri'});
+    // Numeração
+    sl.addText(String(idx+1),{x:11.8,y:0.25,w:0.5,h:0.5,fontSize:11,color:'A8C4D4',fontFace:'Calibri'});
+    // Bullets
+    const bullets=(slide.bullets||[]);
+    bullets.forEach((b,bi)=>{
+      sl.addShape(pptx.ShapeType.rect,{x:0.55,y:1.5+bi*0.72,w:0.18,h:0.18,fill:{color:corAc},line:{color:corAc}});
+      sl.addText(b,{x:0.9,y:1.45+bi*0.72,w:11,h:0.6,fontSize:13,color:CG,fontFace:'Calibri',valign:'middle'});
+    });
+    // Rodapé
+    sl.addText('EP·CAGE — '+p.nome,{x:0,y:6.85,w:'100%',h:0.3,fontSize:9,color:'AAAAAA',align:'center',fontFace:'Calibri'});
+  });
+
+  // ── SLIDE FINAL: Agradecimento ──
+  sl=pptx.addSlide();
+  sl.background={color:C1};
+  sl.addShape(pptx.ShapeType.rect,{x:0,y:2.6,w:'100%',h:0.08,fill:{color:C2}});
+  sl.addText('Obrigado!',{x:0,y:1.2,w:'100%',h:1,fontSize:36,bold:true,color:CW,align:'center',fontFace:'Calibri'});
+  sl.addText('Escritório de Processos — CAGE/Sefaz-RS',{x:0,y:3,w:'100%',h:0.5,fontSize:14,color:'A8C4D4',align:'center',fontFace:'Calibri'});
+
+  const nomeArq='Apresentacao_'+p.nome.replace(/[^a-zA-Z0-9]/g,'_').slice(0,40)+'_'+now().replace(/\//g,'-');
+  await pptx.writeFile({fileName:nomeArq+'.pptx'});
 }
 function salvarAuditoria(concluir){
   const p=curProc;
