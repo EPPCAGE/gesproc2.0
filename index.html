@@ -11,6 +11,39 @@
 <script src="https://cdn.jsdelivr.net/npm/bpmn-js@17/dist/bpmn-modeler.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  // ── PREENCHA AQUI APÓS CRIAR O PROJETO FIREBASE ──
+  const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyCnnSTiGIX0Kkqst6FfUOpzJGUH8DnLrgE",
+    authDomain:        "gesproc2.firebaseapp.com",
+    projectId:         "gesproc2",
+    storageBucket:     "gesproc2.firebasestorage.app",
+    messagingSenderId: "814449532770",
+    appId:             "1:814449532770:web:ca5d5b073e2daa78a8163b"
+  };
+
+  window._fbReady = false;
+  window._fb = {};
+
+  // Only init if config is filled
+  if(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== ''){
+    try {
+      const app = initializeApp(FIREBASE_CONFIG);
+      const db  = getFirestore(app);
+      window._fb = { db, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch };
+      window._fbReady = true;
+      console.log('Firebase conectado');
+    } catch(e) {
+      console.warn('Firebase init error:', e.message);
+    }
+  } else {
+    console.info('Firebase não configurado — rodando em modo local.');
+  }
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -241,6 +274,17 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
 @keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 .page.on .prc{animation:fu .16s ease both}
 .page.on .prc:nth-child(2){animation-delay:.03s}.page.on .prc:nth-child(3){animation-delay:.06s}
+
+/* ── IA ─────────────────────────────────── */
+.ai-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--purple-b);background:var(--purple-l);color:var(--purple);transition:all .13s;font-family:var(--f)}
+.ai-btn:hover{background:var(--purple-b);color:#fff}
+.ai-btn:disabled{opacity:.5;cursor:not-allowed}
+.ai-result{background:var(--purple-l);border:1px solid var(--purple-b);border-radius:var(--r);padding:.9rem 1rem;font-size:12.5px;color:var(--ink2);line-height:1.7;margin-top:.7rem;position:relative}
+.ai-result-lbl{font-size:10px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem}
+.ai-loading{display:flex;align-items:center;gap:8px;color:var(--purple);font-size:12px;padding:.6rem 0}
+.ai-loading .spin{width:16px;height:16px;border:2px solid var(--purple-b);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.ai-panel{background:var(--surf);border:1px solid var(--purple-b);border-radius:var(--rl);padding:1rem 1.1rem;margin-top:.8rem}
+.ai-panel-t{font-family:var(--fh);font-size:13px;font-weight:600;color:var(--purple);margin-bottom:.6rem;display:flex;align-items:center;gap:6px}
 </style>
 </head>
 <body>
@@ -405,9 +449,37 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
 </div></div>
 
 <div id="page-arq" class="page"><div style="padding:2rem">
-  <div class="ph"><div><div class="ph-t">Arquitetura de processos</div><div class="ph-s">Macroprocesso → Processo → Subprocesso</div></div>
+  <div class="ph"><div><div class="ph-t">Arquitetura de processos</div><div class="ph-s" id="arq-sub">Macroprocesso → Processo → Subprocesso</div></div>
   <div id="btn-arq-actions"></div></div>
-  <div class="ib ibb">Colunas esperadas na planilha: <strong>macroprocesso, processo, subprocesso, natureza, gerente_processo, area, objetivo_processo, objetivo_estrategico, entradas, entregas, clientes, documentacoes</strong></div>
+
+  <!-- Filtros e busca -->
+  <div class="fbar" style="flex-direction:column;align-items:stretch;gap:10px;margin-bottom:.9rem">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="fbar-l">Buscar</span>
+      <input class="srch" id="arq-srch" placeholder="Nome do processo, gerente, área..." oninput="rArq()" style="flex:1;max-width:380px">
+      <button class="btn" style="font-size:11px;padding:4px 10px" onclick="limparFiltrosArq()">Limpar filtros</button>
+      <span id="arq-result-cnt" style="font-size:11px;color:var(--ink3)"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="fbar-l">Macroprocesso</span>
+      <select class="fi" id="arq-f-macro" onchange="rArq()" style="max-width:220px"><option value="">Todos</option></select>
+      <span class="fbar-l">Área</span>
+      <select class="fi" id="arq-f-area" onchange="rArq()" style="max-width:180px"><option value="">Todas</option></select>
+      <span class="fbar-l">Natureza</span>
+      <select class="fi" id="arq-f-nat" onchange="rArq()" style="max-width:160px">
+        <option value="">Todas</option>
+        <option>Finalístico</option>
+        <option>Apoio</option>
+        <option>Gestão</option>
+        <option>Suporte</option>
+        <option>Controle</option>
+      </select>
+      <span class="fbar-l">Obj. estratégico</span>
+      <select class="fi" id="arq-f-obje" onchange="rArq()" style="max-width:220px"><option value="">Todos</option></select>
+    </div>
+  </div>
+
+  <div class="ib ibb" id="arq-import-hint">Colunas esperadas na planilha: <strong>macroprocesso, processo, subprocesso, natureza, gerente_processo, area, objetivo_processo, objetivo_estrategico, entradas, entregas, clientes, documentacoes</strong></div>
   <div id="arq-content"></div>
 </div></div>
 
@@ -914,6 +986,7 @@ function salvarEmailJS(){
     status.textContent = 'Preencha os três campos para ativar o envio real.';
     status.className = 'ib ibb';
   }
+  fbSaveEjs();
   toast('Configuração salva');
 }
 
@@ -1280,6 +1353,7 @@ function criarProcesso(){
   updCounts();
   enviarNotif(ap.gerente+'@sefaz.rs.gov.br',ap.gerente,'Nova demanda de mapeamento aberta — aguarda questionário de maturidade',ap.nome,'','EP·CAGE');
   toast('Processo criado! Notificação enviada para '+ap.gerente);
+  fbAutoSave('criarProcesso');
   abrirProc(p.id);
 }
 
@@ -1311,6 +1385,7 @@ function av(etAtu, role, acao, prazoEl, notifDest){
     }
   }
   rDetalhe();updCounts();
+  fbAutoSave('av');
 }
 function reprovar(voltaEt, role, acao){
   const obs = document.getElementById('aobs')?.value||'';
@@ -2142,12 +2217,178 @@ function remR(i){if(!curProc?.ent?.riscos)return;curProc.ent.riscos.splice(i,1);
 // ═══════════════════════════════════════════
 // ARQUITETURA DE PROCESSOS
 // ═══════════════════════════════════════════
+function rArqPopulateFilters(){
+  // Macroprocesso
+  const mSel = document.getElementById('arq-f-macro');
+  if(mSel){
+    const cur = mSel.value;
+    mSel.innerHTML = '<option value="">Todos</option>' +
+      ARQUITETURA.map(m=>`<option ${cur===m.nome?'selected':''}>${m.nome}</option>`).join('');
+  }
+  // Área — collect from all processos and subprocessos
+  const areas = new Set();
+  const objEs = new Set();
+  ARQUITETURA.forEach(m=>m.processos.forEach(p=>{
+    if(p.area) areas.add(p.area);
+    if(p.objetivo_estrategico) objEs.add(p.objetivo_estrategico);
+    (p.subprocessos||[]).forEach(s=>{
+      if(s.area) areas.add(s.area);
+      if(s.objetivo_estrategico) objEs.add(s.objetivo_estrategico);
+    });
+  }));
+  const aSel = document.getElementById('arq-f-area');
+  if(aSel){
+    const cur = aSel.value;
+    aSel.innerHTML = '<option value="">Todas</option>' +
+      [...areas].sort().map(a=>`<option ${cur===a?'selected':''}>${a}</option>`).join('');
+  }
+  const oSel = document.getElementById('arq-f-obje');
+  if(oSel){
+    const cur = oSel.value;
+    oSel.innerHTML = '<option value="">Todos</option>' +
+      [...objEs].sort().map(o=>`<option ${cur===o?'selected':''} title="${o}">${o.length>40?o.slice(0,40)+'…':o}</option>`).join('');
+  }
+}
+
+function getArqFilters(){
+  return {
+    srch: (document.getElementById('arq-srch')?.value||'').toLowerCase().trim(),
+    macro: document.getElementById('arq-f-macro')?.value||'',
+    area:  document.getElementById('arq-f-area')?.value||'',
+    nat:   document.getElementById('arq-f-nat')?.value||'',
+    obje:  document.getElementById('arq-f-obje')?.value||'',
+  };
+}
+
+// Returns true if a process/subprocesso matches current filters
+function itemMatchesFilters(item, macroNome, f){
+  if(f.area  && item.area  !== f.area)  return false;
+  if(f.nat   && item.natureza !== f.nat) return false;
+  if(f.obje  && item.objetivo_estrategico !== f.obje) return false;
+  if(f.srch){
+    const hay = [item.nome, item.area, item.gerente, item.objetivo,
+                 item.objetivo_estrategico, item.clientes, macroNome]
+                 .join(' ').toLowerCase();
+    if(!hay.includes(f.srch)) return false;
+  }
+  return true;
+}
+
+function limparFiltrosArq(){
+  ['arq-srch','arq-f-macro','arq-f-area','arq-f-nat','arq-f-obje'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  rArq();
+}
+
 function rArq(){
   aplicarPermissoes();
-  const el=document.getElementById('arq-content');
-  if(!el)return;
-  if(!ARQUITETURA.length){el.innerHTML='<div class="ib ibb">Nenhum macroprocesso cadastrado. Importe uma planilha ou clique em "+ Macroprocesso".</div>';return;}
-  el.innerHTML=ARQUITETURA.map(m=>macroArqHTML(m)).join('');
+  rArqPopulateFilters();
+  const el = document.getElementById('arq-content');
+  if(!el) return;
+
+  if(!ARQUITETURA.length){
+    el.innerHTML='<div class="ib ibb">Nenhum macroprocesso cadastrado. Importe uma planilha ou clique em "+ Macroprocesso".</div>';
+    return;
+  }
+
+  const f = getArqFilters();
+  const hasFilter = f.srch || f.macro || f.area || f.nat || f.obje;
+
+  // Hide import hint when filtering
+  const hint = document.getElementById('arq-import-hint');
+  if(hint) hint.style.display = hasFilter ? 'none' : '';
+
+  if(!hasFilter){
+    // Normal tree view
+    el.innerHTML = ARQUITETURA.map(m=>macroArqHTML(m)).join('');
+    document.getElementById('arq-result-cnt').textContent = '';
+    document.getElementById('arq-sub').textContent = 'Macroprocesso → Processo → Subprocesso';
+    return;
+  }
+
+  // Filter mode — flat list of matching items
+  const results = [];
+  ARQUITETURA.forEach(m=>{
+    if(f.macro && m.nome !== f.macro) return;
+    m.processos.forEach(p=>{
+      const hasSubs = p.subprocessos && p.subprocessos.length > 0;
+      if(hasSubs){
+        p.subprocessos.forEach(s=>{
+          if(itemMatchesFilters(s, m.nome, f)){
+            results.push({item:s, macroNome:m.nome, procNome:p.nome, macroId:m.id, procId:p.id, isSub:true});
+          }
+        });
+      } else {
+        if(itemMatchesFilters(p, m.nome, f)){
+          results.push({item:p, macroNome:m.nome, procNome:null, macroId:m.id, procId:p.id, isSub:false});
+        }
+      }
+    });
+  });
+
+  const cnt = document.getElementById('arq-result-cnt');
+  if(cnt) cnt.textContent = results.length + ' resultado' + (results.length!==1?'s':'') + ' encontrado' + (results.length!==1?'s':'');
+
+  const sub = document.getElementById('arq-sub');
+  if(sub) sub.textContent = 'Resultados da busca';
+
+  if(!results.length){
+    el.innerHTML = '<div class="ib iba">Nenhum processo encontrado com os filtros selecionados.</div>';
+    return;
+  }
+
+  // Group by macroprocesso for display
+  const grupos = {};
+  results.forEach(r=>{
+    if(!grupos[r.macroNome]) grupos[r.macroNome] = [];
+    grupos[r.macroNome].push(r);
+  });
+
+  el.innerHTML = Object.entries(grupos).map(([macroNome, items])=>`
+    <div class="arq-macro" style="margin-bottom:.8rem">
+      <div class="arq-macro-hd" style="cursor:default">
+        <span class="arq-macro-nome">${macroNome}</span>
+        <span style="font-size:11px;color:rgba(255,255,255,.4)">${items.length} resultado${items.length!==1?'s':''}</span>
+      </div>
+      <div class="arq-macro-body">
+        ${items.map(r=>resultCardHTML(r, f.srch)).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function highlight(text, srch){
+  if(!srch || !text) return text || '—';
+  const escaped = srch.replace(/[-.*+?^${}()|[\]\\]/g,'\\$&'); const re = new RegExp('('+escaped+')', 'gi');
+  return text.replace(re, '<mark style="background:var(--amber-l);color:var(--amber);padding:0 2px;border-radius:2px">$1</mark>');
+}
+
+function resultCardHTML(r, srch){
+  const item = r.item;
+  const proc = processos.find(pr=>pr.arq_id===item.id)||null;
+  const path = r.isSub ? `${r.macroNome} › ${r.procNome} › ${item.nome}` : `${r.macroNome} › ${item.nome}`;
+
+  return `<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:.8rem 1rem;margin-bottom:.5rem">
+    <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:.5rem;flex-wrap:wrap">
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:2px">${highlight(path, srch)}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--ink)">${highlight(item.nome, srch)}</div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0">
+        ${item.natureza ? `<span class="badge bgr" style="font-size:10px">${highlight(item.natureza, srch)}</span>` : ''}
+        ${proc ? `<span class="badge ${EBADGE[proc.etapa]||'bgr'}" style="font-size:10px">${etLb(proc.etapa)}</span>` : '<span class="badge bgr" style="font-size:10px">Não mapeado</span>'}
+        ${proc ? `<button class="btn btn-p" style="font-size:10px;padding:2px 8px" onclick="abrirProc(${proc.id})">Abrir →</button>` : ''}
+        ${isEP() ? `<button class="btn" style="font-size:10px;padding:2px 8px" onclick="editSubArqFull('${r.macroId}','${r.procId}','${item.id}')">✎</button>` : ''}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:11px">
+      ${item.area ? `<div><span style="font-weight:600;color:var(--ink2)">Área:</span> <span style="color:var(--ink3)">${highlight(item.area, srch)}</span></div>` : ''}
+      ${item.gerente ? `<div><span style="font-weight:600;color:var(--ink2)">Gerente:</span> <span style="color:var(--ink3)">${highlight(item.gerente, srch)}</span></div>` : ''}
+      ${item.objetivo_estrategico ? `<div style="grid-column:span 2"><span style="font-weight:600;color:var(--ink2)">Obj. estratégico:</span> <span style="color:var(--ink3)">${highlight(item.objetivo_estrategico, srch)}</span></div>` : ''}
+      ${item.objetivo ? `<div style="grid-column:span 3"><span style="font-weight:600;color:var(--ink2)">Objetivo:</span> <span style="color:var(--ink3)">${highlight(item.objetivo, srch)}</span></div>` : ''}
+    </div>
+  </div>`;
 }
 function macroArqHTML(m){
   const tc=m.processos.length;
@@ -2162,7 +2403,8 @@ function macroArqHTML(m){
       ${tenhoAqui?'<span style="font-size:10px;background:rgba(255,255,255,.2);border-radius:4px;padding:1px 7px;font-weight:700">Meus processos</span>':''}
       <span style="font-size:11px;color:rgba(255,255,255,.4)">${tc} processo${tc!==1?'s':''} · ${ts} subprocesso${ts!==1?'s':''}</span>
       ${isEP()?`<button class="btn" style="font-size:10px;padding:2px 8px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff" onclick="event.stopPropagation();novoProcArq('${m.id}')">+ Processo</button>
-      <button class="btn" style="font-size:10px;padding:2px 8px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.5)" onclick="event.stopPropagation();editMacro('${m.id}')">✎</button>`:''}
+      <button class="btn" style="font-size:10px;padding:2px 8px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.5)" onclick="event.stopPropagation();editMacro('${m.id}')">✎ Renomear</button>
+      <button class="btn" style="font-size:10px;padding:2px 8px;background:rgba(176,28,28,.3);border-color:rgba(242,160,160,.3);color:#F2A0A0" onclick="event.stopPropagation();removerMacro('${m.id}')">× Apagar</button>`:''}
     </div>
     <div class="arq-macro-body" id="arq-body-${m.id}" style="display:none">
       ${m.processos.map(p=>procArqHTML(m.id,p)).join('')}
@@ -2185,7 +2427,8 @@ function procArqHTML(mid,p){
           ? `<span class="badge ${EBADGE[linked.etapa]||'bgr'}" style="font-size:10px">${etLb(linked.etapa)}</span><button class="btn btn-p" style="font-size:10px;padding:2px 7px" onclick="event.stopPropagation();abrirProc(${linked.id})">Abrir</button>`
           : `<span class="badge bgr" style="font-size:10px">Não mapeado</span>`}
       ${isEP()?`<button class="btn" style="font-size:10px;padding:2px 7px" onclick="event.stopPropagation();novoSubArq('${mid}','${p.id}')">+ Sub</button>
-      <button class="btn" style="font-size:10px;padding:2px 7px" onclick="event.stopPropagation();editProcArq('${mid}','${p.id}')">✎ Editar</button>`:''}
+      <button class="btn" style="font-size:10px;padding:2px 7px" onclick="event.stopPropagation();editProcArq('${mid}','${p.id}')">✎ Editar</button>
+      <button class="btn" style="font-size:10px;padding:2px 7px;color:var(--red);border-color:var(--red-b)" onclick="event.stopPropagation();removerProcArq('${mid}','${p.id}')">× Apagar</button>`:''}
     </div>
     <div id="arq-sub-${p.id}" style="display:none;background:var(--surf2);border:1px solid var(--bdr);border-top:none;border-radius:0 0 var(--r) var(--r)">
 
@@ -2351,6 +2594,7 @@ function salvarModalMeta(){
   item.docs=document.getElementById('mm-docs').value.trim();
   if(modal._onSave)modal._onSave();
   modal.remove();
+  fbAutoSave('salvarMeta');
   toast('Dados atualizados');
 }
 
@@ -2362,6 +2606,50 @@ function toggleEl(id,chvId){
   if(chv)chv.classList.toggle('open',!open);
 }
 function novoMacro(){if(!isEP()){alert('Ação restrita ao EP.');return;}const n=prompt('Nome do macroprocesso:');if(!n)return;ARQUITETURA.push({id:'m'+arqIdC++,nome:n,processos:[]});rArq();}
+
+function removerMacro(mid){
+  if(!isEP()){alert('Ação restrita ao EP.');return;}
+  const m=ARQUITETURA.find(x=>x.id===mid);
+  if(!m)return;
+  const totalProcs = m.processos.length;
+  const totalSubs  = m.processos.reduce((a,p)=>a+(p.subprocessos||[]).length,0);
+  const mapeados   = m.processos.reduce((a,p)=>{
+    const hasSubs = p.subprocessos&&p.subprocessos.length>0;
+    if(hasSubs) return a + p.subprocessos.filter(s=>s.proc_id).length;
+    return a + (p.proc_id?1:0);
+  },0);
+  const aviso = 'Apagar macroprocesso "' + m.nome + '"? Esta acao nao pode ser desfeita.';
+  if(!confirm(aviso))return;
+  // Break links in processos[]
+  m.processos.forEach(p=>{
+    const ids = p.subprocessos&&p.subprocessos.length>0 ? p.subprocessos.map(s=>s.id) : [p.id];
+    ids.forEach(id=>{ const pr=processos.find(x=>x.arq_id===id); if(pr) pr.arq_id=null; });
+  });
+  ARQUITETURA=ARQUITETURA.filter(x=>x.id!==mid);
+  fbAutoSave('removerMacro');
+  rArq();
+  toast('Macroprocesso removido','var(--amber)');
+}
+
+function removerProcArq(mid, pid){
+  if(!isEP()){alert('Ação restrita ao EP.');return;}
+  const m=ARQUITETURA.find(x=>x.id===mid);
+  const p=m?.processos.find(x=>x.id===pid);
+  if(!p)return;
+  const hasSubs = p.subprocessos&&p.subprocessos.length>0;
+  const mapeado = hasSubs
+    ? p.subprocessos.some(s=>s.proc_id)
+    : !!p.proc_id;
+  const aviso = 'Apagar processo "' + p.nome + '"? Esta acao nao pode ser desfeita.';
+  if(!confirm(aviso))return;
+  // Break links
+  const ids = hasSubs ? p.subprocessos.map(s=>s.id) : [p.id];
+  ids.forEach(id=>{ const pr=processos.find(x=>x.arq_id===id); if(pr) pr.arq_id=null; });
+  m.processos=m.processos.filter(x=>x.id!==pid);
+  fbAutoSave('removerProcArq');
+  rArq();
+  toast('Processo removido','var(--amber)');
+}
 function editMacro(mid){const m=ARQUITETURA.find(x=>x.id===mid);if(!m)return;const n=prompt('Nome:',m.nome);if(n){m.nome=n;rArq();}}
 function novoProcArq(mid){
   if(!isEP()){alert('Ação restrita ao EP.');return;}
@@ -2401,34 +2689,81 @@ function importarArqExcel(input){
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
       if(!rows.length){alert('Planilha vazia ou sem dados reconhecíveis.');return;}
-      const col=k=>['macroprocesso','processo','subprocesso','natureza','gerente_processo','gerente','area','objetivo_processo','objetivo','objetivo_estrategico','entradas','entregas','clientes','documentacoes','docs'].find(c=>Object.keys(rows[0]).some(r=>r.toLowerCase().replace(/\s+/g,'_')===c))||k;
+      // Normalize column name: lowercase, remove accents, collapse spaces
+      function normCol(s){ return s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); }
+      const allKeys = Object.keys(rows[0]);
+
+      // Find column by any keyword match (normalized)
+      function findCol(...variants){
+        for(const v of variants){
+          const nv = normCol(v);
+          const found = allKeys.find(k => normCol(k) === nv || normCol(k).includes(nv));
+          if(found) return found;
+        }
+        return null;
+      }
+
+      const cMacro  = findCol('macroprocesso','macro');
+      const cProc   = findCol('processo');
+      const cSub    = findCol('subprocessos','subprocesso','sub');
+      const cNat    = findCol('natureza');
+      const cGer    = findCol('gerente do processo','gerente processo','gerente');
+      const cArea   = findCol('area','área');
+      const cObj    = findCol('objetivo do processo','objetivo processo','objetivo do proc');
+      const cObje   = findCol('objetivos estrategicos','objetivo estrategico','objetivos estratégicos','objetivo estratégico');
+      const cEnt    = findCol('entradas do processo','entradas processo','entrada');
+      const cEntr   = findCol('entregas do processo','entregas processo','entrega');
+      const cCli    = findCol('clientes do processo','clientes processo','cliente');
+      const cDocs   = findCol('documentacao e regulamentacoes','documentacao','documentacoes','regulamentacao','docs');
+
+      // Helper to get value safely
+      function gv(row, col){ return col ? (row[col]||'').toString().trim() : ''; }
+
       let added=0;
       rows.forEach(row=>{
-        const macro=row[Object.keys(row).find(k=>k.toLowerCase().includes('macro'))||'']?.toString().trim();
-        const proc=row[Object.keys(row).find(k=>k.toLowerCase()==='processo')||'']?.toString().trim();
+        const macro = gv(row, cMacro);
+        const proc  = gv(row, cProc);
         if(!macro||!proc)return;
+
         let m=ARQUITETURA.find(x=>x.nome===macro);
         if(!m){m={id:'m'+arqIdC++,nome:macro,processos:[]};ARQUITETURA.push(m);}
+
         let p=m.processos.find(x=>x.nome===proc);
         if(!p){
           p={id:'ap'+arqIdC++,nome:proc,
-            natureza:row[Object.keys(row).find(k=>k.toLowerCase().includes('natureza'))||'']||'',
-            gerente:row[Object.keys(row).find(k=>k.toLowerCase().includes('gerente'))||'']||'',
-            area:row[Object.keys(row).find(k=>k.toLowerCase()==='area'||k.toLowerCase().includes('área'))||'']||'',
-            objetivo:row[Object.keys(row).find(k=>k.toLowerCase().includes('objetivo_proc')||k.toLowerCase()==='objetivo')||'']||'',
-            objetivo_estrategico:row[Object.keys(row).find(k=>k.toLowerCase().includes('estrateg'))||'']||'',
-            entradas:row[Object.keys(row).find(k=>k.toLowerCase().includes('entrada'))||'']||'',
-            entregas:row[Object.keys(row).find(k=>k.toLowerCase().includes('entrega'))||'']||'',
-            clientes:row[Object.keys(row).find(k=>k.toLowerCase().includes('cliente'))||'']||'',
-            docs:row[Object.keys(row).find(k=>k.toLowerCase().includes('doc')||k.toLowerCase().includes('regulam'))||'']||'',
+            natureza:           gv(row,cNat),
+            gerente:            gv(row,cGer),
+            area:               gv(row,cArea),
+            objetivo:           gv(row,cObj),
+            objetivo_estrategico: gv(row,cObje),
+            entradas:           gv(row,cEnt),
+            entregas:           gv(row,cEntr),
+            clientes:           gv(row,cCli),
+            docs:               gv(row,cDocs),
             subprocessos:[],proc_id:null};
           m.processos.push(p);added++;
         }
-        const sub=row[Object.keys(row).find(k=>k.toLowerCase().includes('subprocesso'))||'']?.toString().trim();
-        const subValido = sub && !/^n[ãa]o[\s\-_]*h[aá]/i.test(sub) && sub.toLowerCase()!=='nenhum' && sub.toLowerCase()!=='-' && sub.toLowerCase()!=='n/a' && sub!=='';
-        if(subValido&&!p.subprocessos.find(s=>s.nome===sub))p.subprocessos.push({id:'s'+arqIdC++,nome:sub,natureza:'',gerente:row[Object.keys(row).find(k=>k.toLowerCase().includes('gerente'))||'']||'',area:row[Object.keys(row).find(k=>k.toLowerCase()==='area'||k.toLowerCase().includes('área'))||'']||'',objetivo:row[Object.keys(row).find(k=>k.toLowerCase().includes('objetivo_proc')||k.toLowerCase()==='objetivo')||'']||'',objetivo_estrategico:row[Object.keys(row).find(k=>k.toLowerCase().includes('estrateg'))||'']||'',entradas:row[Object.keys(row).find(k=>k.toLowerCase().includes('entrada'))||'']||'',entregas:row[Object.keys(row).find(k=>k.toLowerCase().includes('entrega'))||'']||'',clientes:row[Object.keys(row).find(k=>k.toLowerCase().includes('cliente'))||'']||'',docs:row[Object.keys(row).find(k=>k.toLowerCase().includes('doc')||k.toLowerCase().includes('regulam'))||'']||'',proc_id:null});
+
+        const sub = gv(row, cSub);
+        const subValido = sub && !/^n[ãa]o[\s\-_]*h[aá]/i.test(sub) && sub.toLowerCase()!=='nenhum' && sub.toLowerCase()!=='-' && sub.toLowerCase()!=='n/a';
+        if(subValido && !p.subprocessos.find(s=>s.nome===sub)){
+          p.subprocessos.push({
+            id:'s'+arqIdC++, nome:sub,
+            natureza:             gv(row,cNat),
+            gerente:              gv(row,cGer),
+            area:                 gv(row,cArea),
+            objetivo:             gv(row,cObj),
+            objetivo_estrategico: gv(row,cObje),
+            entradas:             gv(row,cEnt),
+            entregas:             gv(row,cEntr),
+            clientes:             gv(row,cCli),
+            docs:                 gv(row,cDocs),
+            proc_id:null
+          });
+        }
       });
       rArq();
+      fbAutoSave('importarArq');
       toast('Importação concluída: '+added+' processo(s) adicionado(s)');
     }catch(err){alert('Erro ao ler planilha: '+err.message);}
     input.value='';
@@ -2561,7 +2896,7 @@ function rMelh(){
   updCounts();
 }
 
-function updM(id, s){ const m=melhorias.find(m=>m.id===id); if(m){m.status=s; rMelh();} }
+function updM(id, s){ const m=melhorias.find(m=>m.id===id); if(m){m.status=s; rMelh(); fbAutoSave('updM');} }
 
 function editMelh(id){
   const m = melhorias.find(x=>x.id===id);
@@ -2610,6 +2945,7 @@ function salvarEditMelh(id){
   m.prazo  = document.getElementById('em-prazo').value;
   m.desc   = document.getElementById('em-desc').value.trim();
   document.getElementById('melh-edit-modal').remove();
+  fbAutoSave('salvarMelh');
   rMelh(); toast('Melhoria atualizada');
 }
 
@@ -2707,6 +3043,7 @@ function importarIndicadores(input){
       });
 
       rInd();
+      fbAutoSave('importarInd');
       toast(added + ' indicador(es) importado(s)');
     } catch(err){ alert('Erro ao ler planilha: ' + err.message); }
     input.value = '';
@@ -2916,6 +3253,7 @@ function salvarNovoKpi(){
     kpis.push(obj);
   }
   document.getElementById('novo-kpi-modal').style.display = 'none';
+  fbAutoSave('salvarKpi');
   rInd(); toast('Indicador salvo');
 }
 
@@ -3079,6 +3417,7 @@ function salvarUsr(){
   }
   document.getElementById('usr-modal').style.display = 'none';
   renderAdmin();
+  fbAutoSave('salvarUsr');
   toast('Usuário salvo');
 }
 
@@ -3092,24 +3431,533 @@ function deletarUsr(){
   renderAdmin();
 }
 
+
 // ═══════════════════════════════════════════
-// INIT
+// FIREBASE — PERSISTÊNCIA
 // ═══════════════════════════════════════════
-document.getElementById('login-screen').style.display='flex';
-updCounts();
-// Restore EmailJS config from localStorage
-(function(){
+
+// Helper: wait for Firebase module to be ready (loaded async)
+function fbReady(){ return window._fbReady === true; }
+function fb(){ return window._fb; }
+
+// ── SAVE ──────────────────────────────────
+// Each collection stores one document per logical "table"
+// processos   → doc per process id
+// melhorias   → doc per melhoria id
+// kpis        → doc per kpi id
+// arquitetura → single doc "all"
+// usuarios    → single doc "all"
+// config      → single doc "ejs"
+
+async function fbSave(col, id, data){
+  if(!fbReady()) return;
   try {
-    const saved = localStorage.getItem('epcage_ejs');
-    if(saved){
-      const cfg = JSON.parse(saved);
-      ejsConfig.service  = cfg.service  || '';
-      ejsConfig.template = cfg.template || '';
-      ejsConfig.pubkey   = cfg.pubkey   || '';
+    const {db, doc, setDoc} = fb();
+    await setDoc(doc(db, col, String(id)), data);
+  } catch(e){ console.warn('fbSave error:', e.message); }
+}
+
+async function fbSaveAll(){
+  if(!fbReady()) return;
+  try {
+    const {db, doc, setDoc, writeBatch} = fb();
+    const batch = writeBatch(db);
+
+    // processos
+    processos.forEach(p => batch.set(doc(db,'processos',String(p.id)), p));
+    // melhorias
+    melhorias.forEach(m => batch.set(doc(db,'melhorias',String(m.id)), m));
+    // kpis
+    kpis.forEach(k => batch.set(doc(db,'kpis',String(k.id)), k));
+    // arquitetura (single doc — serialize full array)
+    batch.set(doc(db,'config','arquitetura'), {data: JSON.stringify(ARQUITETURA)});
+    // usuarios (single doc)
+    batch.set(doc(db,'config','usuarios'), {data: JSON.stringify(USUARIOS)});
+
+    await batch.commit();
+    toast('✓ Dados salvos na nuvem', 'var(--teal)');
+  } catch(e){ console.warn('fbSaveAll error:', e.message); toast('⚠ Erro ao salvar na nuvem: '+e.message,'var(--red)'); }
+}
+
+// ── LOAD ──────────────────────────────────
+async function fbLoad(){
+  if(!fbReady()){
+    console.info('Firebase não configurado — usando dados locais.');
+    return false;
+  }
+  try {
+    const {db, collection, getDocs, doc, getDoc} = fb();
+
+    // processos
+    const pSnap = await getDocs(collection(db,'processos'));
+    if(!pSnap.empty){
+      processos = [];
+      pSnap.forEach(d => processos.push(d.data()));
+      processos.sort((a,b) => a.id - b.id);
+      nextProcId = Math.max(...processos.map(p=>p.id), 0) + 1;
+    }
+
+    // melhorias
+    const mSnap = await getDocs(collection(db,'melhorias'));
+    if(!mSnap.empty){
+      melhorias = [];
+      mSnap.forEach(d => melhorias.push(d.data()));
+      nextMid = Math.max(...melhorias.map(m=>m.id), 0) + 1;
+    }
+
+    // kpis
+    const kSnap = await getDocs(collection(db,'kpis'));
+    if(!kSnap.empty){
+      kpis = [];
+      kSnap.forEach(d => kpis.push(d.data()));
+      _kpiIdC = Math.max(...kpis.map(k=>k.id), 0) + 1;
+    }
+
+    // arquitetura
+    const arqDoc = await getDoc(doc(db,'config','arquitetura'));
+    if(arqDoc.exists() && arqDoc.data().data){
+      ARQUITETURA = JSON.parse(arqDoc.data().data);
+    }
+
+    // usuarios
+    const usrDoc = await getDoc(doc(db,'config','usuarios'));
+    if(usrDoc.exists() && usrDoc.data().data){
+      USUARIOS = JSON.parse(usrDoc.data().data);
+    }
+
+    // emailjs config
+    const ejsDoc = await getDoc(doc(db,'config','ejs'));
+    if(ejsDoc.exists()){
+      const d = ejsDoc.data();
+      ejsConfig.service  = d.service  || '';
+      ejsConfig.template = d.template || '';
+      ejsConfig.pubkey   = d.pubkey   || '';
       if(ejsConfig.pubkey && typeof emailjs !== 'undefined'){
         emailjs.init(ejsConfig.pubkey);
       }
     }
+
+    console.log('Firebase: dados carregados');
+    return true;
+  } catch(e){
+    console.warn('fbLoad error:', e.message);
+    return false;
+  }
+}
+
+// ── AUTO-SAVE HOOKS ───────────────────────
+// Wrap key mutation functions to auto-save after changes
+
+function fbAutoSave(label){
+  if(!fbReady()) return;
+  // Debounce: wait 1.5s after last change before saving
+  clearTimeout(window._fbSaveTimer);
+  window._fbSaveTimer = setTimeout(()=>{
+    fbSaveAll();
+  }, 1500);
+}
+
+// Save EmailJS config to Firebase when saved locally
+async function fbSaveEjs(){
+  if(!fbReady()) return;
+  try {
+    const {db, doc, setDoc} = fb();
+    await setDoc(doc(db,'config','ejs'), ejsConfig);
+  } catch(e){ console.warn('fbSaveEjs error:', e.message); }
+}
+
+// ── SAVE BUTTON ───────────────────────────
+// Add a persistent "Salvar na nuvem" button to the sidebar footer
+function injectSaveBtn(){
+  const foot = document.querySelector('.aside-foot');
+  if(!foot || document.getElementById('fb-save-btn')) return;
+  const btn = document.createElement('button');
+  btn.id = 'fb-save-btn';
+  btn.className = 'logout-btn';
+  btn.style.cssText = 'color:rgba(255,255,255,.5);margin-top:4px;display:flex;align-items:center;gap:5px';
+  btn.innerHTML = '☁ Salvar na nuvem agora';
+  btn.onclick = fbSaveAll;
+  foot.appendChild(btn);
+}
+
+// ── STATUS INDICATOR ─────────────────────
+function fbStatusBadge(){
+  const brand = document.querySelector('.aside-top');
+  if(!brand || document.getElementById('fb-status')) return;
+  const span = document.createElement('div');
+  span.id = 'fb-status';
+  span.style.cssText = 'font-size:9px;margin-top:4px;letter-spacing:.05em;text-transform:uppercase';
+  span.textContent = fbReady() ? '● nuvem ativa' : '○ modo local';
+  span.style.color = fbReady() ? '#8DD5C8' : 'rgba(255,255,255,.25)';
+  brand.appendChild(span);
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+document.getElementById('login-screen').style.display='flex';
+
+// Boot sequence: load from Firebase (if configured), else fall back to localStorage
+(async function boot(){
+  // Show loading indicator
+  const loginBox = document.querySelector('.login-box');
+  const loadMsg = document.createElement('div');
+  loadMsg.id = 'boot-msg';
+  loadMsg.style.cssText = 'font-size:11px;color:rgba(255,255,255,.35);text-align:center;margin-top:.8rem';
+  loadMsg.textContent = 'Conectando à nuvem…';
+  if(loginBox) loginBox.appendChild(loadMsg);
+
+  // Wait up to 3s for Firebase module to init (it's loaded async as ES module)
+  let waited = 0;
+  while(!window._fbReady && window._fbReady !== false && waited < 30){
+    await new Promise(r=>setTimeout(r,100));
+    waited++;
+  }
+
+  // Load from Firebase
+  const loaded = await fbLoad();
+
+  // Fall back to localStorage for EmailJS if Firebase didn't have it
+  if(!ejsConfig.pubkey){
+    try {
+      const saved = localStorage.getItem('epcage_ejs');
+      if(saved){
+        const cfg = JSON.parse(saved);
+        ejsConfig.service  = cfg.service  || '';
+        ejsConfig.template = cfg.template || '';
+        ejsConfig.pubkey   = cfg.pubkey   || '';
+        if(ejsConfig.pubkey && typeof emailjs !== 'undefined') emailjs.init(ejsConfig.pubkey);
+      }
+    } catch(e){}
+  }
+
+  if(loadMsg) loadMsg.remove();
+  updCounts();
+  fbStatusBadge();
+  injectSaveBtn();
+})();
+
+// ═══════════════════════════════════════════
+// IA — AZURE OPENAI VIA FIREBASE FUNCTION
+// ═══════════════════════════════════════════
+
+// URL da Firebase Function (preencher após deploy)
+const AI_FUNCTION_URL = 'https://ai-kvhsbvnxhq-uc.a.run.app';
+
+async function chamarIA(mode, payload, targetEl){
+  if(!targetEl) return null;
+
+  // Show loading
+  targetEl.innerHTML = '<div class="ai-loading"><div class="spin"></div>IA analisando...</div>';
+
+  try {
+    const resp = await fetch(AI_FUNCTION_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({mode, payload}),
+    });
+    if(!resp.ok){
+      const err = await resp.json().catch(()=>({error:'Erro desconhecido'}));
+      throw new Error(err.error || 'Erro '+resp.status);
+    }
+    const data = await resp.json();
+    return data.result || '';
+  } catch(e){
+    targetEl.innerHTML = `<div class="ai-result"><div class="ai-result-lbl">⚠ Erro</div>${e.message}</div>`;
+    return null;
+  }
+}
+
+// ── 1. ANALISAR BPMN ─────────────────────
+async function iaAnalisarBpmn(which){
+  const p = curProc;
+  if(!p) return;
+  const xmlKey = which === 'asis' ? 'bpmnAsIs' : 'bpmnToBe';
+  const xml = p.mod?.[xmlKey];
+  if(!xml){ toast('Salve o BPMN antes de analisar.','var(--amber)'); return; }
+
+  const btn = document.getElementById('ia-bpmn-btn-'+which);
+  const el  = document.getElementById('ia-bpmn-result-'+which);
+  if(btn) btn.disabled = true;
+
+  const result = await chamarIA('analisar_bpmn', xml, el);
+
+  if(result){
+    try {
+      const json = JSON.parse(result);
+      // Auto-populate análise fields if on analise_asis step
+      if(p.etapa === 'analise_asis' || p.etapa === 'esboco'){
+        if(json.gargalos?.length)   { const f=document.getElementById('an-gar');   if(f) f.value = json.gargalos.join('\n'); }
+        if(json.retrabalhos?.length){ const f=document.getElementById('an-ret');   if(f) f.value = json.retrabalhos.join('\n'); }
+        if(json.gaps?.length)       { const f=document.getElementById('an-gap');   if(f) f.value = json.gaps.join('\n'); }
+        if(json.oportunidades?.length){ const f=document.getElementById('an-oport'); if(f) f.value = json.oportunidades.join('\n'); }
+        if(json.complexidade)       { const f=document.getElementById('an-comp');  if(f) f.value = json.complexidade; }
+      }
+      el.innerHTML = `<div class="ai-result">
+        <div class="ai-result-lbl">✦ Análise IA — ${which.toUpperCase()}</div>
+        <div style="margin-bottom:.5rem;color:var(--ink3)">${json.resumo||''}</div>
+        ${json.gargalos?.length?`<div style="margin-bottom:.3rem"><strong style="color:var(--red)">Gargalos:</strong> ${json.gargalos.join(' · ')}</div>`:''}
+        ${json.retrabalhos?.length?`<div style="margin-bottom:.3rem"><strong style="color:var(--amber)">Retrabalhos:</strong> ${json.retrabalhos.join(' · ')}</div>`:''}
+        ${json.gaps?.length?`<div style="margin-bottom:.3rem"><strong style="color:var(--purple)">Gaps:</strong> ${json.gaps.join(' · ')}</div>`:''}
+        ${json.oportunidades?.length?`<div><strong style="color:var(--green)">Oportunidades:</strong> ${json.oportunidades.join(' · ')}</div>`:''}
+        <div style="margin-top:.5rem;font-size:11px;color:var(--ink4)">Campos de análise preenchidos automaticamente ↑</div>
+      </div>`;
+    } catch(e){
+      el.innerHTML = `<div class="ai-result"><div class="ai-result-lbl">✦ Análise IA</div>${result}</div>`;
+    }
+  }
+  if(btn) btn.disabled = false;
+}
+
+// ── 2. GERAR POP ─────────────────────────
+async function iaGerarPop(){
+  const p = curProc;
+  if(!p) return;
+  const etapas = p.mod?.etapas_proc || [];
+  if(!etapas.length){ toast('Detalhe as etapas do processo antes de gerar o POP.','var(--amber)'); return; }
+
+  const btn = document.getElementById('ia-pop-btn');
+  const el  = document.getElementById('ia-pop-result');
+  if(btn) btn.disabled = true;
+
+  const payload = {
+    nome: p.nome,
+    area: p.area,
+    objetivo: p.objetivo,
+    macro: p.macro,
+    etapas: etapas.map(e=>({
+      seq: e.seq, nome: e.nome, tipo: e.tipo,
+      natureza: e.natureza, modo: e.modo,
+      executor: e.executor, desc: e.desc
+    })),
+    entradas: p.form?.pop?.ent || '',
+    saidas: p.form?.pop?.sai || '',
+  };
+
+  const result = await chamarIA('gerar_pop', JSON.stringify(payload), el);
+
+  if(result){
+    // Auto-fill POP fields
+    const ppAtiv = document.getElementById('pp-ativ');
+    const ppObj  = document.getElementById('pp-obj');
+    if(ppAtiv) ppAtiv.value = result;
+    if(ppObj && !ppObj.value) ppObj.value = p.objetivo || '';
+
+    el.innerHTML = `<div class="ai-result">
+      <div class="ai-result-lbl">✦ Rascunho gerado pela IA</div>
+      <div style="white-space:pre-wrap;font-size:12px">${result}</div>
+      <div style="margin-top:.5rem;font-size:11px;color:var(--ink4)">Conteúdo copiado para o campo "Atividades" do POP ↑</div>
+    </div>`;
+  }
+  if(btn) btn.disabled = false;
+}
+
+// ── 3. ASSISTENTE ─────────────────────────
+async function iaAssistente(){
+  const pergunta = document.getElementById('ia-chat-input')?.value?.trim();
+  if(!pergunta) return;
+
+  const el = document.getElementById('ia-chat-result');
+  const p  = curProc;
+
+  const contexto = p ? `Processo: ${p.nome} | Área: ${p.area} | Etapa: ${etLb(p.etapa)} | Fase: ${etFase(p.etapa)}` : '';
+  const payload  = contexto ? `Contexto: ${contexto}\n\nPergunta: ${pergunta}` : pergunta;
+
+  document.getElementById('ia-chat-input').value = '';
+  await chamarIA('assistente', payload, el);
+
+  if(el.querySelector('.ai-result')){
+    el.querySelector('.ai-result').innerHTML =
+      `<div class="ai-result-lbl">✦ Resposta</div>` + el.querySelector('.ai-result').innerHTML;
+  }
+}
+
+// ── 4. ANALISAR INDICADORES ───────────────
+async function iaAnalisarIndicadores(){
+  const area   = document.getElementById('ind-area-sel')?.value  || '';
+  const ciclo  = document.getElementById('ind-ciclo-sel')?.value || '';
+  const lista  = kpis.filter(k=>
+    (!area  || k.area  === area)  &&
+    (!ciclo || k.ciclo === ciclo)
+  );
+  if(!lista.length){ toast('Nenhum indicador visível para analisar.','var(--amber)'); return; }
+
+  const btn = document.getElementById('ia-ind-btn');
+  const el  = document.getElementById('ia-ind-result');
+  if(btn) btn.disabled = true;
+
+  const payload = lista.map(k=>({
+    area: k.area, nome: k.nome,
+    meta: k.meta, realizado: k.realizado,
+    pct: k.pct_realizado, periodo: k.periodo,
+  }));
+
+  const result = await chamarIA('analisar_indicadores', JSON.stringify(payload), el);
+
+  if(result){
+    el.innerHTML = `<div class="ai-result">
+      <div class="ai-result-lbl">✦ Análise IA dos indicadores</div>
+      <div style="line-height:1.7">${result}</div>
+    </div>`;
+  }
+  if(btn) btn.disabled = false;
+}
+
+// ── INJECT IA BUTTONS INTO PAGES ─────────
+
+// Called after rMod renders — adds IA button to BPMN bars
+function injectIaBpmn(which){
+  const bar = document.getElementById('bpmn-'+which+'-canvas')?.closest('.bpmn-wrap')?.querySelector('.bpmn-bar');
+  if(!bar || document.getElementById('ia-bpmn-btn-'+which)) return;
+  const btn = document.createElement('button');
+  btn.id = 'ia-bpmn-btn-'+which;
+  btn.className = 'ai-btn';
+  btn.innerHTML = '✦ Analisar com IA';
+  btn.onclick = ()=>iaAnalisarBpmn(which);
+  bar.appendChild(btn);
+
+  // Add result container after bpmn-wrap
+  const wrap = bar.closest('.bpmn-wrap');
+  if(wrap && !document.getElementById('ia-bpmn-result-'+which)){
+    const div = document.createElement('div');
+    div.id = 'ia-bpmn-result-'+which;
+    wrap.after(div);
+  }
+}
+
+// Called after rAcao renders pop step
+function injectIaPop(){
+  const btn = document.getElementById('ia-pop-btn');
+  if(btn) return; // already injected
+  const rows = document.querySelectorAll('.btn-row');
+  if(!rows.length) return;
+  const lastRow = rows[rows.length-1];
+
+  const aiBtn = document.createElement('button');
+  aiBtn.id = 'ia-pop-btn';
+  aiBtn.className = 'ai-btn';
+  aiBtn.style.marginRight = 'auto';
+  aiBtn.innerHTML = '✦ Gerar rascunho com IA';
+  aiBtn.onclick = iaGerarPop;
+  lastRow.prepend(aiBtn);
+
+  const resDiv = document.createElement('div');
+  resDiv.id = 'ia-pop-result';
+  lastRow.before(resDiv);
+}
+
+// Indicadores page — inject IA analysis button
+function injectIaIndicadores(){
+  const el = document.getElementById('ind-c');
+  if(!el || document.getElementById('ia-ind-panel')) return;
+  const panel = document.createElement('div');
+  panel.id = 'ia-ind-panel';
+  panel.className = 'ai-panel';
+  panel.style.marginBottom = '1rem';
+  panel.innerHTML = `<div class="ai-panel-t">✦ Análise inteligente dos indicadores</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button id="ia-ind-btn" class="ai-btn" onclick="iaAnalisarIndicadores()">Analisar indicadores visíveis com IA</button>
+      <span style="font-size:11px;color:var(--ink3)">Analisa os indicadores do filtro atual e gera um comentário executivo.</span>
+    </div>
+    <div id="ia-ind-result"></div>`;
+  el.before(panel);
+}
+
+// Assistente — inject chat panel in detalhe page
+function injectIaAssistente(){
+  const hist = document.getElementById('tab-hist');
+  if(!hist || document.getElementById('ia-chat-panel')) return;
+  const panel = document.createElement('div');
+  panel.id = 'ia-chat-panel';
+  panel.className = 'ai-panel';
+  panel.style.marginBottom = '1rem';
+  panel.innerHTML = `<div class="ai-panel-t">✦ Assistente do processo</div>
+    <div style="display:flex;gap:8px;margin-bottom:.5rem">
+      <input class="fi" id="ia-chat-input" placeholder="Pergunte algo sobre este processo..." style="flex:1"
+        onkeydown="if(event.key==='Enter')iaAssistente()">
+      <button class="ai-btn" onclick="iaAssistente()">Perguntar</button>
+    </div>
+    <div id="ia-chat-result"></div>`;
+  // Insert before the first tab panel
+  const firstTab = document.getElementById('tab-acao');
+  if(firstTab) firstTab.before(panel);
+}
+
+// Patch rMod and rAcao to inject IA buttons after render
+const _origRMod = rMod;
+rMod = function(p){
+  _origRMod(p);
+  setTimeout(()=>{ injectIaBpmn('asis'); injectIaBpmn('tobe'); }, 200);
+};
+
+const _origRAcao = rAcao;
+rAcao = function(p){
+  _origRAcao(p);
+  if(p.etapa === 'pop') setTimeout(injectIaPop, 100);
+};
+
+const _origRDetalhe = rDetalhe;
+rDetalhe = function(){
+  _origRDetalhe();
+  setTimeout(injectIaAssistente, 100);
+};
+
+const _origRInd = rInd;
+rInd = function(){
+  _origRInd();
+  setTimeout(injectIaIndicadores, 100);
+};
+
+// ── CONFIG URL ────────────────────────────
+// Show AI config field in notificacoes page for EP
+function injectAiConfigField(){
+  const cfgCard = document.getElementById('ejs-config-card');
+  if(!cfgCard || document.getElementById('ai-url-section')) return;
+  const sec = document.createElement('div');
+  sec.id = 'ai-url-section';
+  sec.innerHTML = `<hr style="margin:.8rem 0">
+    <div class="card-t" style="margin-bottom:.4rem">Configuração da IA (Azure OpenAI)</div>
+    <div class="ib ibp" style="font-size:11px;margin-bottom:.6rem">
+      Cole a URL da Firebase Function após o deploy. Formato: <code>https://ai-XXXXXXXX-uc.a.run.app</code>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input class="fi" id="ai-fn-url" placeholder="https://ai-XXXXXXXX-uc.a.run.app"
+        value="${AI_FUNCTION_URL !== 'https://ai-XXXXXXXX-uc.a.run.app' ? AI_FUNCTION_URL : ''}"
+        style="flex:1">
+      <button class="btn btn-p" onclick="salvarAiUrl()" style="font-size:12px">Salvar URL</button>
+    </div>`;
+  cfgCard.appendChild(sec);
+}
+
+function salvarAiUrl(){
+  const url = document.getElementById('ai-fn-url')?.value.trim();
+  if(!url){ alert('Informe a URL.'); return; }
+  try { localStorage.setItem('epcage_ai_url', url); } catch(e){}
+  // Patch the constant at runtime
+  window._aiUrl = url;
+  toast('URL da IA salva');
+}
+
+// Override chamarIA to use runtime URL if set
+const _origChamarIA = chamarIA;
+chamarIA = async function(mode, payload, targetEl){
+  const url = window._aiUrl || localStorage.getItem('epcage_ai_url') || AI_FUNCTION_URL;
+  window._aiUrl = url;
+  return _origChamarIA(mode, payload, targetEl);
+};
+
+// Patch rNotif to inject AI config field
+const _origRNotif = rNotif;
+rNotif = function(){
+  _origRNotif();
+  if(isEP()) setTimeout(injectAiConfigField, 100);
+};
+
+// Restore AI URL from localStorage on boot
+(function(){
+  try {
+    const saved = localStorage.getItem('epcage_ai_url');
+    if(saved) window._aiUrl = saved;
   } catch(e){}
 })();
 </script>
