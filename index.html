@@ -16,7 +16,7 @@
 <!-- Firebase -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   // ── PREENCHA AQUI APÓS CRIAR O PROJETO FIREBASE ──
   const FIREBASE_CONFIG = {
@@ -36,7 +36,7 @@
     try {
       const app = initializeApp(FIREBASE_CONFIG);
       const db  = getFirestore(app);
-      window._fb = { db, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch };
+      window._fb = { db, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc };
       window._fbReady = true;
       console.log('Firebase conectado');
     } catch(e) {
@@ -1454,6 +1454,11 @@ function excluirMapeamento(id){
   processos=processos.filter(x=>x.id!==id);
   renderProcs();
   updCounts();
+  // Apaga o documento do Firestore imediatamente (não basta só salvar os restantes)
+  if(fbReady()){
+    const {db,doc,deleteDoc}=fb();
+    deleteDoc(doc(db,'processos',String(id))).catch(e=>console.warn('deleteDoc error:',e.message));
+  }
   fbAutoSave('excluirMapeamento');
   toast('Mapeamento "'+p.nome+'" excluído.','var(--red)');
 }
