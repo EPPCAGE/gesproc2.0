@@ -1930,7 +1930,6 @@ const ACOES = {
       <div>
         <div id="etapas-proc-list">${renderEtapasProc(p.mod.etapas_proc||[])}</div>
       </div>
-      <script>setTimeout(atualizarMermaid,200)</script>
       <div style="position:sticky;top:1rem">
         <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:.85rem;box-shadow:var(--sh)">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
@@ -2329,6 +2328,9 @@ function rAcao(p){
   </div>`;
   if(p.etapa==='esboco'){
     setTimeout(()=>{initBpmnMod('asis',p);},120);
+  }
+  if(p.etapa==='det_etapas'){
+    setTimeout(atualizarMermaid,300);
   }
 }
 
