@@ -973,6 +973,29 @@ let USUARIOS = [
 ];
 let dominios = [{dominio:'sefaz.rs.gov.br',perfil:'ep'},{dominio:'cage.rs.gov.br',perfil:'ep'}];
 
+const APONTAMENTOS_PADRAO = [
+  {a:"Ausência de padronização das etapas do processo",c:"Inexistência de procedimento operacional formalizado ou atualização insuficiente da documentação",r:"Elaborar e institucionalizar um procedimento padrão, com definição clara das etapas, responsáveis e critérios de execução"},
+  {a:"Falta de definição clara de papéis e responsabilidades",c:"Distribuição informal de tarefas e ausência de matriz de responsabilidades",r:"Definir papéis e responsabilidades de forma formal, preferencialmente com uso de matriz RACI ou instrumento equivalente"},
+  {a:"Execução excessivamente dependente de conhecimento tácito",c:"Baixo nível de documentação e centralização do conhecimento em poucos servidores",r:"Documentar regras, fluxos e orientações operacionais, reduzindo a dependência de pessoas específicas"},
+  {a:"Retrabalho frequente ao longo do fluxo",c:"Falhas na qualidade das entradas, ausência de conferência inicial ou critérios mal definidos",r:"Implantar pontos de validação na entrada e revisar critérios de qualidade para reduzir devoluções e correções"},
+  {a:"Excesso de etapas de aprovação",c:"Cultura de controle excessivo e falta de revisão crítica do fluxo decisório",r:"Reavaliar os níveis de aprovação, eliminando instâncias redundantes e mantendo apenas as estritamente necessárias"},
+  {a:"Baixa rastreabilidade das atividades executadas",c:"Controles manuais, registros incompletos ou ausência de sistema de acompanhamento",r:"Implantar mecanismo de registro padronizado das etapas, decisões e responsáveis, preferencialmente em sistema"},
+  {a:"Inexistência de indicadores de desempenho do processo",c:"Foco predominantemente operacional e ausência de rotina de monitoramento",r:"Definir indicadores de prazo, volume, qualidade e produtividade, com metas e periodicidade de acompanhamento"},
+  {a:"Prazos de execução não monitorados",c:"Ausência de metas temporais, SLAs ou ferramenta de controle de tempo",r:"Estabelecer prazos de referência para cada etapa e monitorar desvios periodicamente"},
+  {a:"Gargalo concentrado em um único executor ou unidade",c:"Distribuição inadequada da carga de trabalho ou concentração de competências críticas",r:"Redistribuir atividades, promover capacitação cruzada e definir substitutos para funções críticas"},
+  {a:"Baixo nível de automação em tarefas repetitivas",c:"Processo historicamente manual e ausência de avaliação de oportunidades de automação",r:"Mapear tarefas repetitivas e avaliar automação por meio de sistemas, workflows, macros ou RPA"},
+  {a:"Falhas de comunicação entre áreas envolvidas",c:"Canais informais, ausência de regras de interação e desalinhamento entre unidades",r:"Definir fluxos de comunicação, pontos de contato e regras claras de encaminhamento e retorno"},
+  {a:"Entradas recebidas com baixa qualidade ou incompletas",c:"Falta de orientações ao demandante e ausência de critérios mínimos de recebimento",r:"Padronizar requisitos de entrada com checklists, formulários e orientações objetivas ao usuário"},
+  {a:"Ausência de segregação adequada de funções",c:"Acúmulo de atividades incompatíveis por um mesmo executor",r:"Revisar a distribuição das atividades para assegurar segregação entre execução, conferência e aprovação"},
+  {a:"Controles realizados de forma apenas reativa",c:"Atuação voltada à correção de falhas já ocorridas, sem gestão preventiva de riscos",r:"Implantar controles preventivos e matriz de riscos com definição de tratamentos e responsáveis"},
+  {a:"Inconsistência na aplicação de normas e critérios",c:"Interpretações divergentes entre executores e ausência de orientação consolidada",r:"Consolidar critérios normativos em manuais, FAQs ou orientações internas de uso comum"},
+  {a:"Ausência de gestão formal de riscos do processo",c:"Processo não submetido a avaliação estruturada de riscos e impactos",r:"Mapear riscos operacionais, classificar criticidade e definir planos de tratamento e monitoramento"},
+  {a:"Capacitação insuficiente dos executores do processo",c:"Treinamento eventual, inexistência de trilha formativa ou alta rotatividade",r:"Estruturar capacitação periódica, materiais de apoio e ações de reciclagem para os responsáveis"},
+  {a:"Baixa integração entre sistemas utilizados no processo",c:"Ferramentas isoladas, duplicidade de lançamentos e ausência de interoperabilidade",r:"Avaliar integração sistêmica entre ferramentas para eliminar registros duplicados e reduzir erros"},
+  {a:"Ausência de rotina de monitoramento e melhoria contínua",c:"Falta de governança do processo e inexistência de revisões periódicas",r:"Instituir rotina de acompanhamento do processo com reuniões periódicas, análise de indicadores e plano de ação"},
+  {a:"Processo desalinhado aos objetivos estratégicos da organização",c:"Desenho do processo focado apenas na execução operacional, sem conexão explícita com resultados institucionais",r:"Revisar o processo com base nos objetivos estratégicos, resultados esperados e valor entregue ao usuário final"},
+];
+
 let ARQUITETURA = [
   {id:'m1',nome:'Comunicação institucional',processos:[
     {id:'ap1',nome:'Comunicação externa',natureza:'Suporte',gerente:'Amilcar da Rosa',area:'Assessoria de Comunicação',objetivo:'',objetivo_estrategico:'Fortalecimento da imagem institucional',entradas:'',entregas:'',clientes:'',docs:'',
@@ -2254,21 +2277,37 @@ const ACOES = {
       <div id="aud3" class="tab-p" style="display:none">
         <div style="margin-bottom:1rem">${achadosHtml||'<div style="font-size:12px;color:var(--ink3)">Nenhum achado registrado.</div>'}</div>
         <div style="font-weight:600;font-size:13px;margin-bottom:.8rem;padding-top:.8rem;border-top:1px solid var(--bdr)">Registrar achado / não-conformidade</div>
-        <div class="g2">
-          <div class="fg"><label class="fl">Título</label><input class="fi" id="aud-a-titulo" placeholder="Título do achado"></div>
-          <div class="fg"><label class="fl">Tipo</label>
-            <select class="fi" id="aud-a-tipo">
-              <option>Não conformidade</option>
-              <option>Observação</option>
-              <option>Ponto de melhoria</option>
-              <option>Conformidade</option>
-            </select>
-          </div>
+        <!-- Picker: biblioteca de apontamentos padrão -->
+        <div style="margin-bottom:.8rem;display:flex;gap:8px;align-items:center">
+          <button class="btn" style="font-size:12px" onclick="toggleAudPicker()">📋 Usar apontamento padrão</button>
+          <span style="font-size:11px;color:var(--ink3)">ou preencha o formulário abaixo</span>
         </div>
-        <div class="fg"><label class="fl">Descrição</label><textarea class="fi" id="aud-a-desc" style="min-height:60px" placeholder="Descreva o achado..."></textarea></div>
-        <div class="fg"><label class="fl">Evidência</label><input class="fi" id="aud-a-evid" placeholder="Documento, observação, entrevista..."></div>
-        <div class="fg"><label class="fl">Critério infringido</label><input class="fi" id="aud-a-crit" placeholder="Qual critério não foi atendido?"></div>
-        <button class="btn" onclick="adicionarAchadoAuditoria()">＋ Registrar achado</button>
+        <div id="aud-picker" style="display:none;border:1px solid var(--bdr);border-radius:8px;margin-bottom:1rem;max-height:260px;overflow-y:auto;background:var(--bg2)">
+          <div style="padding:8px 12px;font-size:11px;color:var(--ink3);border-bottom:1px solid var(--bdr);position:sticky;top:0;background:var(--bg2)">Selecione um apontamento para pré-preencher o formulário:</div>
+          ${APONTAMENTOS_PADRAO.map((ap,i)=>`
+          <div onclick="preencherApontamento(${i})" style="padding:8px 12px;border-bottom:1px solid var(--bdr);cursor:pointer;font-size:12px;transition:background .15s" onmouseover="this.style.background='var(--teal-b)'" onmouseout="this.style.background=''">
+            <div style="font-weight:600;color:var(--ink)">${esc(ap.a)}</div>
+            <div style="color:var(--ink3);font-size:11px;margin-top:2px">${esc(ap.c)}</div>
+          </div>`).join('')}
+        </div>
+        <!-- Formulário -->
+        <div id="aud-form">
+          <div class="g2">
+            <div class="fg"><label class="fl">Título</label><input class="fi" id="aud-a-titulo" placeholder="Título do achado"></div>
+            <div class="fg"><label class="fl">Tipo</label>
+              <select class="fi" id="aud-a-tipo">
+                <option>Não conformidade</option>
+                <option>Observação</option>
+                <option>Ponto de melhoria</option>
+                <option>Conformidade</option>
+              </select>
+            </div>
+          </div>
+          <div class="fg"><label class="fl">Descrição / possível causa</label><textarea class="fi" id="aud-a-desc" style="min-height:60px" placeholder="Descreva o achado ou a possível causa..."></textarea></div>
+          <div class="fg"><label class="fl">Evidência</label><input class="fi" id="aud-a-evid" placeholder="Documento, observação, entrevista..."></div>
+          <div class="fg"><label class="fl">Recomendação / critério infringido</label><input class="fi" id="aud-a-crit" placeholder="Recomendação de melhoria ou critério não atendido"></div>
+          <button class="btn" onclick="adicionarAchadoAuditoria()">＋ Registrar achado</button>
+        </div>
       </div>
       <div id="aud4" class="tab-p" style="display:none">
         <div style="margin-bottom:1rem">${acoesHtml||'<div style="font-size:12px;color:var(--ink3)">Nenhuma ação registrada.</div>'}</div>
@@ -2861,6 +2900,36 @@ function adicionarQuestaoAuditoria(){
   p.auditoria.questoes.push(q);
   fbAutoSave('salvar');toast('Questão adicionada!','var(--teal)');
   rDetalhe();
+}
+function preencherApontamento(idx){
+  const ap = APONTAMENTOS_PADRAO[idx];
+  if(!ap) return;
+  document.getElementById('aud-a-titulo').value = ap.a;
+  document.getElementById('aud-a-desc').value = ap.c;
+  document.getElementById('aud-a-tipo').value = 'Não conformidade';
+  // Suggest the recommendation in the criteria field as a hint
+  document.getElementById('aud-a-crit').value = ap.r;
+  // Collapse picker, show form
+  const picker = document.getElementById('aud-picker');
+  const form = document.getElementById('aud-form');
+  if(picker) picker.style.display='none';
+  if(form) form.style.display='';
+  document.getElementById('aud-a-titulo').focus();
+}
+function toggleAudPicker(){
+  const picker = document.getElementById('aud-picker');
+  const form = document.getElementById('aud-form');
+  if(!picker||!form) return;
+  const showing = picker.style.display !== 'none';
+  picker.style.display = showing ? 'none' : '';
+  if(showing){
+    // switching to custom: clear fields
+    document.getElementById('aud-a-titulo').value='';
+    document.getElementById('aud-a-desc').value='';
+    document.getElementById('aud-a-crit').value='';
+    document.getElementById('aud-a-tipo').value='Não conformidade';
+  }
+  form.style.display='';
 }
 function adicionarAchadoAuditoria(){
   const p=curProc;if(!p)return;
