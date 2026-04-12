@@ -1938,30 +1938,46 @@ function av(etAtu, role, acao, _prazoEl, notifDest){
     }
   }
 }
-// Pergunta ao EP se deseja notificar o dono quando a próxima etapa é dele
-function perguntarNotifDono(etapaProxId, etapaConcluidaId){
+// Solicita prazo ao EP antes de passar tarefa ao dono
+function perguntarNotifDono(etapaProxId){
   const p=curProc;
   if(!p||!p.dono) return;
-  const titulo = 'Notificar Dono sobre nova tarefa?';
-  const msg = `A etapa <em>${etLb(etapaProxId)}</em> aguarda ação de <strong>${p.dono}</strong>. Deseja enviar notificação e e-mail agora?`;
+  const d=new Date(); d.setDate(d.getDate()+7);
+  const defaultPrazo=d.toISOString().split('T')[0];
+  const hoje=new Date().toISOString().split('T')[0];
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center';
-  ov.innerHTML=`<div style="background:var(--surf);border-radius:14px;padding:2rem 1.8rem;max-width:420px;width:92%;box-shadow:0 12px 40px rgba(0,0,0,.25)">
-    <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:.7rem">${titulo}</div>
-    <div style="font-size:13px;color:var(--ink3);margin-bottom:1.2rem">${msg} Um e-mail será enviado e registrado nas notificações.</div>
+  ov.innerHTML=`<div style="background:var(--surf);border-radius:14px;padding:2rem 1.8rem;max-width:440px;width:92%;box-shadow:0 12px 40px rgba(0,0,0,.25)">
+    <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:.5rem">📋 Tarefa encaminhada ao dono</div>
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:1rem">A etapa <em><strong>${etLb(etapaProxId)}</strong></em> aguarda ação de <strong>${p.dono}</strong>. Defina o prazo para que o dono conclua esta tarefa.</div>
+    <div class="fg" style="margin-bottom:1.2rem">
+      <label class="fl">Prazo para conclusão <span style="color:var(--red)">*</span></label>
+      <input class="fi" type="date" id="prazo-dono-inp" value="${defaultPrazo}" min="${hoje}">
+    </div>
     <div class="btn-row">
-      <button class="btn" onclick="this.closest('[style*=fixed]').remove()">Não, obrigado</button>
-      <button class="btn btn-p" onclick="confirmarNotifDono('${etapaProxId||''}');this.closest('[style*=fixed]').remove()">Sim, notificar →</button>
+      <button class="btn" onclick="salvarPrazoDono('${etapaProxId||''}',false)">Salvar sem notificar</button>
+      <button class="btn btn-p" onclick="salvarPrazoDono('${etapaProxId||''}',true)">Salvar e notificar dono →</button>
     </div>
   </div>`;
   document.body.appendChild(ov);
+  window._prazoDonoOv=ov;
+}
+function salvarPrazoDono(etapaProxId, notificar){
+  const prazo=document.getElementById('prazo-dono-inp')?.value;
+  if(!prazo){toast('Informe o prazo antes de continuar.','var(--red)');return;}
+  if(curProc) curProc.prazo_dono=prazo;
+  if(window._prazoDonoOv){window._prazoDonoOv.remove();window._prazoDonoOv=null;}
+  fbAutoSave('prazo_dono');
+  if(notificar) confirmarNotifDono(etapaProxId);
+  else toast('Prazo registrado para '+etLb(etapaProxId),'var(--teal)');
 }
 function confirmarNotifDono(etapaProxId){
   const p=curProc;
   if(!p||!p.dono) return;
   const email=getDonoEmail(p);
   if(!email){toast('E-mail do dono não encontrado no cadastro.','var(--amber)');return;}
-  const acao = 'Nova tarefa: '+etLb(etapaProxId)+' aguarda sua ação';
+  const pz=p.prazo_dono?p.prazo_dono.split('-').reverse().join('/'):'';
+  const acao='Nova tarefa: '+etLb(etapaProxId)+' — prazo: '+(pz||'a definir');
   enviarNotif(email, p.dono, acao, p.nome, '', usuarioLogado?.nome||'EP');
   toast('Notificação enviada para '+p.dono,'var(--teal)');
 }
@@ -2703,9 +2719,19 @@ function rAcao(p){
   if(role==='dono'){
     const etObj=ETAPAS.find(e=>e.id===p.etapa);
     const minhaTarefa=etObj?.resp==='dono'&&p.dono===usuarioLogado.nome;
+    const prazoBanner=(()=>{
+      if(!p.prazo_dono) return '';
+      const hoje=new Date().toISOString().split('T')[0];
+      const atrasado=p.prazo_dono<hoje;
+      const diff=Math.ceil((new Date(p.prazo_dono)-new Date())/(1000*60*60*24));
+      const pzFmt=p.prazo_dono.split('-').reverse().join('/');
+      const cor=atrasado?'var(--red)':diff<=3?'var(--amber)':'var(--ink2)';
+      const label=atrasado?` <span style="font-size:11px;font-weight:700;color:var(--red)">(ATRASADO)</span>`:diff<=3?` <span style="font-size:11px;color:var(--amber)">(${diff} dia(s))</span>`:'';
+      return `<span style="font-size:12px;font-weight:600;color:${cor}">📅 Prazo: ${pzFmt}${label}</span>`;
+    })();
     el.innerHTML=minhaTarefa
-      ?`<div class="ib ibt" style="margin-bottom:1rem">O EP encaminhou esta tarefa para você. Complete quando estiver pronto.</div>${buildAcaoCardHTML(ac,p,'')}`
-      :`<div class="card"><div class="ib iba" style="margin-bottom:1rem">Esta etapa — <strong>${ac.titulo}</strong> — está sendo conduzida pelo EP. Não há nenhuma ação necessária da sua parte neste momento.</div><div style="font-size:13px;color:var(--ink2)">${ac.sub}</div></div>`;
+      ?`<div class="ib ibt" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem"><span>O EP encaminhou esta tarefa para você. Complete quando estiver pronto.</span>${prazoBanner}</div>${buildAcaoCardHTML(ac,p,'')}`
+      :`<div class="card"><div class="ib iba" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem"><span>Esta etapa — <strong>${ac.titulo}</strong> — aguarda ação de <strong>${p.dono||'dono'}</strong>.</span>${prazoBanner}</div><div style="font-size:13px;color:var(--ink2)">${ac.sub}</div></div>`;
     if(p.etapa==='valid_dono' && minhaTarefa) setTimeout(()=>initBpmnMod('asis',p),120);
     return;
   }
