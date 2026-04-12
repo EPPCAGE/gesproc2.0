@@ -13,33 +13,9 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-<!-- Load config: try config.deploy.js (production) then config.local.js (development) -->
-<script>
-  // Try to load config files in order
-  const configFiles = ['config.deploy.js', 'config.local.js'];
-  let loaded = false;
-
-  function loadNextConfig(index) {
-    if (index >= configFiles.length) {
-      if (!loaded) console.info('No config file found - using defaults');
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = configFiles[index];
-    script.onload = () => {
-      console.info(`✓ Loaded ${configFiles[index]}`);
-      loaded = true;
-    };
-    script.onerror = () => {
-      console.debug(`${configFiles[index]} not found, trying next...`);
-      loadNextConfig(index + 1);
-    };
-    document.head.appendChild(script);
-  }
-
-  loadNextConfig(0);
-</script>
+<!-- Config: loaded synchronously so window.CONFIG is available immediately -->
+<script src="config.deploy.js" onerror="console.info('config.deploy.js not found')"></script>
+<script src="config.local.js" onerror="console.info('config.local.js not found')"></script>
 <!-- Firebase -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
