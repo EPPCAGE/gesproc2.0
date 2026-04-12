@@ -45,7 +45,7 @@
       const db  = getFirestore(app);
       window._fb = { db, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc };
       window._fbReady = true;
-      console.log('Firebase conectado');
+      console.info('Firebase conectado');
     } catch(e) {
       console.warn('Firebase init error:', e.message);
     }
@@ -568,6 +568,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
       <label class="btn" style="cursor:pointer">↑ Importar planilha
         <input type="file" id="ind-xlsx-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarIndicadores(this)">
       </label>
+      <button class="btn btn-r" onclick="limparKpisImportados()" title="Remove apenas os indicadores importados via planilha">🗑 Limpar importados</button>
       <button class="btn btn-p" onclick="abrirNovoKpi()">+ Novo indicador</button>
     </div>
   </div>
@@ -622,7 +623,22 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
         <div class="fg"><label class="fl">Ciclo</label><input class="fi" id="nkpi-ciclo" placeholder="Ex: JAN/2026 - DEZ/2026"></div>
       </div>
       <div class="g2">
-        <div class="fg"><label class="fl">Unidade de medida</label><input class="fi" id="nkpi-unidade" placeholder="Ex: %, dias, R$, qtd"></div>
+        <div class="fg"><label class="fl">Unidade de medida</label>
+          <select class="fi" id="nkpi-unidade">
+            <option value="">— Sem unidade —</option>
+            <option value="%">% (porcentagem)</option>
+            <option value="R$">R$ (reais)</option>
+            <option value="dias">dias</option>
+            <option value="dias úteis">dias úteis</option>
+            <option value="horas">horas</option>
+            <option value="min">min (minutos)</option>
+            <option value="qtd">qtd (quantidade)</option>
+            <option value="processos">processos</option>
+            <option value="servidores">servidores</option>
+            <option value="ocorrências">ocorrências</option>
+            <option value="pts">pts (pontos)</option>
+          </select>
+        </div>
         <div class="fg"><label class="fl">Polaridade</label>
           <select class="fi" id="nkpi-polaridade" onchange="calcPctReal()">
             <option value="Maior é melhor">↑ Maior é melhor</option>
@@ -1232,7 +1248,7 @@ function enviarNotif(para_email,para_nome,acao,proc_nome,prazo,de_nome){
       processo:proc_nome,acao,prazo:prazo||'Não definido',
       link:'https://eppcage.github.io/gesproc2.0/',
     }).then(()=>{
-      console.log('EmailJS: e-mail enviado para',para_email);
+      console.info('EmailJS: e-mail enviado para',para_email);
     }).catch(err=>{
       const msg = err?.text || err?.message || JSON.stringify(err);
       console.warn('EmailJS erro ao enviar:',msg);
@@ -1616,10 +1632,10 @@ function rDetalhe(){
 function abrirNovoProc(){
   // Populate macroprocesso select
   const sel=document.getElementById('novo-macro');
-  sel.innerHTML='<option value="">Selecione...</option>'+ARQUITETURA.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  sel.innerHTML='<option value="">Selecione...</option>'+ARQUITETURA.map(m=>`<option value="${esc(m.id)}">${esc(m.nome)}</option>`).join('');
   // Populate EP users
   const epSel=document.getElementById('novo-resp-ep');
-  epSel.innerHTML=USUARIOS.filter(u=>u.perfil==='ep').map(u=>`<option value="${u.nome}">${u.nome}</option>`).join('');
+  epSel.innerHTML=USUARIOS.filter(u=>u.perfil==='ep').map(u=>`<option value="${esc(u.nome)}">${esc(u.nome)}</option>`).join('');
   document.getElementById('novo-proc-sel').innerHTML='<option value="">Selecione o macroprocesso primeiro...</option>';
   document.getElementById('novo-preview').style.display='none';
   go('novo',document.getElementById('nb-proc'));
@@ -1652,7 +1668,7 @@ function filtrarProcArq(){
     sel.innerHTML='<option value="">Todos os processos/subprocessos já foram mapeados</option>';
     return;
   }
-  sel.innerHTML='<option value="">Selecione...</option>'+opcoes.map(o=>`<option value="${o.id}">${o.label}</option>`).join('');
+  sel.innerHTML='<option value="">Selecione...</option>'+opcoes.map(o=>`<option value="${esc(o.id)}">${esc(o.label)}</option>`).join('');
   document.getElementById('novo-preview').style.display='none';
 }
 function previewProcArq(){
@@ -1663,10 +1679,10 @@ function previewProcArq(){
   const item=findArqItem(mid,sid);
   if(!item){prev.style.display='none';return;}
   prev.style.display='block';
-  prev.innerHTML=`<strong>Área:</strong> ${item.area||'—'}<br>
-    <strong>Objetivo:</strong> ${item.objetivo||'—'}<br>
-    <strong>Entradas:</strong> ${item.entradas||'—'} &nbsp;·&nbsp; <strong>Entregas:</strong> ${item.entregas||'—'}<br>
-    <strong>Clientes:</strong> ${item.clientes||'—'}`;
+  prev.innerHTML=`<strong>Área:</strong> ${esc(item.area)||'—'}<br>
+    <strong>Objetivo:</strong> ${esc(item.objetivo)||'—'}<br>
+    <strong>Entradas:</strong> ${esc(item.entradas)||'—'} &nbsp;·&nbsp; <strong>Entregas:</strong> ${esc(item.entregas)||'—'}<br>
+    <strong>Clientes:</strong> ${esc(item.clientes)||'—'}`;
 }
 
 // Helper: find a process or subprocesso by id within a macro
@@ -1924,12 +1940,12 @@ const ACOES = {
         <div style="border-top:1px solid var(--bdr);padding-top:1rem;margin-top:.5rem">
           <div style="font-weight:600;font-size:13px;margin-bottom:.5rem">✦ Análise gerada por IA</div>
           <div id="ia-analise-result">${a.ia_resultado?`<div class="ai-result">
-            ${a.ia_resultado.resumo?`<div class="ai-result-lbl">Resumo</div><p>${a.ia_resultado.resumo}</p>`:''}
-            ${a.ia_resultado.gargalos?.length?`<div class="ai-result-lbl" style="margin-top:.8rem">Gargalos</div><ul>${a.ia_resultado.gargalos.map(g=>`<li>${g}</li>`).join('')}</ul>`:''}
-            ${a.ia_resultado.retrabalhos?.length?`<div class="ai-result-lbl" style="margin-top:.8rem">Retrabalhos</div><ul>${a.ia_resultado.retrabalhos.map(r=>`<li>${r}</li>`).join('')}</ul>`:''}
-            ${a.ia_resultado.gaps?.length?`<div class="ai-result-lbl" style="margin-top:.8rem">Gaps de controle</div><ul>${a.ia_resultado.gaps.map(g=>`<li>${g}</li>`).join('')}</ul>`:''}
-            ${a.ia_resultado.oportunidades?.length?`<div class="ai-result-lbl" style="margin-top:.8rem">Oportunidades</div><ul>${a.ia_resultado.oportunidades.map(o=>`<li>${o}</li>`).join('')}</ul>`:''}
-            ${a.ia_resultado.complexidade?`<div class="ai-result-lbl" style="margin-top:.8rem">Complexidade</div><p>${a.ia_resultado.complexidade}</p>`:''}
+            ${a.ia_resultado.resumo?`<div class="ai-result-lbl">Resumo</div><p>${esc(a.ia_resultado.resumo)}</p>`:''}
+            ${a.ia_resultado.gargalos?.length?`<div class="ai-result-lbl" style="margin-top:.8rem">Gargalos</div><ul>${a.ia_resultado.gargalos.map(g=>`<li>${esc(g)}</li>`).join('')}</ul>`:''}
+            ${a.ia_resultado.retrabalhos?.length?`<div class="ai-result-lbl" style="margin-top:.8rem">Retrabalhos</div><ul>${a.ia_resultado.retrabalhos.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>`:''}
+            ${a.ia_resultado.gaps?.length?`<div class="ai-result-lbl" style="margin-top:.8rem">Gaps de controle</div><ul>${a.ia_resultado.gaps.map(g=>`<li>${esc(g)}</li>`).join('')}</ul>`:''}
+            ${a.ia_resultado.oportunidades?.length?`<div class="ai-result-lbl" style="margin-top:.8rem">Oportunidades</div><ul>${a.ia_resultado.oportunidades.map(o=>`<li>${esc(o)}</li>`).join('')}</ul>`:''}
+            ${a.ia_resultado.complexidade?`<div class="ai-result-lbl" style="margin-top:.8rem">Complexidade</div><p>${esc(a.ia_resultado.complexidade)}</p>`:''}
           </div>`:'<div style="font-size:12px;color:var(--ink3)">Nenhuma análise gerada ainda.</div>'}</div>
           <button class="btn btn-t" onclick="gerarAnaliseIA()" style="margin-top:.8rem">✦ Gerar análise com IA</button>
         </div>
@@ -2499,7 +2515,7 @@ async function gerarAnaliseIA(){
       fbAutoSave('salvar');
       rDetalhe();
     }catch(e){
-      el.innerHTML=`<div class="ai-result"><div class="ai-result-lbl">✦ Análise IA</div>${result}</div>`;
+      el.innerHTML=`<div class="ai-result"><div class="ai-result-lbl">✦ Análise IA</div>${esc(result)}</div>`;
     }
   }
 }
@@ -4272,9 +4288,20 @@ function importarIndicadores(input){
   const reader = new FileReader();
   reader.onload = function(e){
     try{
-      const wb = XLSX.read(e.target.result, {type:'array'});
+      const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+
+      // Convert Excel date serial numbers or Date objects to readable strings
+      function fmtPeriodo(v){
+        if(!v) return '';
+        if(v instanceof Date) return v.toLocaleDateString('pt-BR',{month:'short',year:'numeric'});
+        if(typeof v === 'number' && v > 0){
+          const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+          return d.toLocaleDateString('pt-BR',{month:'short',year:'numeric'});
+        }
+        return v.toString().trim();
+      }
       if(!rows.length){ alert('Planilha vazia.'); return; }
 
       // Fuzzy column matcher — strips emojis/icons and normalizes
@@ -4309,7 +4336,7 @@ function importarIndicadores(input){
         const enunc   = (cEnunc   ? row[cEnunc]   : '').toString().trim();
         const desc    = (cDesc    ? row[cDesc]    : '').toString().trim();
         const period  = (cPeriod  ? row[cPeriod]  : 'Mensal').toString().trim();
-        const periodo = (cPeriodo ? row[cPeriodo] : '').toString().trim();
+        const periodo = fmtPeriodo(cPeriodo ? row[cPeriodo] : '');
         const ciclo   = (cCiclo   ? row[cCiclo]   : '').toString().trim();
         const ppe     = (cPPE     ? row[cPPE]     : 'Não').toString().trim();
         const indice  = parseFloat((cIndice  ? row[cIndice]  : 0).toString().replace(',','.')) || 0;
@@ -4326,6 +4353,7 @@ function importarIndicadores(input){
           periodicidade: period, periodo, ciclo,
           ppe, indice, meta, realizado: real,
           analise, pct_realizado: pctReal,
+          origem: 'importado',
         });
         added++;
       });
@@ -4523,19 +4551,26 @@ function kpiCard(k){
   const polaridade = k.polaridade || 'Maior é melhor';
   const unidade    = k.unidade ? ' '+k.unidade : '';
   const polIcon    = polaridade === 'Menor é melhor' ? '↓' : '↑';
-  let pct;
-  if(polaridade === 'Menor é melhor'){
-    pct = k.realizado > 0 ? Math.round((k.meta/k.realizado)*100) : (k.pct_realizado || 0);
-  } else {
-    pct = k.meta > 0 ? Math.round((k.realizado/k.meta)*100) : (k.pct_realizado || 0);
-  }
-  const ok   = pct >= 100;
-  const warn = pct >= 80 && pct < 100;
-  const color = ok ? 'var(--green)' : warn ? 'var(--amber)' : 'var(--red)';
-  const status = ok ? '✓ Meta atingida' : warn ? '~ Próximo da meta' : '✗ Abaixo da meta';
-  const barW  = Math.min(100, Math.max(0, pct));
+  const hasMeta    = k.meta > 0;
 
-  return `<div style="background:var(--surf);border:1px solid var(--bdr);border-left:3px solid ${color};border-radius:var(--r);padding:.85rem 1rem;box-shadow:var(--sh)">
+  let pct = null, color, status, barW;
+  if(hasMeta){
+    pct = polaridade === 'Menor é melhor'
+      ? (k.realizado > 0 ? Math.round((k.meta/k.realizado)*100) : (k.pct_realizado || 0))
+      : Math.round((k.realizado/k.meta)*100);
+    const ok   = pct >= 100;
+    const warn = pct >= 80 && pct < 100;
+    color  = ok ? 'var(--green)' : warn ? 'var(--amber)' : 'var(--red)';
+    status = ok ? '✓ Meta atingida' : warn ? '~ Próximo da meta' : '✗ Abaixo da meta';
+    barW   = Math.min(100, Math.max(0, pct));
+  } else {
+    color  = 'var(--ink3)';
+    status = null;
+    barW   = 0;
+  }
+  const borderColor = hasMeta ? color : 'var(--bdr)';
+
+  return `<div style="background:var(--surf);border:1px solid var(--bdr);border-left:3px solid ${borderColor};border-radius:var(--r);padding:.85rem 1rem;box-shadow:var(--sh)">
     <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;margin-bottom:.5rem">
       <div>
         <div style="font-size:12px;color:var(--ink3);margin-bottom:2px">${k.codigo ? '<strong>'+esc(k.codigo)+'</strong> · ' : ''}${esc(k.periodicidade)} · ${esc(k.periodo)}${k.ciclo?' · '+esc(k.ciclo):''}</div>
@@ -4543,33 +4578,33 @@ function kpiCard(k){
         ${k.desc ? `<div style="font-size:11px;color:var(--ink3);margin-top:2px">${esc(k.desc)}</div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-        <span style="font-size:11px;font-weight:600;color:${color}">${status}</span>
+        ${status ? `<span style="font-size:11px;font-weight:600;color:${color}">${status}</span>` : ''}
         <span style="font-size:10px;color:var(--ink3)">${polIcon} ${polaridade}</span>
         ${k.ppe==='Sim' ? '<span class="badge bb" style="font-size:10px">PPE</span>' : ''}
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:.6rem;font-size:12px">
+    <div style="display:grid;grid-template-columns:${hasMeta?'repeat(4,1fr)':'repeat(3,1fr)'};gap:8px;margin-bottom:.6rem;font-size:12px">
       <div style="text-align:center;padding:5px;background:var(--bg2);border-radius:6px">
         <div style="font-size:10px;color:var(--ink3);margin-bottom:1px">% Índice</div>
         <div style="font-weight:700;color:var(--ink)">${k.indice}%</div>
       </div>
       <div style="text-align:center;padding:5px;background:var(--bg2);border-radius:6px">
         <div style="font-size:10px;color:var(--ink3);margin-bottom:1px">Meta</div>
-        <div style="font-weight:700;color:var(--ink)">${k.meta}${unidade}</div>
+        <div style="font-weight:700;color:var(--ink)">${hasMeta ? k.meta+unidade : '—'}</div>
       </div>
       <div style="text-align:center;padding:5px;background:var(--bg2);border-radius:6px">
         <div style="font-size:10px;color:var(--ink3);margin-bottom:1px">Realizado</div>
         <div style="font-weight:700;color:var(--ink)">${k.realizado}${unidade}</div>
       </div>
-      <div style="text-align:center;padding:5px;background:var(--bg2);border-radius:6px;border:1px solid ${color}">
+      ${hasMeta ? `<div style="text-align:center;padding:5px;background:var(--bg2);border-radius:6px;border:1px solid ${color}">
         <div style="font-size:10px;color:var(--ink3);margin-bottom:1px">Desempenho</div>
         <div style="font-weight:700;color:${color}">${pct}%</div>
-      </div>
+      </div>` : ''}
     </div>
-    <div style="height:6px;background:var(--bg3);border-radius:99px;overflow:hidden;margin-bottom:.5rem">
+    ${hasMeta ? `<div style="height:6px;background:var(--bg3);border-radius:99px;overflow:hidden;margin-bottom:.5rem">
       <div style="height:100%;border-radius:99px;background:${color};width:${barW}%;transition:width .4s"></div>
-    </div>
-    ${k.analise ? `<div style="font-size:11px;color:var(--ink3);line-height:1.5;padding:.4rem .6rem;background:var(--surf2);border-radius:5px;border-left:2px solid ${color}">📝 ${esc(k.analise)}</div>` : ''}
+    </div>` : ''}
+    ${k.analise ? `<div style="font-size:11px;color:var(--ink3);line-height:1.5;padding:.4rem .6rem;background:var(--surf2);border-radius:5px;border-left:2px solid ${borderColor}">📝 ${esc(k.analise)}</div>` : ''}
     <div style="display:flex;gap:5px;margin-top:.5rem">
       <button class="btn" style="font-size:10px;padding:2px 8px" onclick="editKpi(${k.id})">✎ Editar</button>
       <button class="btn" style="font-size:10px;padding:2px 8px;color:var(--red);border-color:var(--red-b)" onclick="deletarKpi(${k.id})">×</button>
@@ -4674,6 +4709,7 @@ function salvarNovoKpi(){
     if(idx >= 0){ obj.id = parseInt(editId); kpis[idx] = obj; }
   } else {
     obj.id = _kpiIdC++;
+    obj.origem = 'manual';
     kpis.push(obj);
   }
   document.getElementById('novo-kpi-modal').style.display = 'none';
@@ -4686,8 +4722,25 @@ function deletarKpi(id){
   if(!delId) return;
   if(!confirm('Remover este indicador?')) return;
   kpis = kpis.filter(k=>k.id !== delId);
+  if(fbReady()){
+    const {db,doc,deleteDoc}=fb();
+    deleteDoc(doc(db,'kpis',String(delId))).catch(e=>console.warn('deleteKpi error:',e.message));
+  }
   document.getElementById('novo-kpi-modal').style.display = 'none';
   rInd(); toast('Indicador removido', 'var(--amber)');
+}
+
+async function limparKpisImportados(){
+  const importados = kpis.filter(k => k.origem === 'importado');
+  if(!importados.length){ toast('Nenhum indicador importado encontrado.', 'var(--amber)'); return; }
+  if(!confirm(`Remover ${importados.length} indicador(es) importado(s)? Os indicadores manuais serão mantidos.`)) return;
+  if(fbReady()){
+    const {db,doc,deleteDoc}=fb();
+    await Promise.all(importados.map(k => deleteDoc(doc(db,'kpis',String(k.id))).catch(e=>console.warn(e.message))));
+  }
+  kpis = kpis.filter(k => k.origem !== 'importado');
+  rInd();
+  toast(`${importados.length} indicador(es) importado(s) removido(s).`, 'var(--amber)');
 }
 
 // ═══════════════════════════════════════════
@@ -5008,27 +5061,25 @@ async function fbSave(col, id, data){
 async function fbSaveAll(){
   if(!fbReady()) return;
   try {
-    const {db, doc, setDoc, writeBatch} = fb();
-    const batch = writeBatch(db);
+    const {db, doc, writeBatch} = fb();
 
-    // processos
-    processos.forEach(p => batch.set(doc(db,'processos',String(p.id)), p));
-    // melhorias
-    melhorias.forEach(m => batch.set(doc(db,'melhorias',String(m.id)), m));
-    // kpis
-    kpis.forEach(k => batch.set(doc(db,'kpis',String(k.id)), k));
-    // publicacoes
-    publicacoes.forEach(p => batch.set(doc(db,'publicacoes',String(p.id)), p));
-    // arquitetura (single doc — serialize full array)
-    batch.set(doc(db,'config','arquitetura'), {data: JSON.stringify(ARQUITETURA)});
-    // usuarios (single doc)
-    batch.set(doc(db,'config','usuarios'), {data: JSON.stringify(USUARIOS)});
-    // mapeados manualmente (single doc)
-    batch.set(doc(db,'config','mapeados'), {data: JSON.stringify([...mapeadosManual])});
-    // críticos manualmente (single doc)
-    batch.set(doc(db,'config','criticos'), {data: JSON.stringify([...criticosManual])});
+    // Collect all set operations
+    const ops = [];
+    processos.forEach(p => ops.push({ref: doc(db,'processos',String(p.id)), data: p}));
+    melhorias.forEach(m => ops.push({ref: doc(db,'melhorias',String(m.id)), data: m}));
+    kpis.forEach(k => ops.push({ref: doc(db,'kpis',String(k.id)), data: k}));
+    publicacoes.forEach(p => ops.push({ref: doc(db,'publicacoes',String(p.id)), data: p}));
+    ops.push({ref: doc(db,'config','arquitetura'), data: {data: JSON.stringify(ARQUITETURA)}});
+    ops.push({ref: doc(db,'config','usuarios'),    data: {data: JSON.stringify(USUARIOS)}});
+    ops.push({ref: doc(db,'config','mapeados'),    data: {data: JSON.stringify([...mapeadosManual])}});
+    ops.push({ref: doc(db,'config','criticos'),    data: {data: JSON.stringify([...criticosManual])}});
 
-    await batch.commit();
+    // Firestore batch limit is 500 — split into chunks of 450
+    for(let i = 0; i < ops.length; i += 450){
+      const batch = writeBatch(db);
+      ops.slice(i, i + 450).forEach(({ref, data}) => batch.set(ref, data));
+      await batch.commit();
+    }
     toast('✓ Dados salvos na nuvem', 'var(--teal)');
   } catch(e){ console.warn('fbSaveAll error:', e.message); toast('⚠ Erro ao salvar na nuvem: '+e.message,'var(--red)'); }
 }
@@ -5113,7 +5164,7 @@ async function fbLoad(){
       }
     }
 
-    console.log('Firebase: dados carregados');
+    console.info('Firebase: dados carregados');
     return true;
   } catch(e){
     console.warn('fbLoad error:', e.message);
@@ -5292,7 +5343,7 @@ async function chamarIA(mode, payload, targetEl){
     const data = await resp.json();
     return data.result || '';
   } catch(e){
-    targetEl.innerHTML = `<div class="ai-result"><div class="ai-result-lbl">⚠ Erro</div>${e.message}</div>`;
+    targetEl.innerHTML = `<div class="ai-result"><div class="ai-result-lbl">⚠ Erro</div>${esc(e.message)}</div>`;
     return null;
   }
 }
@@ -5323,16 +5374,16 @@ async function iaAnalisarBpmn(which){
         if(json.complexidade)       { const f=document.getElementById('an-comp');  if(f) f.value = json.complexidade; }
       }
       el.innerHTML = `<div class="ai-result">
-        <div class="ai-result-lbl">✦ Análise IA — ${which.toUpperCase()}</div>
-        <div style="margin-bottom:.5rem;color:var(--ink3)">${json.resumo||''}</div>
-        ${json.gargalos?.length?`<div style="margin-bottom:.3rem"><strong style="color:var(--red)">Gargalos:</strong> ${json.gargalos.join(' · ')}</div>`:''}
-        ${json.retrabalhos?.length?`<div style="margin-bottom:.3rem"><strong style="color:var(--amber)">Retrabalhos:</strong> ${json.retrabalhos.join(' · ')}</div>`:''}
-        ${json.gaps?.length?`<div style="margin-bottom:.3rem"><strong style="color:var(--purple)">Gaps:</strong> ${json.gaps.join(' · ')}</div>`:''}
-        ${json.oportunidades?.length?`<div><strong style="color:var(--green)">Oportunidades:</strong> ${json.oportunidades.join(' · ')}</div>`:''}
+        <div class="ai-result-lbl">✦ Análise IA — ${esc(which.toUpperCase())}</div>
+        <div style="margin-bottom:.5rem;color:var(--ink3)">${esc(json.resumo||'')}</div>
+        ${json.gargalos?.length?`<div style="margin-bottom:.3rem"><strong style="color:var(--red)">Gargalos:</strong> ${json.gargalos.map(g=>esc(g)).join(' · ')}</div>`:''}
+        ${json.retrabalhos?.length?`<div style="margin-bottom:.3rem"><strong style="color:var(--amber)">Retrabalhos:</strong> ${json.retrabalhos.map(r=>esc(r)).join(' · ')}</div>`:''}
+        ${json.gaps?.length?`<div style="margin-bottom:.3rem"><strong style="color:var(--purple)">Gaps:</strong> ${json.gaps.map(g=>esc(g)).join(' · ')}</div>`:''}
+        ${json.oportunidades?.length?`<div><strong style="color:var(--green)">Oportunidades:</strong> ${json.oportunidades.map(o=>esc(o)).join(' · ')}</div>`:''}
         <div style="margin-top:.5rem;font-size:11px;color:var(--ink4)">Campos de análise preenchidos automaticamente ↑</div>
       </div>`;
     } catch(e){
-      el.innerHTML = `<div class="ai-result"><div class="ai-result-lbl">✦ Análise IA</div>${result}</div>`;
+      el.innerHTML = `<div class="ai-result"><div class="ai-result-lbl">✦ Análise IA</div>${esc(result)}</div>`;
     }
   }
   if(btn) btn.disabled = false;
@@ -5374,7 +5425,7 @@ async function iaGerarPop(){
 
     el.innerHTML = `<div class="ai-result">
       <div class="ai-result-lbl">✦ Rascunho gerado pela IA</div>
-      <div style="white-space:pre-wrap;font-size:12px">${result}</div>
+      <div style="white-space:pre-wrap;font-size:12px">${esc(result)}</div>
       <div style="margin-top:.5rem;font-size:11px;color:var(--ink4)">Conteúdo copiado para o campo "Atividades" do POP ↑</div>
     </div>`;
   }
@@ -5426,7 +5477,7 @@ async function iaAnalisarIndicadores(){
   if(result){
     el.innerHTML = `<div class="ai-result">
       <div class="ai-result-lbl">✦ Análise IA dos indicadores</div>
-      <div style="line-height:1.7">${result}</div>
+      <div style="line-height:1.7">${esc(result)}</div>
     </div>`;
   }
   if(btn) btn.disabled = false;
