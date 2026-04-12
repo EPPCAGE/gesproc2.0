@@ -26,23 +26,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inject Firebase credentials
+      - name: Inject Firebase credentials (if secrets are set)
         run: |
-          # Create config file with secrets injected
-          cat > config.deploy.js << 'EOF'
+          FIREBASE_KEY='${{ secrets.FIREBASE_API_KEY }}'
+          AI_URL='${{ secrets.AI_FUNCTION_URL }}'
+
+          # Only create config if secrets are provided
+          if [ ! -z "$FIREBASE_KEY" ] && [ ! -z "$AI_URL" ]; then
+            cat > config.deploy.js << EOF
           window.CONFIG = {
-            FIREBASE_API_KEY: '${{ secrets.FIREBASE_API_KEY }}',
-            AI_FUNCTION_URL: '${{ secrets.AI_FUNCTION_URL }}'
+            FIREBASE_API_KEY: '$FIREBASE_KEY',
+            AI_FUNCTION_URL: '$AI_URL'
           };
           EOF
 
-          # Update index.html to load the config
-          node -e "
-            const fs = require('fs');
-            let html = fs.readFileSync('index.html', 'utf8');
-            html = html.replace('<title>', '<script src=\"config.deploy.js\"><\/script>\n<title>');
-            fs.writeFileSync('index.html', html);
-          "
+            # Update index.html to load the config
+            node -e "
+              const fs = require('fs');
+              let html = fs.readFileSync('index.html', 'utf8');
+              html = html.replace('<title>', '<script src=\"config.deploy.js\"><\/script>\n<title>');
+              fs.writeFileSync('index.html', html);
+            "
+            echo "✓ Secrets injected"
+          else
+            echo "⚠ Secrets not configured - site will use placeholders"
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
