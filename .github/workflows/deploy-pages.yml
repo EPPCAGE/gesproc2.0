@@ -16,34 +16,28 @@ concurrency:
 
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Create config with secrets
-        env:
-          FIREBASE_KEY: ${{ secrets.FIREBASE_API_KEY }}
-          AI_URL: ${{ secrets.AI_FUNCTION_URL }}
+      - name: Inject secrets into config
         run: |
-          python3 -c "
-import json
-firebase_key = '${{ secrets.FIREBASE_API_KEY }}'
-ai_url = '${{ secrets.AI_FUNCTION_URL }}'
-config = f'window.CONFIG = {json.dumps({\"FIREBASE_API_KEY\": firebase_key, \"AI_FUNCTION_URL\": ai_url})};'
-with open('config.deploy.js', 'w') as f:
-    f.write(config)
-print('✓ Config created')
-          "
+          cat > config.deploy.js << 'EOF'
+          window.CONFIG = {
+            FIREBASE_API_KEY: "${{ secrets.FIREBASE_API_KEY }}",
+            AI_FUNCTION_URL: "${{ secrets.AI_FUNCTION_URL }}"
+          };
+          EOF
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+      - uses: actions/configure-pages@v4
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v2
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
 
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v1
+      - id: deployment
+        uses: actions/deploy-pages@v4
