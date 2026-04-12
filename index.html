@@ -3994,6 +3994,7 @@ function bpmnEditorHTML(which, existingXml){
       <button class="btn" onclick="bpmnZ('${which}',-1)">-</button>
       <button class="btn" onclick="bpmnFit('${which}')">Ajustar</button>
       <button class="btn" onclick="bpmnUndo('${which}')">Desfazer</button>
+      <button class="btn" onclick="bpmnColorize('${which}')" title="Aplicar cores por tipo de elemento">🎨 Colorir</button>
       <button class="btn" onclick="bpmnExport('${which}')">↓ XML</button>
       <button class="btn" onclick="bpmnImport('${which}')">↑ XML</button>
       <button class="btn btn-g" onclick="bpmnSave('${which}')">Salvar ${which.toUpperCase()}</button>
@@ -4018,7 +4019,7 @@ function initBpmnMod(which, p){
     if(l)l.innerHTML='<div style="text-align:center;padding:2rem"><div style="font-size:28px;margin-bottom:8px">📦</div><div style="font-size:13px;font-weight:600">Editor BPMN não disponível</div><div style="font-size:12px;color:var(--ink3);margin-top:4px">Requer conexão com internet</div></div>';
     return;
   }
-  const mod=new BpmnJS({container:'#bpmn-'+which+'-canvas'});
+  const mod=new BpmnJS({container:'#bpmn-'+which+'-canvas',keyboard:{bindTo:document}});
   bpmnModelers[which]=mod;
   bpmnDirty[which]=false;
   mod.on('commandStack.changed',()=>{
@@ -4074,6 +4075,34 @@ function bpmnImport(which){
     bpmnDirty[which]=true;
     const lbl=document.getElementById('bpmn-'+which+'-dirty');if(lbl)lbl.style.display='inline';
   }).catch(err=>alert('XML inválido: '+(err.message||err)));
+}
+
+function bpmnColorize(which){
+  const m=bpmnModelers[which];
+  if(!m){alert('Editor BPMN não carregado.');return;}
+  try{
+    const modeling=m.get('modeling');
+    const reg=m.get('elementRegistry');
+    reg.getAll().forEach(el=>{
+      const t=el.type||'';
+      if(t.includes('StartEvent'))
+        modeling.setColor(el,{fill:'#D1FAE5',stroke:'#059669'});
+      else if(t.includes('EndEvent'))
+        modeling.setColor(el,{fill:'#FEE2E2',stroke:'#DC2626'});
+      else if(t.includes('Gateway'))
+        modeling.setColor(el,{fill:'#FEF3C7',stroke:'#D97706'});
+      else if(t==='bpmn:Task'||t.includes('Activity'))
+        modeling.setColor(el,{fill:'#DBEAFE',stroke:'#2563EB'});
+      else if(t==='bpmn:SubProcess')
+        modeling.setColor(el,{fill:'#EDE9FE',stroke:'#7C3AED'});
+      else if(t==='bpmn:Participant'||t==='bpmn:Lane')
+        modeling.setColor(el,{fill:'#F0F9FF',stroke:'#0EA5E9'});
+    });
+    bpmnDirty[which]=true;
+    const lbl=document.getElementById('bpmn-'+which+'-dirty');
+    if(lbl)lbl.style.display='inline';
+    toast('✓ Cores aplicadas — clique em Salvar para persistir');
+  }catch(e){console.warn('bpmnColorize:',e);toast('Erro ao colorir: '+e.message,'var(--red)');}
 }
 
 // ─── DESENHO FINAL ───────────────────────────────────────────────────────────
