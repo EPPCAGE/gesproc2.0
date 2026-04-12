@@ -599,16 +599,25 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
         <div class="fg"><label class="fl">Período</label><input class="fi" id="nkpi-periodo" placeholder="Ex: janeiro/2026"></div>
         <div class="fg"><label class="fl">Ciclo</label><input class="fi" id="nkpi-ciclo" placeholder="Ex: JAN/2026 - DEZ/2026"></div>
       </div>
+      <div class="g2">
+        <div class="fg"><label class="fl">Unidade de medida</label><input class="fi" id="nkpi-unidade" placeholder="Ex: %, dias, R$, qtd"></div>
+        <div class="fg"><label class="fl">Polaridade</label>
+          <select class="fi" id="nkpi-polaridade" onchange="calcPctReal()">
+            <option value="Maior é melhor">↑ Maior é melhor</option>
+            <option value="Menor é melhor">↓ Menor é melhor</option>
+          </select>
+        </div>
+      </div>
       <div class="g3">
-        <div class="fg"><label class="fl">Meta (%)</label><input class="fi" id="nkpi-meta" type="number" placeholder="80"></div>
-        <div class="fg"><label class="fl">Realizado (%)</label><input class="fi" id="nkpi-real" type="number" placeholder="100"></div>
+        <div class="fg"><label class="fl">Meta</label><input class="fi" id="nkpi-meta" type="number" placeholder="80" oninput="calcPctReal()"></div>
+        <div class="fg"><label class="fl">Realizado</label><input class="fi" id="nkpi-real" type="number" placeholder="100" oninput="calcPctReal()"></div>
         <div class="fg"><label class="fl">% Índice</label><input class="fi" id="nkpi-indice" type="number" placeholder="80"></div>
       </div>
       <div class="g2">
         <div class="fg"><label class="fl">PPE?</label>
           <select class="fi" id="nkpi-ppe"><option>Não</option><option>Sim</option></select>
         </div>
-        <div class="fg"><label class="fl">% Realizado (calculado)</label><input class="fi" id="nkpi-pct-real" readonly placeholder="Calculado automaticamente"></div>
+        <div class="fg"><label class="fl">Desempenho (calculado)</label><input class="fi" id="nkpi-pct-real" readonly placeholder="Calculado automaticamente"></div>
       </div>
       <div class="fg"><label class="fl">Análise</label>
         <textarea class="fi" id="nkpi-analise" style="min-height:70px" placeholder="Comentário sobre o resultado..."></textarea>
@@ -4024,9 +4033,17 @@ function rInd(){
 }
 
 function kpiCard(k){
-  const pct = k.pct_realizado || (k.meta > 0 ? Math.round((k.realizado/k.meta)*100) : 0);
+  const polaridade = k.polaridade || 'Maior é melhor';
+  const unidade    = k.unidade ? ' '+k.unidade : '';
+  const polIcon    = polaridade === 'Menor é melhor' ? '↓' : '↑';
+  let pct;
+  if(polaridade === 'Menor é melhor'){
+    pct = k.realizado > 0 ? Math.round((k.meta/k.realizado)*100) : (k.pct_realizado || 0);
+  } else {
+    pct = k.meta > 0 ? Math.round((k.realizado/k.meta)*100) : (k.pct_realizado || 0);
+  }
   const ok   = pct >= 100;
-  const warn = pct >= k.meta * 0.8 && pct < 100;
+  const warn = pct >= 80 && pct < 100;
   const color = ok ? 'var(--green)' : warn ? 'var(--amber)' : 'var(--red)';
   const status = ok ? '✓ Meta atingida' : warn ? '~ Próximo da meta' : '✗ Abaixo da meta';
   const barW  = Math.min(100, Math.max(0, pct));
@@ -4040,6 +4057,7 @@ function kpiCard(k){
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
         <span style="font-size:11px;font-weight:600;color:${color}">${status}</span>
+        <span style="font-size:10px;color:var(--ink3)">${polIcon} ${polaridade}</span>
         ${k.ppe==='Sim' ? '<span class="badge bb" style="font-size:10px">PPE</span>' : ''}
       </div>
     </div>
@@ -4050,14 +4068,14 @@ function kpiCard(k){
       </div>
       <div style="text-align:center;padding:5px;background:var(--bg2);border-radius:6px">
         <div style="font-size:10px;color:var(--ink3);margin-bottom:1px">Meta</div>
-        <div style="font-weight:700;color:var(--ink)">${k.meta}%</div>
+        <div style="font-weight:700;color:var(--ink)">${k.meta}${unidade}</div>
       </div>
       <div style="text-align:center;padding:5px;background:var(--bg2);border-radius:6px">
         <div style="font-size:10px;color:var(--ink3);margin-bottom:1px">Realizado</div>
-        <div style="font-weight:700;color:var(--ink)">${k.realizado}%</div>
+        <div style="font-weight:700;color:var(--ink)">${k.realizado}${unidade}</div>
       </div>
       <div style="text-align:center;padding:5px;background:var(--bg2);border-radius:6px;border:1px solid ${color}">
-        <div style="font-size:10px;color:var(--ink3);margin-bottom:1px">% Realiz.</div>
+        <div style="font-size:10px;color:var(--ink3);margin-bottom:1px">Desempenho</div>
         <div style="font-weight:700;color:${color}">${pct}%</div>
       </div>
     </div>
@@ -4085,24 +4103,28 @@ function abrirNovoKpi(preselArea){
   document.getElementById('nkpi-period').value   = 'Mensal';
   document.getElementById('nkpi-periodo').value  = '';
   document.getElementById('nkpi-ciclo').value    = '';
-  document.getElementById('nkpi-ppe').value      = 'Não';
-  document.getElementById('nkpi-indice').value   = '';
-  document.getElementById('nkpi-meta').value     = '';
-  document.getElementById('nkpi-real').value     = '';
-  document.getElementById('nkpi-pct-real').value = '';
-  document.getElementById('nkpi-analise').value  = '';
+  document.getElementById('nkpi-ppe').value        = 'Não';
+  document.getElementById('nkpi-indice').value     = '';
+  document.getElementById('nkpi-meta').value       = '';
+  document.getElementById('nkpi-real').value       = '';
+  document.getElementById('nkpi-pct-real').value   = '';
+  document.getElementById('nkpi-unidade').value    = '';
+  document.getElementById('nkpi-polaridade').value = 'Maior é melhor';
+  document.getElementById('nkpi-analise').value    = '';
   modal.style.display = 'flex';
-
-  // Auto-calc % realizado
-  ['nkpi-meta','nkpi-real'].forEach(id=>{
-    document.getElementById(id).oninput = calcPctReal;
-  });
 }
 
 function calcPctReal(){
   const meta = parseFloat(document.getElementById('nkpi-meta').value) || 0;
   const real = parseFloat(document.getElementById('nkpi-real').value) || 0;
-  document.getElementById('nkpi-pct-real').value = meta > 0 ? Math.round((real/meta)*100)+'%' : '';
+  const pol  = document.getElementById('nkpi-polaridade').value;
+  let pct = '';
+  if(pol === 'Menor é melhor'){
+    pct = real > 0 ? Math.round((meta/real)*100)+'%' : '';
+  } else {
+    pct = meta > 0 ? Math.round((real/meta)*100)+'%' : '';
+  }
+  document.getElementById('nkpi-pct-real').value = pct;
 }
 
 function editKpi(id){
@@ -4124,8 +4146,9 @@ function editKpi(id){
   document.getElementById('nkpi-meta').value        = k.meta || '';
   document.getElementById('nkpi-real').value        = k.realizado || '';
   document.getElementById('nkpi-pct-real').value    = k.pct_realizado ? k.pct_realizado+'%' : '';
+  document.getElementById('nkpi-unidade').value     = k.unidade || '';
+  document.getElementById('nkpi-polaridade').value  = k.polaridade || 'Maior é melhor';
   document.getElementById('nkpi-analise').value     = k.analise || '';
-  ['nkpi-meta','nkpi-real'].forEach(fid=>{ document.getElementById(fid).oninput = calcPctReal; });
   modal.style.display = 'flex';
 }
 
@@ -4134,9 +4157,12 @@ function salvarNovoKpi(){
   const nome    = document.getElementById('nkpi-nome').value.trim();
   if(!area || !nome){ alert('Informe Área e Enunciado do indicador.'); return; }
 
-  const meta  = parseFloat(document.getElementById('nkpi-meta').value)   || 0;
-  const real  = parseFloat(document.getElementById('nkpi-real').value)   || 0;
-  const pct   = meta > 0 ? Math.round((real/meta)*100) : 0;
+  const meta      = parseFloat(document.getElementById('nkpi-meta').value)   || 0;
+  const real      = parseFloat(document.getElementById('nkpi-real').value)   || 0;
+  const polaridade = document.getElementById('nkpi-polaridade').value;
+  const pct = polaridade === 'Menor é melhor'
+    ? (real > 0 ? Math.round((meta/real)*100) : 0)
+    : (meta > 0 ? Math.round((real/meta)*100) : 0);
 
   const obj = {
     id: null,
@@ -4149,6 +4175,8 @@ function salvarNovoKpi(){
     ciclo:    document.getElementById('nkpi-ciclo').value.trim(),
     ppe:      document.getElementById('nkpi-ppe').value,
     indice:   parseFloat(document.getElementById('nkpi-indice').value) || 0,
+    unidade:  document.getElementById('nkpi-unidade').value.trim(),
+    polaridade,
     meta, realizado: real, analise: document.getElementById('nkpi-analise').value.trim(),
     pct_realizado: pct,
   };
