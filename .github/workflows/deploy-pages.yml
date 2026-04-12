@@ -34,12 +34,16 @@ jobs:
           firebase_key = os.environ.get('FIREBASE_KEY', '')
           ai_url = os.environ.get('AI_URL', '')
 
-          config = f"window.CONFIG = {json.dumps({{'FIREBASE_API_KEY': firebase_key, 'AI_FUNCTION_URL': ai_url}})};"
+          config_obj = {
+              'FIREBASE_API_KEY': firebase_key,
+              'AI_FUNCTION_URL': ai_url
+          }
+          config = f"window.CONFIG = {json.dumps(config_obj)};"
 
           with open('config.deploy.js', 'w') as f:
               f.write(config)
 
-          print(f"✓ Config created")
+          print("✓ Config created")
           print(f"  Firebase: {bool(firebase_key)}")
           print(f"  AI URL: {bool(ai_url)}")
           PYTHON
