@@ -2008,7 +2008,8 @@ const ACOES = {
       <button class="btn" style="font-size:12px" onclick="iaGerarRiscos()">✦ Gerar riscos com IA</button>
       <span id="risco-ia-status" style="font-size:11px;color:var(--ink3)"></span>
     </div>
-    <div id="risco-list" style="margin-bottom:.8rem">${rRiscoList(p.ent.riscos)}</div>
+    <div id="risco-list" style="margin-bottom:.5rem">${rRiscoList(p.ent.riscos)}</div>
+    <div id="risco-matrix">${rRiscoMatriz(p.ent.riscos)}</div>
     <div class="g3">
       <input class="fi" id="rd" placeholder="Descrição do risco">
       <select class="fi" id="rp"><option value="">Probabilidade</option><option>Baixa</option><option>Media</option><option>Alta</option></select>
@@ -2574,7 +2575,7 @@ async function iaGerarRiscos(){
         adicionados++;
       }
     });
-    document.getElementById('risco-list').innerHTML=rRiscoList(p.ent.riscos);
+    atualizarRiscoUI();
     if(statusEl)statusEl.textContent=adicionados+' riscos adicionados pela IA';
   } else {
     if(statusEl)statusEl.textContent='Erro ao gerar riscos.';
@@ -3705,6 +3706,57 @@ function sstab(id,el){
 // ═══════════════════════════════════════════
 // RISCOS
 // ═══════════════════════════════════════════
+const RISCO_MATRIZ_COR = {
+  'Alta|Baixo':   {bg:'#fef9c3',bd:'#ca8a04'},
+  'Alta|Medio':   {bg:'#fed7aa',bd:'#ea580c'},
+  'Alta|Alto':    {bg:'#fecaca',bd:'#dc2626'},
+  'Alta|Critico': {bg:'#f87171',bd:'#b91c1c'},
+  'Media|Baixo':  {bg:'#dcfce7',bd:'#16a34a'},
+  'Media|Medio':  {bg:'#fef9c3',bd:'#ca8a04'},
+  'Media|Alto':   {bg:'#fed7aa',bd:'#ea580c'},
+  'Media|Critico':{bg:'#fecaca',bd:'#dc2626'},
+  'Baixa|Baixo':  {bg:'#dcfce7',bd:'#16a34a'},
+  'Baixa|Medio':  {bg:'#dcfce7',bd:'#16a34a'},
+  'Baixa|Alto':   {bg:'#fef9c3',bd:'#ca8a04'},
+  'Baixa|Critico':{bg:'#fed7aa',bd:'#ea580c'},
+};
+function rRiscoMatriz(rs){
+  if(!rs||!rs.length) return '';
+  const probs=['Alta','Media','Baixa'];
+  const imps=['Baixo','Medio','Alto','Critico'];
+  const thS='padding:5px 6px;font-size:10px;font-weight:700;color:var(--ink3);text-align:center';
+  const rows=probs.map(prob=>{
+    const cells=imps.map(imp=>{
+      const cor=RISCO_MATRIZ_COR[`${prob}|${imp}`]||{bg:'var(--bg2)',bd:'var(--bdr)'};
+      const items=rs.filter(r=>r.prob===prob&&r.imp===imp)
+        .map(r=>`<div style="font-size:10px;background:rgba(0,0,0,.08);border-radius:3px;padding:2px 5px;margin-top:3px;line-height:1.3;word-break:break-word">${esc(r.desc)}</div>`).join('');
+      return `<td style="padding:5px;vertical-align:top;background:${cor.bg};border:1px solid ${cor.bd};min-width:70px">${items||'<span style="font-size:10px;color:rgba(0,0,0,.2)">—</span>'}</td>`;
+    }).join('');
+    return `<tr><td style="padding:4px 8px;font-size:10px;font-weight:700;color:var(--ink3);text-align:right;white-space:nowrap;border:1px solid var(--bdr);background:var(--bg2)">${prob}</td>${cells}</tr>`;
+  }).join('');
+  const legenda=[['#dcfce7','#16a34a','Baixo'],['#fef9c3','#ca8a04','Moderado'],['#fed7aa','#ea580c','Alto'],['#fecaca','#dc2626','Crítico']]
+    .map(([bg,bd,lb])=>`<div style="display:flex;align-items:center;gap:4px"><div style="width:11px;height:11px;background:${bg};border:1px solid ${bd};border-radius:2px"></div><span style="font-size:10px;color:var(--ink3)">${lb}</span></div>`).join('');
+  return `<div style="margin-top:1rem">
+    <div class="sec-lbl" style="margin-bottom:.5rem">Mapa de calor</div>
+    <div style="overflow-x:auto">
+      <table style="border-collapse:collapse;width:100%">
+        <thead><tr>
+          <th style="${thS};width:70px;text-align:right">Prob./Imp.</th>
+          ${imps.map(i=>`<th style="${thS}">${i}</th>`).join('')}
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="display:flex;gap:12px;margin-top:6px;flex-wrap:wrap">${legenda}</div>
+    </div>
+  </div>`;
+}
+function atualizarRiscoUI(){
+  const rs=curProc?.ent?.riscos;
+  const el=document.getElementById('risco-list');
+  const em=document.getElementById('risco-matrix');
+  if(el) el.innerHTML=rRiscoList(rs);
+  if(em) em.innerHTML=rRiscoMatriz(rs);
+}
 function rRiscoList(rs){
   if(!rs||!rs.length)return '<div style="font-size:12px;color:var(--ink4);padding:4px 0">Nenhum risco adicionado.</div>';
   return rs.map((r,i)=>`<div class="ri-item"><span>${r.desc}</span>${pbBadge(r.prob)}${ibBadge(r.imp)}<button class="ri-del" onclick="remR(${i})">×</button></div>`).join('');
@@ -3715,9 +3767,9 @@ function addRisco(){
   if(!curProc.ent.riscos)curProc.ent.riscos=[];
   curProc.ent.riscos.push({desc,prob,imp});
   document.getElementById('rd').value='';document.getElementById('rp').value='';document.getElementById('ri').value='';
-  document.getElementById('risco-list').innerHTML=rRiscoList(curProc.ent.riscos);
+  atualizarRiscoUI();
 }
-function remR(i){if(!curProc?.ent?.riscos)return;curProc.ent.riscos.splice(i,1);document.getElementById('risco-list').innerHTML=rRiscoList(curProc.ent.riscos);}
+function remR(i){if(!curProc?.ent?.riscos)return;curProc.ent.riscos.splice(i,1);atualizarRiscoUI();}
 
 // ═══════════════════════════════════════════
 // ARQUITETURA DE PROCESSOS
