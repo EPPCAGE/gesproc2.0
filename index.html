@@ -213,6 +213,9 @@ select.fi{cursor:pointer}
 /* etapas do processo */
 .etapa-proc{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:.85rem 1rem;margin-bottom:.5rem;transition:all .12s}
 .etapa-proc:hover{border-color:var(--bdr2)}
+.etapa-proc.drag-over{border-color:var(--blue);background:var(--blue-l);transform:scale(1.01)}
+.etapa-drag-handle{cursor:grab;color:var(--ink3);font-size:14px;flex-shrink:0;user-select:none;padding:0 2px}
+.etapa-drag-handle:active{cursor:grabbing}
 .etapa-proc-hd{display:flex;align-items:center;gap:8px;margin-bottom:.5rem}
 .etapa-tipo{font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;flex-shrink:0}
 .et-ativ{background:var(--blue-l);color:var(--blue)}
@@ -220,6 +223,22 @@ select.fi{cursor:pointer}
 .et-decisao{background:var(--amber-l);color:var(--amber)}
 .et-coment{background:var(--bg3);color:var(--ink3)}
 .etapa-nome{font-size:13px;font-weight:600;color:var(--ink);flex:1}
+/* audit executive report */
+.aud-report{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;margin-bottom:.5rem}
+.aud-rep-header{background:linear-gradient(135deg,#1e40af,#6d28d9);padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}
+.aud-rep-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:3px}
+.aud-rep-sub{font-size:12px;color:rgba(255,255,255,.8)}
+.aud-conf-badge{font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;white-space:nowrap;display:inline-block}
+.aud-rep-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--bdr)}
+.aud-stat{text-align:center;padding:.75rem .5rem;border-right:1px solid var(--bdr)}
+.aud-stat:last-child{border-right:none}
+.aud-stat-n{font-size:20px;font-weight:700;color:var(--ink);line-height:1}
+.aud-stat-l{font-size:10px;color:var(--ink3);margin-top:3px}
+.aud-rep-section{padding:1rem 1.5rem;border-bottom:1px solid var(--bdr)}
+.aud-rep-section:last-child{border-bottom:none}
+.aud-rep-stitle{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem}
+.aud-rep-p{font-size:12.5px;color:var(--ink2);line-height:1.7;margin:0 0 .4rem}
+.aud-rep-list{font-size:12px;color:var(--ink2);line-height:1.8;padding-left:1.2rem;margin:0}
 .etapa-seq{width:24px;height:24px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--ink3);flex-shrink:0}
 /* BPMN */
 .bpmn-wrap{border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden;background:#fafafa}
@@ -1988,7 +2007,10 @@ const ACOES = {
         <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:.85rem;box-shadow:var(--sh)">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
             <div style="font-size:12px;font-weight:600;color:var(--ink2)">Fluxo gerado</div>
-            <button class="btn" style="font-size:10px;padding:2px 8px" onclick="copiarMermaid()">⎘ Copiar código</button>
+            <div style="display:flex;gap:4px">
+              <button class="btn" style="font-size:10px;padding:2px 8px" onclick="atualizarMermaid()" title="Recarregar e corrigir o diagrama">↺ Ajustar</button>
+              <button class="btn" style="font-size:10px;padding:2px 8px" onclick="copiarMermaid()">⎘ Copiar código</button>
+            </div>
           </div>
           <div id="mermaid-preview" style="overflow-x:auto;min-height:80px"><div style="font-size:11px;color:var(--ink3);text-align:center;padding:1rem">Adicione etapas para visualizar o fluxo</div></div>
         </div>
@@ -2231,18 +2253,20 @@ const ACOES = {
         <button class="btn" onclick="adicionarAcaoAuditoria()">＋ Incluir ação</button>
       </div>
       <div id="aud5" class="tab-p" style="display:none">
-        <div class="fg"><label class="fl">Conformidade geral</label>
-          <select class="fi" id="aud-conf">
-            <option ${aud.conformidade==='Conforme'?'selected':''}>Conforme</option>
-            <option ${aud.conformidade==='Conforme com ressalvas'?'selected':''}>Conforme com ressalvas</option>
-            <option ${aud.conformidade==='Não conforme'?'selected':''}>Não conforme</option>
-          </select>
+        <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:1rem;flex-wrap:wrap">
+          <div class="fg" style="flex:1;min-width:180px;margin-bottom:0">
+            <label class="fl">Conformidade geral</label>
+            <select class="fi" id="aud-conf">
+              <option ${aud.conformidade==='Conforme'?'selected':''}>Conforme</option>
+              <option ${aud.conformidade==='Conforme com ressalvas'?'selected':''}>Conforme com ressalvas</option>
+              <option ${aud.conformidade==='Não conforme'?'selected':''}>Não conforme</option>
+            </select>
+          </div>
+          <button class="btn btn-t" id="aud-rel-btn" onclick="iaGerarRelatorioAuditoria()" style="white-space:nowrap;flex-shrink:0">✦ Gerar relatório com IA</button>
         </div>
-        <div class="fg"><label class="fl">Conclusão geral</label><textarea class="fi" id="aud-conc" style="min-height:80px" placeholder="Síntese dos resultados da auditoria...">${aud.conclusao||''}</textarea></div>
-        <div class="fg"><label class="fl">Recomendações finais</label><textarea class="fi" id="aud-rec" style="min-height:80px" placeholder="Principais recomendações...">${aud.recomendacoes||''}</textarea></div>
-        <div class="fg"><label class="fl">Trilha de auditoria / evidências</label><textarea class="fi" id="aud-trilha" style="min-height:70px" placeholder="Documentos, entrevistas realizadas, observações...">${aud.trilha||''}</textarea></div>
-        <div class="btn-row">
-          <button class="btn" onclick="salvarRelatorioAuditoria(false)">Salvar relatório</button>
+        <div id="aud-rel-result">${aud.relatorio_html||'<div class="ib ibsl">Clique em "Gerar relatório com IA" para criar o relatório executivo automaticamente a partir das abas anteriores.</div>'}</div>
+        <div class="btn-row" style="margin-top:1rem">
+          <button class="btn" onclick="salvarRelatorioAuditoria(false)">Salvar</button>
           <button class="btn btn-p" onclick="salvarRelatorioAuditoria(true)">Concluir auditoria →</button>
         </div>
       </div>`;
@@ -2662,8 +2686,116 @@ async function montarPPT(dados, p){
   await pptx.writeFile({fileName:nomeArq+'.pptx'});
 }
 function salvarAuditoria(concluir){
-  // Delegate to new full auditoria module
   salvarRelatorioAuditoria(concluir);
+}
+
+async function iaGerarRelatorioAuditoria(){
+  const p = curProc;
+  if(!p?.auditoria){ toast('Nenhuma auditoria iniciada.','var(--amber)'); return; }
+  const aud = p.auditoria;
+  const btn = document.getElementById('aud-rel-btn');
+  const el  = document.getElementById('aud-rel-result');
+  if(btn) btn.disabled = true;
+
+  const payload = JSON.stringify({
+    processo: p.nome, area: p.area,
+    objetivo: aud.objetivo||'', escopo: aud.escopo||'',
+    equipe: aud.equipe||'', metodologia: aud.metodologia||'',
+    criterios: aud.criterios||'',
+    data_inicio: aud.data_inicio||'', data_fim: aud.data_fim||'',
+    conformidade: document.getElementById('aud-conf')?.value || aud.conformidade || '',
+    questoes: (aud.questoes||[]).map(q=>({questao:q.questao,criterio:q.criterio})),
+    achados: (aud.achados_list||[]).map(a=>({tipo:a.tipo,titulo:a.titulo,desc:a.desc,evidencia:a.evidencia,criterio:a.criterio})),
+    acoes: (aud.acoes_list||[]).map(a=>({acao:a.acao,responsavel:a.responsavel,prazo:a.prazo,status:a.status})),
+  });
+
+  const result = await chamarIA('relatorio_auditoria', payload, el);
+  if(result){
+    try {
+      const json = JSON.parse(result.replace(/^```[a-z]*\n?/,'').replace(/```$/,'').trim());
+      const conf = document.getElementById('aud-conf')?.value || aud.conformidade || '';
+      const html = renderRelatorioAuditoria(json, conf, p, aud);
+      el.innerHTML = html;
+      p.auditoria.relatorio_html = html;
+    } catch(e){
+      const html = `<div class="ai-result"><div class="ai-result-lbl">✦ Relatório</div><div style="white-space:pre-wrap;font-size:12px">${esc(result)}</div></div>`;
+      el.innerHTML = html;
+      p.auditoria.relatorio_html = html;
+    }
+  }
+  if(btn) btn.disabled = false;
+}
+
+function renderRelatorioAuditoria(json, conf, p, aud){
+  const nc   = (aud.achados_list||[]).filter(a=>a.tipo==='Não conformidade').length;
+  const obs  = (aud.achados_list||[]).filter(a=>a.tipo==='Observação'||a.tipo==='Ponto de melhoria').length;
+  const confOk = conf==='Conforme';
+  const confWarn = conf==='Conforme com ressalvas';
+  const confColor = confOk?'#16a34a':confWarn?'#d97706':'#dc2626';
+  const confBg    = confOk?'#dcfce7':confWarn?'#fef3c7':'#fee2e2';
+
+  const achadosHtml = (aud.achados_list||[]).map(a=>{
+    const c = a.tipo==='Não conformidade'?'#dc2626':a.tipo==='Conformidade'?'#16a34a':'#d97706';
+    return `<div style="border-left:3px solid ${c};padding:.5rem .75rem;margin-bottom:.4rem;background:var(--surf2);border-radius:0 6px 6px 0">
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:2px">
+        <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;background:${c}22;color:${c}">${esc(a.tipo)}</span>
+        <strong style="font-size:12px">${esc(a.titulo)}</strong>
+      </div>
+      <div style="font-size:11.5px;color:var(--ink2)">${esc(a.desc)}</div>
+      ${a.evidencia?`<div style="font-size:10px;color:var(--ink3);margin-top:2px">Evidência: ${esc(a.evidencia)}</div>`:''}
+    </div>`;
+  }).join('');
+
+  const acoesHtml = (aud.acoes_list||[]).map(a=>{
+    const sc = a.status==='Concluída'?'#16a34a':a.status==='Em andamento'?'#d97706':'#6b7280';
+    return `<div style="display:flex;gap:8px;align-items:flex-start;padding:.4rem 0;border-bottom:1px solid var(--bdr)">
+      <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:${sc}22;color:${sc};flex-shrink:0;margin-top:1px">${esc(a.status)}</span>
+      <div style="flex:1"><div style="font-size:12px">${esc(a.acao)}</div><div style="font-size:10px;color:var(--ink3)">${esc(a.responsavel)} · ${esc(a.prazo)}</div></div>
+    </div>`;
+  }).join('');
+
+  return `<div class="aud-report">
+    <div class="aud-rep-header">
+      <div>
+        <div class="aud-rep-title">Relatório Executivo de Auditoria</div>
+        <div class="aud-rep-sub">${esc(p.nome)} · ${esc(p.area)}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.65);margin-top:3px">Emitido em ${now()}${aud.equipe?' · Equipe: '+esc(aud.equipe):''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:10px;color:rgba(255,255,255,.7);margin-bottom:5px">Conformidade geral</div>
+        <span class="aud-conf-badge" style="background:${confBg};color:${confColor}">${esc(conf)}</span>
+      </div>
+    </div>
+    <div class="aud-rep-stats">
+      <div class="aud-stat"><div class="aud-stat-n">${(aud.questoes||[]).length}</div><div class="aud-stat-l">Questões</div></div>
+      <div class="aud-stat"><div class="aud-stat-n" style="color:#dc2626">${nc}</div><div class="aud-stat-l">Não conformidades</div></div>
+      <div class="aud-stat"><div class="aud-stat-n" style="color:#d97706">${obs}</div><div class="aud-stat-l">Observações</div></div>
+      <div class="aud-stat"><div class="aud-stat-n">${(aud.acoes_list||[]).length}</div><div class="aud-stat-l">Ações corretivas</div></div>
+    </div>
+    <div class="aud-rep-section">
+      <div class="aud-rep-stitle">Sumário Executivo</div>
+      <p class="aud-rep-p">${esc(json.sumario||'')}</p>
+      ${json.conformidade_justificativa?`<p class="aud-rep-p" style="color:var(--ink3);font-style:italic">${esc(json.conformidade_justificativa)}</p>`:''}
+    </div>
+    ${json.achados_resumo?.length?`<div class="aud-rep-section">
+      <div class="aud-rep-stitle">Principais Achados</div>
+      <ul class="aud-rep-list">${json.achados_resumo.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>
+    </div>`:''}
+    ${achadosHtml?`<div class="aud-rep-section">
+      <div class="aud-rep-stitle">Achados Detalhados</div>${achadosHtml}
+    </div>`:''}
+    ${json.recomendacoes?.length?`<div class="aud-rep-section">
+      <div class="aud-rep-stitle">Recomendações</div>
+      <ul class="aud-rep-list">${json.recomendacoes.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>
+    </div>`:''}
+    ${acoesHtml?`<div class="aud-rep-section">
+      <div class="aud-rep-stitle">Ações Corretivas</div>${acoesHtml}
+    </div>`:''}
+    <div class="aud-rep-section">
+      <div class="aud-rep-stitle">Conclusão</div>
+      <p class="aud-rep-p">${esc(json.conclusao||'')}</p>
+    </div>
+  </div>`;
 }
 function salvarPlanejamentoAuditoria(){
   const p=curProc;if(!p)return;
@@ -2732,15 +2864,9 @@ function adicionarAcaoAuditoria(){
 function salvarRelatorioAuditoria(concluir){
   const p=curProc;if(!p)return;
   if(!p.auditoria)p.auditoria={};
-  Object.assign(p.auditoria,{
-    conformidade:document.getElementById('aud-conf')?.value||'',
-    conclusao:document.getElementById('aud-conc')?.value||'',
-    recomendacoes:document.getElementById('aud-rec')?.value||'',
-    trilha:document.getElementById('aud-trilha')?.value||'',
-    data:now(),
-    concluida:concluir
-  });
-  if(concluir)push(p,'auditoria','EP','Auditoria concluída. Conformidade: '+p.auditoria.conformidade);
+  const conf = document.getElementById('aud-conf')?.value || p.auditoria.conformidade || '';
+  Object.assign(p.auditoria,{conformidade:conf, data:now(), concluida:concluir});
+  if(concluir)push(p,'auditoria','EP','Auditoria concluída. Conformidade: '+conf);
   fbAutoSave('salvar');toast(concluir?'Auditoria concluída!':'Relatório salvo!','var(--teal)');
   if(concluir){updCounts();rDetalhe();}
 }
@@ -2920,8 +3046,13 @@ function renderEtapaDetalheConteudo(e){
 function renderEtapasProc(etapas){
   if(!etapas||!etapas.length)return '<div class="ib ibsl">Nenhuma etapa adicionada. Extraia do BPMN ou adicione manualmente.</div>';
   return etapas.map((e)=>`
-    <div class="etapa-proc" id="ep-${e.id}">
+    <div class="etapa-proc" id="ep-${e.id}" draggable="true"
+      ondragstart="onEtapaDragStart(event,'${e.id}')"
+      ondragend="onEtapaDragEnd(event,'${e.id}')"
+      ondragover="onEtapaDragOver(event,'${e.id}')"
+      ondrop="onEtapaDrop(event,'${e.id}')">
       <div class="etapa-proc-hd">
+        <span class="etapa-drag-handle" title="Arrastar para reordenar">⠿</span>
         <div class="etapa-seq">${e.seq}</div>
         <span class="etapa-tipo ${tipoCls(e.tipo)}">${e.tipo}</span>
         <div class="etapa-nome">${e.nome}</div>
@@ -3066,8 +3197,43 @@ function toggleEtapaDetalhe(id){
 function remEtapaProc(id){
   if(!curProc?.mod?.etapas_proc)return;
   curProc.mod.etapas_proc=curProc.mod.etapas_proc.filter(e=>e.id!==id);
+  curProc.mod.etapas_proc.forEach((e,i)=>e.seq=i+1);
   document.getElementById('etapas-proc-list').innerHTML=renderEtapasProc(curProc.mod.etapas_proc);
   atualizarMermaid();
+}
+
+// ── DRAG-AND-DROP REORDERING ─────────────────
+let _dragSrcId = null;
+function onEtapaDragStart(e, id){
+  _dragSrcId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(()=>{ const el=document.getElementById('ep-'+id); if(el) el.style.opacity='0.4'; }, 0);
+}
+function onEtapaDragEnd(e, id){
+  const el=document.getElementById('ep-'+id); if(el) el.style.opacity='';
+  document.querySelectorAll('.etapa-proc').forEach(el=>el.classList.remove('drag-over'));
+}
+function onEtapaDragOver(e, id){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  if(id !== _dragSrcId){
+    document.querySelectorAll('.etapa-proc').forEach(el=>el.classList.remove('drag-over'));
+    document.getElementById('ep-'+id)?.classList.add('drag-over');
+  }
+}
+function onEtapaDrop(e, id){
+  e.preventDefault(); e.stopPropagation();
+  if(!_dragSrcId || _dragSrcId === id) return;
+  const etapas = curProc.mod.etapas_proc;
+  const srcIdx = etapas.findIndex(x=>x.id===_dragSrcId);
+  const tgtIdx = etapas.findIndex(x=>x.id===id);
+  if(srcIdx<0||tgtIdx<0) return;
+  const [moved] = etapas.splice(srcIdx, 1);
+  etapas.splice(tgtIdx, 0, moved);
+  etapas.forEach((e,i)=>e.seq=i+1);
+  document.getElementById('etapas-proc-list').innerHTML = renderEtapasProc(etapas);
+  atualizarMermaid();
+  fbAutoSave('reordenarEtapas');
 }
 function addEtapaProc(){
   if(!curProc?.mod)return;
