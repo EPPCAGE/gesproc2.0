@@ -1677,7 +1677,11 @@ function renderProcs(){
   const srch=(document.getElementById('srch-p')?.value||'').toLowerCase();
   const isDono=usuarioLogado?.perfil==='dono';
   const lista=processos.filter(p=>{
-    if(isDono&&p.dono!==usuarioLogado.nome)return false;
+    if(isDono){
+      const isDonoProc=(p.dono===usuarioLogado.nome);
+      const isInteressado=(p.interessados||[]).includes(usuarioLogado.email);
+      if(!isDonoProc&&!isInteressado)return false;
+    }
     return(!filtFaseAtual||etFase(p.etapa)===filtFaseAtual)&&(!srch||p.nome.toLowerCase().includes(srch)||p.macro.toLowerCase().includes(srch));
   });
   const el=document.getElementById('proc-list'),em=document.getElementById('proc-empty');
