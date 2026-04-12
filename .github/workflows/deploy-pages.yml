@@ -16,6 +16,9 @@ concurrency:
 
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
 
     steps:
@@ -49,12 +52,12 @@ jobs:
           PYTHON
 
       - name: Verify config
-        run: cat config.deploy.js
+        run: ls -lh config.deploy.js && cat config.deploy.js
 
-      - name: Configure Pages
+      - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Upload Pages artifact
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
