@@ -220,6 +220,7 @@ select.fi{cursor:pointer}
 .etapa-tipo{font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;flex-shrink:0}
 .et-ativ{background:var(--blue-l);color:var(--blue)}
 .et-evento{background:var(--green-l);color:var(--green)}
+.et-evento-fim{background:var(--red-b);color:var(--red)}
 .et-decisao{background:var(--amber-l);color:var(--amber)}
 .et-coment{background:var(--bg3);color:var(--ink3)}
 .etapa-nome{font-size:13px;font-weight:600;color:var(--ink);flex:1}
@@ -1635,6 +1636,9 @@ function excluirMapeamento(id){
 }
 function abrirProc(id){
   curProc=processos.find(p=>p.id===id);
+  // Keep etapasIdC ahead of any existing etapa IDs in this process
+  const nums=(curProc?.mod?.etapas_proc||[]).map(e=>parseInt((e.id||'').replace('ep',''))||0);
+  if(nums.length) etapasIdC=Math.max(etapasIdC,...nums)+1;
   rDetalhe();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
@@ -2921,7 +2925,12 @@ function gerarAtivPop(etapas){
 const NATUREZAS=['Execucao','Comunicacao','Distribuicao','Preparacao','Revisao','Aprovacao'];
 let etapasIdC=100;
 
-function tipoCls(t){return t==='Atividade'?'et-ativ':t==='Decisao'?'et-decisao':t==='Evento'?'et-evento':'et-coment';}
+function tipoCls(t,sub){
+  if(t==='Atividade') return 'et-ativ';
+  if(t==='Decisao')  return 'et-decisao';
+  if(t==='Evento')   return sub==='Fim' ? 'et-evento-fim' : 'et-evento';
+  return 'et-coment';
+}
 
 // Navigate a dot-path like "ep100.c0.a1.c0" into etapas_proc nested objects
 function resolveGwPath(path){
@@ -3033,7 +3042,7 @@ function renderEtapaDetalheConteudo(e){
         oninput="curProc.mod.etapas_proc.find(x=>x.id==='${id}').nome=this.value;document.querySelector('#ep-${id} .etapa-nome').textContent=this.value;clearTimeout(window._mmT);window._mmT=setTimeout(atualizarMermaid,600)">
     </div>
     <div class="fg"><label class="fl">Tipo</label>
-      <select class="fi" onchange="(function(s){const _e=curProc.mod.etapas_proc.find(x=>x.id==='${id}');_e.tipo=s.value;const _b=document.querySelector('#ep-${id} .etapa-tipo');_b.className='etapa-tipo '+tipoCls(s.value);_b.textContent=s.value;reRenderEtapaDetalhe('${id}')})(this)">
+      <select class="fi" onchange="(function(s){const _e=curProc.mod.etapas_proc.find(x=>x.id==='${id}');_e.tipo=s.value;_e.subtipo_evento=null;const _b=document.querySelector('#ep-${id} .etapa-tipo');_b.className='etapa-tipo '+tipoCls(s.value,null);_b.textContent=s.value;reRenderEtapaDetalhe('${id}')})(this)">
         <option ${e.tipo==='Atividade'?'selected':''}>Atividade</option>
         <option ${e.tipo==='Evento'?'selected':''}>Evento</option>
         <option ${e.tipo==='Decisao'?'selected':''}>Decisao</option>
@@ -3061,7 +3070,7 @@ function renderEtapaDetalheConteudo(e){
     </div>
   </div>`:''}
   ${e.tipo==='Evento'?`<div class="fg" style="margin-top:.4rem"><label class="fl">Subtipo do evento</label>
-    <select class="fi" onchange="curProc.mod.etapas_proc.find(x=>x.id==='${id}').subtipo_evento=this.value">
+    <select class="fi" onchange="(function(s){const _e=curProc.mod.etapas_proc.find(x=>x.id==='${id}');_e.subtipo_evento=s.value||null;const _b=document.querySelector('#ep-${id} .etapa-tipo');if(_b){_b.className='etapa-tipo '+tipoCls('Evento',s.value||null);_b.textContent='Evento'+(_e.subtipo_evento?' · '+_e.subtipo_evento:'');}})(this)">
       <option value="" ${!e.subtipo_evento?'selected':''}>Selecione...</option>
       <option ${e.subtipo_evento==='Início'?'selected':''}>Início</option>
       <option ${e.subtipo_evento==='Intermediário'?'selected':''}>Intermediário</option>
@@ -3072,7 +3081,17 @@ function renderEtapaDetalheConteudo(e){
   <div class="fg" style="margin-top:.4rem"><label class="fl">Descrição detalhada</label>
     <textarea class="fi" style="min-height:60px"
       oninput="curProc.mod.etapas_proc.find(x=>x.id==='${id}').desc=this.value">${e.desc||''}</textarea>
+  </div>
+  <div style="margin-top:.6rem">
+    <button class="btn btn-p" style="font-size:11px;padding:4px 12px" onclick="salvarEtapa('${id}')">✓ Salvar etapa</button>
   </div>`;
+}
+
+function salvarEtapa(id){
+  toggleEtapaDetalhe(id); // collapse the panel
+  atualizarMermaid();
+  fbAutoSave('salvarEtapa');
+  toast('Etapa salva');
 }
 
 function renderEtapasProc(etapas){
@@ -3086,7 +3105,7 @@ function renderEtapasProc(etapas){
       <div class="etapa-proc-hd">
         <span class="etapa-drag-handle" title="Arrastar para reordenar">⠿</span>
         <div class="etapa-seq">${e.seq}</div>
-        <span class="etapa-tipo ${tipoCls(e.tipo)}">${e.tipo}</span>
+        <span class="etapa-tipo ${tipoCls(e.tipo,e.subtipo_evento)}">${e.tipo}${e.subtipo_evento?' · '+e.subtipo_evento:''}</span>
         <div class="etapa-nome">${e.nome}</div>
         <button class="btn" style="font-size:11px;padding:3px 8px" onclick="toggleEtapaDetalhe('${e.id}')">✎ Detalhar</button>
         <button class="btn" style="font-size:11px;padding:3px 8px;color:var(--red);border-color:var(--red-b)" onclick="remEtapaProc('${e.id}')">×</button>
@@ -3239,30 +3258,34 @@ let _dragSrcId = null;
 function onEtapaDragStart(e, id){
   _dragSrcId = id;
   e.dataTransfer.effectAllowed = 'move';
-  setTimeout(()=>{ const el=document.getElementById('ep-'+id); if(el) el.style.opacity='0.4'; }, 0);
+  e.dataTransfer.setData('text/plain', id); // required for Firefox
+  setTimeout(()=>{ e.currentTarget.style.opacity='0.4'; }, 0);
 }
 function onEtapaDragEnd(e, id){
-  const el=document.getElementById('ep-'+id); if(el) el.style.opacity='';
+  e.currentTarget.style.opacity='';
   document.querySelectorAll('.etapa-proc').forEach(el=>el.classList.remove('drag-over'));
+  _dragSrcId = null;
 }
 function onEtapaDragOver(e, id){
   e.preventDefault();
+  e.stopPropagation();
   e.dataTransfer.dropEffect = 'move';
   if(id !== _dragSrcId){
     document.querySelectorAll('.etapa-proc').forEach(el=>el.classList.remove('drag-over'));
-    document.getElementById('ep-'+id)?.classList.add('drag-over');
+    e.currentTarget.classList.add('drag-over');
   }
 }
 function onEtapaDrop(e, id){
   e.preventDefault(); e.stopPropagation();
-  if(!_dragSrcId || _dragSrcId === id) return;
+  const srcId = _dragSrcId;
+  if(!srcId || srcId === id) return;
   const etapas = curProc.mod.etapas_proc;
-  const srcIdx = etapas.findIndex(x=>x.id===_dragSrcId);
+  const srcIdx = etapas.findIndex(x=>x.id===srcId);
   const tgtIdx = etapas.findIndex(x=>x.id===id);
   if(srcIdx<0||tgtIdx<0) return;
   const [moved] = etapas.splice(srcIdx, 1);
   etapas.splice(tgtIdx, 0, moved);
-  etapas.forEach((e,i)=>e.seq=i+1);
+  etapas.forEach((et,i)=>et.seq=i+1);
   document.getElementById('etapas-proc-list').innerHTML = renderEtapasProc(etapas);
   atualizarMermaid();
   fbAutoSave('reordenarEtapas');
@@ -5301,6 +5324,9 @@ async function fbLoad(){
       pSnap.forEach(d => processos.push(d.data()));
       processos.sort((a,b) => a.id - b.id);
       nextProcId = Math.max(...processos.map(p=>p.id), 0) + 1;
+      // Sync etapasIdC so new etapa IDs never collide with existing ones
+      const allEtapaNums = processos.flatMap(p=>(p.mod?.etapas_proc||[]).map(e=>parseInt((e.id||'').replace('ep',''))||0));
+      if(allEtapaNums.length) etapasIdC = Math.max(...allEtapaNums) + 1;
     }
 
     // melhorias
