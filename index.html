@@ -615,6 +615,19 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
     <div id="ind-c"></div>
   </div>
   <div id="ind-tab-graficos" class="tab-p" style="display:none">
+    <div class="fbar" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
+      <input class="fi" id="grfk-srch" placeholder="Buscar por nome..." style="max-width:200px" oninput="rIndGraficos()">
+      <span class="fbar-l">Área</span>
+      <select class="fi" id="grfk-area" onchange="rIndGraficos()" style="max-width:160px"><option value="">Todas</option></select>
+      <span class="fbar-l">PPE?</span>
+      <select class="fi" id="grfk-ppe" onchange="rIndGraficos()" style="max-width:90px">
+        <option value="">Todos</option><option>Sim</option><option>Não</option>
+      </select>
+      <span class="fbar-l">Ciclo</span>
+      <select class="fi" id="grfk-ciclo" onchange="rIndGraficos()" style="max-width:150px"><option value="">Todos</option></select>
+      <span class="fbar-l">Período</span>
+      <select class="fi" id="grfk-periodo" onchange="rIndGraficos()" style="max-width:140px"><option value="">Todos</option></select>
+    </div>
     <div id="ind-graficos-c"></div>
   </div>
 
@@ -1319,6 +1332,7 @@ function rNotif(){
         ${!n.lida?'<button class="btn" style="font-size:10px;padding:2px 7px;margin-top:3px" onclick="marcarLida('+n.id+')">Marcar como lida</button>':''}
       </div>
     </div>`).join(''):'<div style="font-size:12px;color:var(--ink3)">Nenhuma notificação.</div>';
+  if(isEP()) setTimeout(injectAiConfigField, 100);
 }
 function marcarLida(id){const n=notifs.find(x=>x.id===id);if(n)n.lida=true;updCounts();rNotif();}
 function limparNotifs(){notifs=notifs.filter(n=>!n.lida);updCounts();rNotif();}
@@ -1668,11 +1682,13 @@ function rDetalhe(){
     document.getElementById('tab-acao').classList.add('on');
     document.getElementById('tab-hist').classList.remove('on');
     rAcao(p);
+    setTimeout(injectIaAssistente, 100);
     return;
   }
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',i===0));
   document.querySelectorAll('.tab-p').forEach((p,i)=>p.classList.toggle('on',i===0));
   rAcao(p);
+  setTimeout(injectIaAssistente, 100);
 }
 
 // ═══════════════════════════════════════════
@@ -1744,6 +1760,26 @@ function findArqItem(mid, itemId){
     if(s)return s;
   }
   return null;
+}
+function findArqItemById(itemId){
+  for(const m of ARQUITETURA){
+    for(const p of m.processos){
+      if(p.id===itemId) return p;
+      const s=(p.subprocessos||[]).find(s=>s.id===itemId);
+      if(s) return s;
+    }
+  }
+  return null;
+}
+function sincronizarSIPOCArquitetura(proc){
+  if(!proc.arq_id) return;
+  const item = findArqItemById(proc.arq_id);
+  if(!item) return;
+  if(proc.ent.entradas)      item.entradas      = proc.ent.entradas;
+  if(proc.ent.saidas)        item.entregas      = proc.ent.saidas;
+  if(proc.ent.clientes)      item.clientes      = proc.ent.clientes;
+  if(proc.ent.fornecedores)  item.fornecedores  = proc.ent.fornecedores;
+  if(proc.ent.atores)        item.atores        = proc.ent.atores;
 }
 function autoFillDonoEmail(){
   const nome=document.getElementById('novo-dono-nome').value;
@@ -2443,6 +2479,7 @@ function rAcao(p){
   el.innerHTML=buildAcaoCardHTML(ac,p,roleNote);
   if(p.etapa==='esboco') setTimeout(()=>{initBpmnMod('asis',p);},120);
   if(p.etapa==='det_etapas') setTimeout(atualizarMermaid,300);
+  if(p.etapa==='pop') setTimeout(injectIaPop, 100);
 }
 
 // ═══════════════════════════════════════════
@@ -2506,6 +2543,7 @@ function salvarReuniao(){
   if(p.ent.t_ciclo!=null&&p.ent.t_real!=null) p.ent.t_gaveta=+(p.ent.t_real-p.ent.t_ciclo).toFixed(1);
   const prob=(document.getElementById('a-prob')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
   p.ent.prob=prob;
+  sincronizarSIPOCArquitetura(p);
   av('reuniao','EP','Reunião de entendimento concluída. '+prob.length+' problemas identificados.');
 }
 async function iaGerarRiscos(){
@@ -3308,7 +3346,7 @@ async function atualizarMermaid(){
 
 function copiarMermaid(){
   if(!_mermaidCode){ toast('Nenhum fluxo gerado ainda','var(--amber)'); return; }
-  navigator.clipboard.writeText(_mermaidCode).then(()=>toast('Código Mermaid copiado'));
+  navigator.clipboard.writeText(_mermaidCode).then(()=>toast('Código Mermaid copiado')).catch(()=>toast('Erro ao copiar','var(--red)'));
 }
 
 function toggleEtapaDetalhe(id){
@@ -3509,6 +3547,7 @@ function rMod(p){
   </div>`;
   // Auto-mount asis bpmn
   setTimeout(()=>initBpmnMod('asis',p),80);
+  setTimeout(()=>{ injectIaBpmn('asis'); injectIaBpmn('tobe'); }, 200);
 }
 function sModTab(id,el){
   el.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
@@ -4710,6 +4749,7 @@ function rInd(){
   const el = document.getElementById('ind-c');
   if(!lista.length){
     el.innerHTML = '<div class="ib ibb">Nenhum indicador. Importe a planilha ou clique em "+ Novo indicador".</div>';
+    setTimeout(injectIaIndicadores, 100);
     return;
   }
 
@@ -4725,6 +4765,7 @@ function rInd(){
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">${inds.map(k=>kpiCard(k)).join('')}</div>
     </div>`).join('');
+  setTimeout(injectIaIndicadores, 100);
 }
 
 function indFiltPpe(val, el){
@@ -4739,11 +4780,32 @@ function kpiGrupoCardHTML(key, items){
   const nome = items[0].nome;
   const polaridade = items[0].polaridade||'Maior é melhor';
   const area = items[0].area||'';
+  const editBtns = items.length === 1
+    ? `<button class="btn" style="font-size:11px;padding:2px 8px" onclick="editKpi(${items[0].id})">✎ Editar</button>`
+    : `<div style="display:flex;gap:4px;flex-wrap:wrap">${items.map(i=>`<button class="btn" style="font-size:10px;padding:1px 6px" onclick="editKpi(${i.id})" title="Editar período ${esc(i.periodo||'?')}">${esc(i.periodo||'?')}</button>`).join('')}</div>`;
   return `<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:1rem;margin-bottom:1rem;box-shadow:var(--sh)">
-    <div style="font-size:12px;color:var(--ink3);margin-bottom:3px">${esc(area)}${items[0].codigo?' · '+esc(items[0].codigo):''} · ${polaridade==='Menor é melhor'?'↓':'↑'}</div>
-    <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:.75rem">${esc(nome)}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;gap:8px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:2px">${esc(area)}${items[0].codigo?' · '+esc(items[0].codigo):''} · ${polaridade==='Menor é melhor'?'↓':'↑'}</div>
+        <div style="font-size:14px;font-weight:600;color:var(--ink)">${esc(nome)}</div>
+      </div>
+      <div style="flex-shrink:0">${isEP()?editBtns:''}</div>
+    </div>
     <div style="position:relative;height:200px"><canvas id="chart-kpi-${key.replace(/\W/g,'_')}"></canvas></div>
   </div>`;
+}
+function populateGrfkFilters(){
+  const areaSel  = document.getElementById('grfk-area');
+  const cicloSel = document.getElementById('grfk-ciclo');
+  const periSel  = document.getElementById('grfk-periodo');
+  if(!areaSel) return;
+  const cur = {area:areaSel.value, ciclo:cicloSel.value, peri:periSel.value};
+  const areas   = [...new Set(kpis.map(k=>k.area).filter(Boolean))].sort();
+  const ciclos  = [...new Set(kpis.map(k=>k.ciclo).filter(Boolean))].sort();
+  const periods = [...new Set(kpis.map(k=>k.periodo).filter(Boolean))].sort();
+  areaSel.innerHTML  = '<option value="">Todas as áreas</option>'  + areas.map(a=>`<option ${cur.area===a?'selected':''}>${esc(a)}</option>`).join('');
+  cicloSel.innerHTML = '<option value="">Todos os ciclos</option>' + ciclos.map(a=>`<option ${cur.ciclo===a?'selected':''}>${esc(a)}</option>`).join('');
+  periSel.innerHTML  = '<option value="">Todos os períodos</option>' + periods.map(a=>`<option ${cur.peri===a?'selected':''}>${esc(a)}</option>`).join('');
 }
 function kpiBarColor(r, m, polaridade){
   if(!m) return 'rgba(96,165,250,0.7)';
@@ -4757,9 +4819,10 @@ function kpiApplyMetaFallback(items){
   const media = ultimos.length ? ultimos.reduce((a,b)=>a+b,0)/ultimos.length : 0;
   semMeta.forEach(i=>{ if(!i._metaFallback) i._metaFallback = Math.round(media*10)/10; });
 }
-function kpiGroupByKey(){
+function kpiGroupByKey(list){
+  const source = list || kpis;
   const grupos = {};
-  kpis.forEach(k=>{
+  source.forEach(k=>{
     const key = (k.codigo||k.nome||'').trim() || k.nome;
     if(!grupos[key]) grupos[key] = [];
     grupos[key].push(k);
@@ -4805,7 +4868,21 @@ function rIndGraficos(){
   _indCharts.forEach(c=>{ try{ c.destroy(); }catch(e){} });
   _indCharts = [];
   if(!kpis.length){ el.innerHTML='<div class="ib ibsl">Nenhum indicador cadastrado.</div>'; return; }
-  const grupos = kpiGroupByKey();
+  populateGrfkFilters();
+  const srch   = (document.getElementById('grfk-srch')?.value||'').trim().toLowerCase();
+  const area   = document.getElementById('grfk-area')?.value||'';
+  const ppe    = document.getElementById('grfk-ppe')?.value||'';
+  const ciclo  = document.getElementById('grfk-ciclo')?.value||'';
+  const period = document.getElementById('grfk-periodo')?.value||'';
+  const filtered = kpis.filter(k=>
+    (!srch   || (k.nome||'').toLowerCase().includes(srch)) &&
+    (!area   || k.area   === area)  &&
+    (!ppe    || k.ppe    === ppe)   &&
+    (!ciclo  || k.ciclo  === ciclo) &&
+    (!period || k.periodo === period)
+  );
+  if(!filtered.length){ el.innerHTML='<div class="ib iba">Nenhum indicador encontrado com os filtros selecionados.</div>'; return; }
+  const grupos = kpiGroupByKey(filtered);
   Object.values(grupos).forEach(kpiApplyMetaFallback);
   el.innerHTML = Object.entries(grupos).map(([key,items])=>kpiGrupoCardHTML(key,items)).join('');
   setTimeout(()=>{ Object.entries(grupos).forEach(([key,items])=>createKpiChart(key,items)); }, 50);
@@ -5832,30 +5909,6 @@ function injectIaAssistente(){
   if(firstTab) firstTab.before(panel);
 }
 
-// Patch rMod and rAcao to inject IA buttons after render
-const _origRMod = rMod;
-rMod = function(p){
-  _origRMod(p);
-  setTimeout(()=>{ injectIaBpmn('asis'); injectIaBpmn('tobe'); }, 200);
-};
-
-const _origRAcao = rAcao;
-rAcao = function(p){
-  _origRAcao(p);
-  if(p.etapa === 'pop') setTimeout(injectIaPop, 100);
-};
-
-const _origRDetalhe = rDetalhe;
-rDetalhe = function(){
-  _origRDetalhe();
-  setTimeout(injectIaAssistente, 100);
-};
-
-const _origRInd = rInd;
-rInd = function(){
-  _origRInd();
-  setTimeout(injectIaIndicadores, 100);
-};
 
 // ── CONFIG URL ────────────────────────────
 // Show AI config field in notificacoes page for EP
@@ -5887,13 +5940,6 @@ function salvarAiUrl(){
   toast('URL da IA salva');
 }
 
-
-// Patch rNotif to inject AI config field
-const _origRNotif = rNotif;
-rNotif = function(){
-  _origRNotif();
-  if(isEP()) setTimeout(injectAiConfigField, 100);
-};
 
 // Restore AI URL from localStorage on boot
 (function(){
