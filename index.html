@@ -1991,11 +1991,11 @@ const ACOES = {
     <div class="card-t">Volumetria e tempos</div>
     <div class="g3" style="margin-top:.5rem">
       <div class="fg"><label class="fl">Volume de execuções</label><input class="fi" id="r-exec" value="${esc(p.ent.vol?.exec||'')}" placeholder="Ex: ~40/mês"></div>
-      <div class="fg"><label class="fl">Tempo médio de ciclo (dias)</label><input class="fi" id="r-tciclo" type="number" min="0" step="0.5" value="${p.ent.t_ciclo||''}" oninput="calcGaveta()" placeholder="Ex: 5"></div>
-      <div class="fg"><label class="fl">Tempo real / lead time (dias)</label><input class="fi" id="r-treal" type="number" min="0" step="0.5" value="${p.ent.t_real||''}" oninput="calcGaveta()" placeholder="Ex: 15"></div>
+      <div class="fg"><label class="fl">Tempo médio de ciclo (horas)</label><input class="fi" id="r-tciclo" type="number" min="0" step="0.5" value="${p.ent.t_ciclo||''}" oninput="calcGaveta()" placeholder="Ex: 4"></div>
+      <div class="fg"><label class="fl">Tempo real / lead time (horas)</label><input class="fi" id="r-treal" type="number" min="0" step="0.5" value="${p.ent.t_real||''}" oninput="calcGaveta()" placeholder="Ex: 24"></div>
     </div>
     <div class="fg"><label class="fl">Tempo de gaveta <small style="font-weight:400;color:var(--ink3)">(calculado: tempo real − tempo médio de ciclo)</small></label>
-      <input class="fi" id="r-tgaveta" readonly style="background:var(--bg2);color:var(--ink3)" value="${p.ent.t_gaveta!=null&&p.ent.t_gaveta!==''?p.ent.t_gaveta+' dias':''}">
+      <input class="fi" id="r-tgaveta" readonly style="background:var(--bg2);color:var(--ink3)" value="${p.ent.t_gaveta!=null&&p.ent.t_gaveta!==''?p.ent.t_gaveta+' horas':''}">
     </div>
     <hr>
     <div class="card-t">Problemas e dores</div>
@@ -2505,7 +2505,7 @@ function calcGaveta(){
   const ciclo=parseFloat(document.getElementById('r-tciclo')?.value)||0;
   const real=parseFloat(document.getElementById('r-treal')?.value)||0;
   const gav=document.getElementById('r-tgaveta');
-  if(gav&&(ciclo||real)) gav.value=(real-ciclo).toFixed(1)+' dias';
+  if(gav&&(ciclo||real)) gav.value=(real-ciclo).toFixed(1)+' horas';
 }
 function salvarAbertura(){
   const p=curProc;
@@ -3496,7 +3496,7 @@ function rEnt(p){
   <div class="g2" style="gap:12px;margin-bottom:1rem">
     <div class="card"><div class="card-t">Volumetria</div>
       ${e.vol?.exec||e.t_ciclo||e.t_real?`<div class="g3" style="gap:10px">
-        ${[['Execuções/período',e.vol?.exec],['Tempo médio de ciclo',e.t_ciclo!=null?e.t_ciclo+' dias':''],['Tempo real (lead time)',e.t_real!=null?e.t_real+' dias':''],['Tempo de gaveta',e.t_gaveta!=null?e.t_gaveta+' dias':'']].map(([l,v])=>v?`<div><div class="sec-lbl">${l}</div><div style="font-size:13px;font-weight:500">${v}</div></div>`:'').join('')}
+        ${[['Execuções/período',e.vol?.exec],['Tempo médio de ciclo',e.t_ciclo!=null?e.t_ciclo+' h':''],['Tempo real (lead time)',e.t_real!=null?e.t_real+' h':''],['Tempo de gaveta',e.t_gaveta!=null?e.t_gaveta+' h':'']].map(([l,v])=>v?`<div><div class="sec-lbl">${l}</div><div style="font-size:13px;font-weight:500">${v}</div></div>`:'').join('')}
       </div>`:'<div class="ib iba">Não preenchido.</div>'}
     </div>
     <div class="card"><div class="card-t">Problemas identificados (${(e.prob||[]).length})</div>
