@@ -50,7 +50,7 @@ exports.ai = onRequest(
         const deploy   = AZURE_DEPLOY.value();
         const apiKey   = AZURE_KEY.value();
 
-        const url = `${endpoint}/openai/deployments/${deploy}/chat/completions?api-version=2024-02-01`;
+        const url = `${endpoint.replace(/\/$/, '')}/openai/deployments/${deploy}/chat/completions?api-version=2024-12-01-preview`;
 
         const fetch = (await import("node-fetch")).default;
         const resp = await fetch(url, {
@@ -64,8 +64,7 @@ exports.ai = onRequest(
               { role: "system", content: systemPrompt },
               { role: "user",   content: userMessage  },
             ],
-            temperature: 0.4,
-            max_tokens: 1500,
+            max_completion_tokens: 1500,
           }),
         });
 
