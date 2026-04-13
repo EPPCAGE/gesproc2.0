@@ -2331,7 +2331,7 @@ const ACOES = {
           </div>`:'<div style="font-size:12px;color:var(--ink3)">Nenhuma análise gerada ainda.</div>'}</div>
         <div class="btn-row" style="margin-top:.8rem">
           ${a.ia_resultado
-            ? `<button class="btn btn-t" onclick="gerarAnaliseIA()" title="Sobrescreve a análise atual com uma nova geração">🔄 Regenerar análise com IA</button>`
+            ? `<button class="btn btn-t" onclick="confirmarRegenerarAnalise()" title="Sobrescreve a análise atual com uma nova geração">🔄 Regenerar análise com IA</button>`
             : `<button class="btn btn-t" onclick="gerarAnaliseIA()">✦ Gerar análise com IA</button>`}
           <button class="btn btn-p" onclick="salvarAnalise()">Concluir análise →</button>
         </div>`;
@@ -3040,6 +3040,14 @@ function salvarDadosQuantitativos(){
   a.qtd_atividades=parseInt(document.getElementById('an-ativ')?.value)||0;
   a.qtd_decisoes=parseInt(document.getElementById('an-dec')?.value)||0;
   fbAutoSave('salvar');toast('Dados salvos!','var(--teal)');
+}
+function confirmarRegenerarAnalise(){
+  const p=curProc;if(!p)return;
+  const temFeedback=p.ent?.analise?.feedback_dono&&Object.keys(p.ent.analise.feedback_dono).length>0;
+  if(temFeedback){
+    if(!confirm('⚠ Atenção\n\nVocê já validou itens na etapa "Melhorias do Processo" (confirmações e descartes).\n\nAo regenerar a análise, todo esse trabalho de validação será perdido e precisará ser refeito.\n\nDeseja continuar mesmo assim?')) return;
+  }
+  gerarAnaliseIA();
 }
 async function gerarAnaliseIA(){
   const p=curProc;if(!p)return;
