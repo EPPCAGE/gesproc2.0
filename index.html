@@ -2802,7 +2802,8 @@ function rAcaoRetro(){
       <button class="btn btn-p" onclick="salvarRetroativo('${etId}')">Salvar revisão</button>
     </div>`;
   document.querySelectorAll('#tab-acao .card .btn-row').forEach(r=>r.style.display='none');
-  if(etId==='esboco_asis'||etId==='valid_asis'||etId==='esboco_tobe'||etId==='valid_tobe'||etId==='desenho_final') setTimeout(()=>initBpmnMod('asis',p),120);
+  if(etId==='esboco_asis'||etId==='valid_asis'||etId==='desenho_final') setTimeout(()=>initBpmnMod('asis',p),120);
+  if(etId==='esboco_tobe'||etId==='valid_tobe') setTimeout(()=>initBpmnMod('tobe',p),120);
 }
 function salvarRetroativo(etId){
   const p=curProc;
@@ -2898,7 +2899,8 @@ function rAcao(p){
     el.innerHTML=minhaTarefa
       ?`<div class="ib ibt" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem"><span>O EP encaminhou esta tarefa para você. Complete quando estiver pronto.</span>${prazoBanner}</div>${buildAcaoCardHTML(ac,p,'')}`
       :`<div class="card"><div class="ib iba" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem"><span>Esta etapa — <strong>${ac.titulo}</strong> — aguarda ação de <strong>${p.dono||'dono'}</strong>.</span>${prazoBanner}</div><div style="font-size:13px;color:var(--ink2)">${ac.sub}</div></div>`;
-    if((p.etapa==='valid_asis'||p.etapa==='valid_tobe') && minhaTarefa) setTimeout(()=>initBpmnMod('asis',p),120);
+    if(p.etapa==='valid_asis' && minhaTarefa) setTimeout(()=>initBpmnMod('asis',p),120);
+    if(p.etapa==='valid_tobe' && minhaTarefa) setTimeout(()=>initBpmnMod('tobe',p),120);
     return;
   }
   const roleNote=role!==ac.rk?`<div class="ib iba" style="margin-top:.7rem">Esta etapa aguarda: <strong>${ac.role}</strong>. Troque o perfil para interagir.</div>`:'';
