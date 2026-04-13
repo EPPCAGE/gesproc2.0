@@ -3075,16 +3075,79 @@ async function gerarApresentacaoPPT(){
   if(!p){alert('Nenhum processo selecionado.');return;}
   const btn=document.getElementById('btn-gerar-ppt');
   const st=document.getElementById('ppt-status');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Montando...';}
-  if(st) st.textContent='Carregando dados do processo...';
+  if(btn){btn.disabled=true;btn.textContent='⏳ Gerando...';}
+  if(st) st.innerHTML='<div class="ai-loading"><div class="spin"></div>IA elaborando apresentação personalizada...</div>';
   try{
-    let fluxoImg=null;
-    if(p.arq_id){
-      if(st) st.textContent='Carregando imagem do fluxo...';
-      fluxoImg=await loadFluxoImg(p.arq_id);
-    }
+    const a=p.ent?.analise||{};
+    const etapas=(p.mod?.etapas_proc||[]).slice(0,10).map(e=>`${e.seq||''}. ${e.nome}${e.executor?' ('+e.executor+')':''}${e.desc?' — '+e.desc:''}`).join('\n');
+    const riscos=(p.ent?.riscos||[]).map(r=>r.desc||r).filter(Boolean).join('; ');
+
+    const ctx=`
+PROCESSO: ${p.nome}
+MACROPROCESSO: ${p.macro||'—'}
+ÁREA: ${p.area||'—'}
+OBJETIVO: ${p.objetivo||'—'}
+DONO: ${p.dono||'—'}
+PRODUTO: ${p.produto||'—'}
+PRIORIDADE: ${p.prio||'—'}
+EQUIPE EP: ${p.ent?.equipe||'—'}
+DATA INÍCIO: ${p.ent?.dt_inicio||'—'}
+NÍVEL DE MATURIDADE: ${p.ent?.mat||'—'}/5
+COMPLEXIDADE: ${a.complexidade||'—'}
+VOLUME (execuções/período): ${p.ent?.vol?.exec||'—'}
+TEMPO DE CICLO MÉDIO: ${p.ent?.vol?.tempo||'—'}
+CUSTO ESTIMADO: ${p.ent?.vol?.custo||'—'}
+GARGALOS IDENTIFICADOS: ${(a.gargalos||[]).join('; ')||'Nenhum registrado'}
+RETRABALHOS: ${(a.retrabalhos||[]).join('; ')||'Nenhum registrado'}
+GAPS: ${(a.gaps||[]).join('; ')||'Nenhum registrado'}
+OPORTUNIDADES DE MELHORIA: ${(a.oportunidades||[]).join('; ')||'Nenhuma registrada'}
+RISCOS: ${riscos||'Nenhum registrado'}
+ETAPAS DO PROCESSO:
+${etapas||'Não detalhadas'}
+AS IS (situação atual): ${p.mod?.asIs||'—'}
+TO BE (situação proposta): ${p.mod?.toBe||'—'}
+`;
+
+    const prompt=`Você é um consultor sênior de BPM criando uma apresentação executiva para patrocinadores e gestores.
+
+Com base nos dados reais do processo abaixo, crie uma apresentação PowerPoint inteligente e personalizada.
+
+INSTRUÇÕES:
+- Analise os dados disponíveis e escolha os slides mais relevantes para ESTE processo específico
+- Não use slides genéricos — cada slide deve ter conteúdo real extraído dos dados
+- Se um dado estiver ausente (marcado com —), omita esse aspecto ou mencione que será levantado
+- Você pode criar entre 6 e 12 slides conforme necessário
+- Varie os tipos de slide: use bullets, narrativa e dados conforme o conteúdo
+- Escreva em português formal, linguagem executiva
+
+TIPOS DE SLIDE disponíveis:
+- "bullets": lista de pontos objetivos (use para diagnósticos, achados, recomendações)
+- "narrativa": texto corrido analítico (use para contexto, análise crítica, conclusão)
+- "dados": métricas e indicadores em formato label/valor (use para dados quantitativos)
+- "etapas": sequência numerada de etapas do processo
+
+ESTRUTURA JSON de retorno (retorne APENAS o JSON, sem markdown):
+{
+  "titulo_geral": "título executivo específico para este processo",
+  "subtitulo": "subtítulo com contexto",
+  "slides": [
+    {"titulo": "...", "tipo": "bullets", "bullets": ["ponto 1","ponto 2","..."], "nota": "nota opcional de rodapé"},
+    {"titulo": "...", "tipo": "narrativa", "texto": "parágrafo analítico real sobre este processo..."},
+    {"titulo": "...", "tipo": "dados", "dados": [{"label":"Métrica","valor":"Valor"},{"label":"...","valor":"..."}]},
+    {"titulo": "...", "tipo": "etapas", "bullets": ["1. Etapa — responsável","2. Etapa — responsável"]}
+  ]
+}
+
+DADOS DO PROCESSO:
+${ctx}`;
+
+    const raw = await chamarIA('gerar_ppt', prompt, st);
+    if(!raw) return;
+    const jsonMatch=raw.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('Resposta da IA não contém JSON válido.');
+    const dados=JSON.parse(jsonMatch[0]);
     if(st) st.textContent='Montando o arquivo PowerPoint...';
-    await montarPPT(p, fluxoImg);
+    await montarPPT(dados, p);
     if(st) st.textContent='✓ Apresentação gerada e baixada!';
   } catch(e){
     console.error('gerarApresentacaoPPT:',e);
@@ -3093,286 +3156,97 @@ async function gerarApresentacaoPPT(){
     if(btn){btn.disabled=false;btn.textContent='✨ Gerar apresentação'}
   }
 }
-async function montarPPT(p, fluxoImg){
+async function montarPPT(dados, p){
   if(typeof PptxGenJS==='undefined') throw new Error('Biblioteca PptxGenJS não carregada.');
   const pptx=new PptxGenJS();
   pptx.layout='LAYOUT_WIDE';
   pptx.author='EP·CAGE';pptx.company='CAGE/Sefaz-RS';pptx.subject=p.nome;
 
-  // ── Paleta ──
-  const DARK='0F172A',NAVY='1E3A5F',BLUE='2563EB',TEAL='0D9488',AMBER='D97706';
-  const VIOLET='7C3AED',GREEN='059669',RED='DC2626';
-  const LIGHT='F8FAFC',WHITE='FFFFFF',SLATE='475569',SLATE2='94A3B8',MID='CBD5E1';
-  let sl;
-  const R=(x,y,w,h,fc,lc)=>sl.addShape(pptx.ShapeType.rect,{x,y,w,h,fill:{color:fc},line:{color:lc||fc,pt:lc?0.5:0}});
-  const T=(txt,x,y,w,h,op={})=>sl.addText(String(txt??'—'),{x,y,w,h,fontFace:'Calibri',...op});
+  const C1='1E3A5F';
+  const C2='2E7D8F';
+  const C3='F5F7FA';
+  const CW='FFFFFF';
+  const CG='4A4A4A';
+  const ACCENT=['2E7D8F','1A6674','0D4F5C','3A8A9A','156070','245F7A'];
 
-  // ── Dados derivados ──
-  const a=p.ent?.analise||{};
-  const pop=p.form?.pop||{};
-  const etapas=p.mod?.etapas_proc||[];
-  const obj=p.objetivo||pop.obj||'Não informado';
-  const splitLines=s=>(s||'').split(/[\n;]/).map(x=>x.trim()).filter(Boolean);
-  const entradas=splitLines(pop.ent||p.ent?.entradas||'');
-  const saidas=splitLines(pop.sai||p.ent?.saidas||'');
-  const clientes=splitLines(p.ent?.clientes||'');
-  const docs=splitLines(pop.docs||'');
-  const faq=splitLines(p.form?.faq||'');
-  const excecoes=splitLines(p.form?.excecoes||'');
-  const nAtiv=a.qtd_atividades||etapas.filter(e=>!e.tipo||e.tipo==='Atividade').length||0;
-  const nDec=a.qtd_decisoes||etapas.filter(e=>e.tipo==='Decisao'||e.tipo==='Decisão').length||0;
-  const nEventos=etapas.filter(e=>(e.tipo||'').toLowerCase().includes('evento')).length||0;
-  const atores=[...new Set(etapas.map(e=>e.resp||e.executor||'').filter(Boolean))];
-  const leadTime=a.t_ciclo_medio||(p.ent?.t_ciclo!=null?p.ent.t_ciclo+' h':'—');
-  const tGaveta=a.t_espera_medio||(p.ent?.t_gaveta!=null?p.ent.t_gaveta+' h':'—');
-  const vol=p.ent?.vol||{};
-  const volStr=vol.exec?(vol.exec+(vol.periodicidade?'/'+vol.periodicidade:'')):'—';
-  const maturidade=p.ent?.mat?p.ent.mat+'/5':'—';
-  const procKpis=(kpis||[]).filter(k=>k.proc_id===p.id||k.arq_id===p.arq_id);
+  // ── CAPA ──
+  let sl=pptx.addSlide();
+  sl.background={color:C1};
+  sl.addShape(pptx.ShapeType.rect,{x:0,y:3.4,w:'100%',h:0.08,fill:{color:C2}});
+  sl.addShape(pptx.ShapeType.rect,{x:0,y:6.6,w:'100%',h:0.9,fill:{color:'152C47'}});
+  sl.addText(dados.titulo_geral||p.nome,{x:0.8,y:1.0,w:10.5,h:1.4,fontSize:30,bold:true,color:CW,fontFace:'Calibri',valign:'middle'});
+  sl.addText(dados.subtitulo||'Escritório de Processos — CAGE/Sefaz-RS',{x:0.8,y:2.5,w:10.5,h:0.6,fontSize:14,color:'A8C4D4',fontFace:'Calibri'});
+  sl.addText(`${p.area||''}  |  ${p.dono?'Dono: '+p.dono+'  |  ':''}${now()}`,{x:0.8,y:3.8,w:11,h:0.4,fontSize:11,color:'7A9AB5',fontFace:'Calibri'});
+  sl.addText('EP·CAGE — Gestão de Processos Institucionais',{x:0,y:6.65,w:'100%',h:0.35,fontSize:10,color:'5A7A95',align:'center',fontFace:'Calibri'});
 
-  // ── Footer helper ──
-  const addFooter=(accent)=>{
-    R(0,7.15,13.33,0.35,NAVY);
-    T(p.nome,0.55,7.18,9,0.28,{fontSize:8,color:SLATE2});
-    T('POP · EP·CAGE · CAGE/Sefaz-RS · '+now(),9.5,7.18,3.6,0.28,{fontSize:8,color:SLATE2,align:'right'});
-    R(0,7.15,0.12,0.35,accent||TEAL);
-  };
+  // ── SLIDES DE CONTEÚDO ──
+  (dados.slides||[]).forEach((slide,idx)=>{
+    sl=pptx.addSlide();
+    sl.background={color:C3};
+    const cor=ACCENT[idx%ACCENT.length];
 
-  // ── Header padrão ──
-  const addHeader=(num,titulo,accent)=>{
-    R(0,0,13.33,1.15,NAVY);
-    R(0,1.15,13.33,0.08,accent||TEAL);
-    R(0,0,0.55,1.15,accent||TEAL);
-    T(num,0,0,0.55,1.15,{fontSize:13,bold:true,color:WHITE,align:'center',valign:'middle'});
-    T(titulo,0.7,0.18,12.4,0.82,{fontSize:22,bold:true,color:WHITE,valign:'middle'});
-    T('EP·CAGE',12.0,0.18,1.2,0.45,{fontSize:8,color:'7FB3D3',align:'right'});
-  };
+    // Cabeçalho
+    sl.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:1.15,fill:{color:cor}});
+    sl.addShape(pptx.ShapeType.rect,{x:0,y:1.15,w:'100%',h:0.05,fill:{color:C2}});
+    sl.addText(slide.titulo||'',{x:0.5,y:0.22,w:11,h:0.72,fontSize:20,bold:true,color:CW,fontFace:'Calibri',valign:'middle'});
+    sl.addText(String(idx+1)+'/'+dados.slides.length,{x:11.8,y:0.25,w:0.6,h:0.4,fontSize:10,color:'A8C4D4',fontFace:'Calibri',align:'right'});
+    // Rodapé
+    sl.addShape(pptx.ShapeType.rect,{x:0,y:6.85,w:'100%',h:0.3,fill:{color:'E8EDF2'}});
+    sl.addText('EP·CAGE  —  '+p.nome,{x:0.3,y:6.88,w:12,h:0.22,fontSize:8,color:'999999',fontFace:'Calibri'});
 
-  // ════════════════════════════════════════
-  // SLIDE 1 — CAPA
-  // ════════════════════════════════════════
+    const tipo=slide.tipo||'bullets';
+
+    if(tipo==='narrativa'){
+      sl.addText(slide.texto||'',{x:0.6,y:1.4,w:11.5,h:5.2,fontSize:13,color:CG,fontFace:'Calibri',valign:'top',wrap:true,lineSpacingMultiple:1.4});
+
+    } else if(tipo==='dados'){
+      const itens=slide.dados||[];
+      const cols=itens.length>4?2:1;
+      const perCol=Math.ceil(itens.length/cols);
+      itens.forEach((d,i)=>{
+        const col=Math.floor(i/perCol);
+        const row=i%perCol;
+        const bx=0.6+col*6.2;
+        const by=1.45+row*1.1;
+        sl.addShape(pptx.ShapeType.roundRect,{x:bx,y:by,w:5.6,h:0.9,fill:{color:CW},line:{color:cor,width:1.5},rectRadius:0.08});
+        sl.addText(d.label||'',{x:bx+0.2,y:by+0.05,w:5.2,h:0.35,fontSize:10,color:'888888',fontFace:'Calibri',bold:false});
+        sl.addText(d.valor||'',{x:bx+0.2,y:by+0.38,w:5.2,h:0.45,fontSize:15,color:cor,fontFace:'Calibri',bold:true});
+      });
+
+    } else if(tipo==='etapas'){
+      const etps=slide.bullets||[];
+      etps.slice(0,8).forEach((e,i)=>{
+        const by=1.42+i*0.67;
+        sl.addShape(pptx.ShapeType.ellipse,{x:0.5,y:by+0.06,w:0.42,h:0.42,fill:{color:cor},line:{color:cor}});
+        sl.addText(String(i+1),{x:0.5,y:by+0.06,w:0.42,h:0.42,fontSize:12,bold:true,color:CW,fontFace:'Calibri',align:'center',valign:'middle'});
+        sl.addText(e,{x:1.1,y:by,w:11,h:0.6,fontSize:12,color:CG,fontFace:'Calibri',valign:'middle'});
+      });
+
+    } else { // bullets
+      const bts=slide.bullets||[];
+      bts.slice(0,7).forEach((b,i)=>{
+        const by=1.42+i*0.76;
+        sl.addShape(pptx.ShapeType.rect,{x:0.55,y:by+0.16,w:0.22,h:0.22,fill:{color:cor},line:{color:cor}});
+        sl.addText(b,{x:0.95,y:by,w:11.3,h:0.68,fontSize:13,color:CG,fontFace:'Calibri',valign:'middle',wrap:true});
+      });
+    }
+
+    // Nota de rodapé opcional
+    if(slide.nota){
+      sl.addText('* '+slide.nota,{x:0.5,y:6.5,w:12,h:0.3,fontSize:9,color:'AAAAAA',fontFace:'Calibri',italic:true});
+    }
+  });
+
+  // ── ENCERRAMENTO ──
   sl=pptx.addSlide();
-  R(0,0,13.33,7.5,DARK);
-  R(0,0,13.33,0.1,TEAL);
-  R(0,7.4,13.33,0.1,BLUE);
-  // Bloco lateral direito
-  R(9.3,0,4.03,7.5,'162032');
-  R(9.3,0,0.1,7.5,TEAL);
-  // Rótulo
-  T('PROCEDIMENTO OPERACIONAL PADRÃO',0.5,0.32,8.5,0.42,{fontSize:9,bold:true,color:TEAL,charSpacing:1.5});
-  T('Formato Executivo',0.5,0.78,5,0.35,{fontSize:9,color:SLATE2,italic:true});
-  // Nome do processo
-  T(p.nome,0.5,1.35,8.6,2.6,{fontSize:30,bold:true,color:WHITE,valign:'top'});
-  R(0.5,4.15,6.8,0.07,TEAL);
-  // Metadados
-  const metaCapa=[['Macroprocesso',p.macro||'—'],['Área / Unidade',p.area||'—'],['Dono do processo',p.dono||'—'],['Data de emissão',now()]];
-  metaCapa.forEach(([l,v],i)=>{
-    T(l,0.5,4.35+i*0.56,2.6,0.44,{fontSize:9,bold:true,color:TEAL});
-    T(v,3.15,4.35+i*0.56,6.1,0.44,{fontSize:11,color:'BAD6EE'});
-  });
-  // Painel direito
-  T('VERSÃO 1.0',9.55,1.8,3.6,0.65,{fontSize:26,bold:true,color:WHITE,align:'center'});
-  R(9.9,2.6,2.9,0.06,SLATE2);
-  T('Maturidade',9.55,2.85,3.6,0.38,{fontSize:9,color:SLATE2,align:'center'});
-  T(maturidade,9.55,3.2,3.6,0.85,{fontSize:34,bold:true,color:TEAL,align:'center'});
-  R(9.9,4.2,2.9,0.06,SLATE2);
-  T(String(etapas.length)+' etapas',9.55,4.4,3.6,0.5,{fontSize:18,bold:true,color:WHITE,align:'center'});
-  T(String(atores.length)+' atores',9.55,5.0,3.6,0.45,{fontSize:14,color:SLATE2,align:'center'});
-  T('Escritório de Processos · CAGE/Sefaz-RS',9.55,6.6,3.6,0.45,{fontSize:8.5,color:SLATE2,align:'center',italic:true});
+  sl.background={color:C1};
+  sl.addShape(pptx.ShapeType.rect,{x:0,y:2.8,w:'100%',h:0.08,fill:{color:C2}});
+  sl.addShape(pptx.ShapeType.rect,{x:0,y:6.6,w:'100%',h:0.9,fill:{color:'152C47'}});
+  sl.addText('Obrigado.',{x:0,y:1.2,w:'100%',h:1,fontSize:40,bold:true,color:CW,align:'center',fontFace:'Calibri'});
+  sl.addText('Escritório de Processos — CAGE/Sefaz-RS',{x:0,y:3.2,w:'100%',h:0.5,fontSize:14,color:'A8C4D4',align:'center',fontFace:'Calibri'});
+  sl.addText(p.nome+' | '+now(),{x:0,y:3.9,w:'100%',h:0.4,fontSize:11,color:'7A9AB5',align:'center',fontFace:'Calibri'});
 
-  // ════════════════════════════════════════
-  // SLIDE 2 — OBJETIVO
-  // ════════════════════════════════════════
-  sl=pptx.addSlide();sl.background={color:LIGHT};
-  addHeader('01','Objetivo do Processo',BLUE);
-  // Bloco destaque objetivo
-  R(0.55,1.38,12.23,2.2,'EFF6FF','BFDBFE');
-  R(0.55,1.38,0.15,2.2,BLUE);
-  T(obj,0.85,1.45,11.85,2.08,{fontSize:14,color:NAVY,valign:'middle'});
-  // 4 cards de contexto
-  const ctx4=[{l:'Macroprocesso',v:p.macro||'—',c:NAVY},{l:'Área/Unidade',v:p.area||'—',c:TEAL},{l:'Dono do processo',v:p.dono||'—',c:VIOLET},{l:'Maturidade',v:maturidade,c:AMBER}];
-  ctx4.forEach((c,i)=>{
-    const cx=0.55+i*3.2,cy=3.82;
-    R(cx,cy,3.05,2.95,WHITE,'E2E8F0');
-    R(cx,cy,3.05,0.22,c.c);
-    T(c.l,cx,cy+0.32,3.05,0.42,{fontSize:9.5,bold:true,color:c.c,align:'center'});
-    T(c.v,cx,cy+0.85,3.05,1.9,{fontSize:12.5,color:NAVY,align:'center',valign:'middle'});
-  });
-  addFooter(BLUE);
-
-  // ════════════════════════════════════════
-  // SLIDE 3 — SIPOC
-  // ════════════════════════════════════════
-  sl=pptx.addSlide();sl.background={color:LIGHT};
-  addHeader('02','SIPOC — Visão Geral do Processo',TEAL);
-  const sipocDefs=[
-    {hdr:'S — Fornecedores',items:p.ent?.equipe?splitLines(p.ent.equipe):['(não informado)'],c:NAVY},
-    {hdr:'I — Entradas',items:entradas.length?entradas:['(não informado)'],c:BLUE},
-    {hdr:'P — Processo',items:[p.nome],c:TEAL,center:true},
-    {hdr:'O — Saídas',items:saidas.length?saidas:['(não informado)'],c:BLUE},
-    {hdr:'C — Clientes/Beneficiários',items:clientes.length?clientes:['(não informado)'],c:NAVY},
-  ];
-  const cW=2.6,tX=0.3,tY=1.32,tH=5.68;
-  sipocDefs.forEach((col,ci)=>{
-    const cx=tX+ci*cW;
-    R(cx,tY,cW-0.06,0.62,col.c);
-    T(col.hdr,cx,tY,cW-0.06,0.62,{fontSize:8.5,bold:true,color:WHITE,align:'center',valign:'middle'});
-    R(cx,tY+0.62,cW-0.06,tH-0.62,col.center?'E0F2FE':WHITE,'E2E8F0');
-    if(col.center){
-      T(p.nome,cx,tY+0.62,cW-0.06,tH-0.62,{fontSize:11,bold:true,color:TEAL,align:'center',valign:'middle'});
-    } else {
-      col.items.slice(0,7).forEach((item,ii)=>{
-        const iy=tY+0.82+ii*0.72;
-        if(iy>tY+tH-0.2)return;
-        T('• '+item,cx+0.1,iy,cW-0.25,0.66,{fontSize:9,color:NAVY,valign:'top'});
-      });
-    }
-  });
-  addFooter(TEAL);
-
-  // ════════════════════════════════════════
-  // SLIDE 4 — MÉTRICAS
-  // ════════════════════════════════════════
-  sl=pptx.addSlide();sl.background={color:LIGHT};
-  addHeader('03','Dimensionamento e Métricas do Processo',VIOLET);
-  const metricas=[
-    {v:String(nAtiv),l:'Atividades',c:BLUE},
-    {v:String(nDec),l:'Decisões / Gateways',c:VIOLET},
-    {v:String(nEventos||'—'),l:'Eventos mapeados',c:GREEN},
-    {v:String(atores.length),l:'Atores envolvidos',c:AMBER},
-    {v:String(leadTime),l:'Lead time (ciclo)',c:NAVY},
-    {v:String(tGaveta),l:'Tempo de espera',c:TEAL},
-    {v:String(volStr),l:'Volume de execuções',c:RED},
-    {v:maturidade,l:'Nível de maturidade',c:'0EA5E9'},
-  ];
-  const mW=2.95,mH=2.42,mGap=0.1;
-  metricas.forEach((m,i)=>{
-    const col=i%4,row=Math.floor(i/4);
-    const mx=0.55+col*(mW+mGap),my=1.32+row*(mH+mGap);
-    R(mx,my,mW,mH,WHITE,'E2E8F0');
-    R(mx,my,mW,0.22,m.c);
-    T(m.v,mx,my+0.3,mW,1.3,{fontSize:27,bold:true,color:m.c,align:'center',valign:'middle'});
-    R(mx+0.5,my+1.72,mW-1.0,0.04,'E2E8F0');
-    T(m.l,mx,my+1.85,mW,0.46,{fontSize:9.5,color:SLATE,align:'center'});
-  });
-  if(atores.length){
-    T('Responsáveis: '+atores.join('  ·  '),0.55,7.0,12.2,0.28,{fontSize:8.5,color:SLATE2,italic:true});
-  }
-  addFooter(VIOLET);
-
-  // ════════════════════════════════════════
-  // SLIDES 5+ — ETAPAS DO PROCESSO
-  // ════════════════════════════════════════
-  const EPP_SLIDE=8;
-  const nEtSlides=Math.max(1,Math.ceil(etapas.length/EPP_SLIDE));
-  const TIPO_COR={'Decisao':AMBER,'Decisão':AMBER,'Evento':GREEN,'SubProcesso':VIOLET};
-  for(let s=0;s<nEtSlides;s++){
-    sl=pptx.addSlide();sl.background={color:LIGHT};
-    const slLbl=nEtSlides>1?`Etapas do Processo (${s+1}/${nEtSlides})`:'Etapas do Processo';
-    addHeader(String(4+s).padStart(2,'0'),slLbl,AMBER);
-    const batch=etapas.slice(s*EPP_SLIDE,(s+1)*EPP_SLIDE);
-    const rowH=5.7/EPP_SLIDE;
-    // Cabeçalho tabela
-    R(0.3,1.32,12.73,0.45,NAVY);
-    [['Nº',0.3,0.5],['Etapa / Nome',0.82,3.2],['Tipo',4.05,1.5],['Responsável',5.58,2.5],['Descrição',8.12,4.9]].forEach(([h,hx,hw])=>{
-      T(h,hx,1.32,hw,0.45,{fontSize:8.5,bold:true,color:WHITE,valign:'middle'});
-    });
-    batch.forEach((et,ri)=>{
-      const ry=1.77+ri*rowH;
-      const bg=ri%2===0?WHITE:'F1F5F9';
-      const tc=TIPO_COR[et.tipo]||BLUE;
-      R(0.3,ry,12.73,rowH,bg,'E2E8F0');
-      T(String(s*EPP_SLIDE+ri+1),0.3,ry,0.5,rowH,{fontSize:9,bold:true,color:tc,align:'center',valign:'middle'});
-      T(et.nome||et.desc||'—',0.82,ry+0.04,3.2,rowH-0.08,{fontSize:9,color:NAVY,valign:'middle'});
-      T(et.tipo||'Atividade',4.05,ry+0.04,1.5,rowH-0.08,{fontSize:8.5,color:tc,valign:'middle',italic:true});
-      T(et.resp||et.executor||'—',5.58,ry+0.04,2.5,rowH-0.08,{fontSize:8.5,color:SLATE,valign:'middle'});
-      T(et.desc||et.nome||'—',8.12,ry+0.04,4.88,rowH-0.08,{fontSize:8,color:SLATE,valign:'middle'});
-    });
-    addFooter(AMBER);
-  }
-
-  // ════════════════════════════════════════
-  // SLIDE — FLUXO DO PROCESSO
-  // ════════════════════════════════════════
-  sl=pptx.addSlide();sl.background={color:LIGHT};
-  const fluxoNum=String(4+nEtSlides).padStart(2,'0');
-  addHeader(fluxoNum,'Fluxo do Processo',TEAL);
-  if(fluxoImg){
-    sl.addImage({data:fluxoImg,x:0.3,y:1.32,w:12.73,h:5.68});
-  } else {
-    R(0.3,1.32,12.73,5.68,WHITE,'E2E8F0');
-    T('Imagem do fluxo BPMN não vinculada.\nUse "Vincular imagem à arquitetura" na etapa Desenho Final para incluir o diagrama aqui.',0.3,3.5,12.73,1.5,{fontSize:12,color:SLATE2,align:'center',valign:'middle',italic:true});
-  }
-  addFooter(TEAL);
-
-  // ════════════════════════════════════════
-  // SLIDE — FAQs E EXCEÇÕES
-  // ════════════════════════════════════════
-  if(faq.length||excecoes.length){
-    sl=pptx.addSlide();sl.background={color:LIGHT};
-    addHeader(String(5+nEtSlides).padStart(2,'0'),'Perguntas Frequentes e Exceções',BLUE);
-    const hasExc=excecoes.length>0;
-    const faqW=hasExc?6.0:12.73;
-    if(faq.length){
-      R(0.3,1.32,faqW,0.48,BLUE);
-      T('Perguntas Frequentes',0.3,1.32,faqW,0.48,{fontSize:11,bold:true,color:WHITE,valign:'middle',margin:[0,10,0,0]});
-      faq.slice(0,8).forEach((q,i)=>{
-        const qy=1.9+i*0.66;if(qy>6.9)return;
-        R(0.3,qy+0.04,0.32,0.32,'DBEAFE','DBEAFE');
-        T('?',0.3,qy+0.04,0.32,0.32,{fontSize:10,bold:true,color:BLUE,align:'center',valign:'middle'});
-        T(q,0.68,qy+0.04,faqW-0.48,0.56,{fontSize:9.5,color:NAVY,valign:'middle'});
-      });
-    }
-    if(hasExc){
-      const ex=0.3+faqW+0.3;
-      R(ex,1.32,6.43,0.48,AMBER);
-      T('Exceções e Casos Especiais',ex,1.32,6.43,0.48,{fontSize:11,bold:true,color:WHITE,valign:'middle',margin:[0,10,0,0]});
-      excecoes.slice(0,7).forEach((e,i)=>{
-        const ey=1.9+i*0.72;if(ey>6.9)return;
-        R(ex,ey+0.05,0.3,0.3,'FEF3C7','FEF3C7');
-        T('!',ex,ey+0.05,0.3,0.3,{fontSize:10,bold:true,color:AMBER,align:'center',valign:'middle'});
-        T(e,ex+0.38,ey+0.05,5.92,0.62,{fontSize:9.5,color:NAVY,valign:'middle'});
-      });
-    }
-    addFooter(BLUE);
-  }
-
-  // ════════════════════════════════════════
-  // SLIDE — INDICADORES
-  // ════════════════════════════════════════
-  if(procKpis.length){
-    sl=pptx.addSlide();sl.background={color:LIGHT};
-    addHeader(String(6+nEtSlides).padStart(2,'0'),'Indicadores de Desempenho',GREEN);
-    const kCols=[BLUE,TEAL,VIOLET,AMBER,GREEN,RED];
-    procKpis.slice(0,6).forEach((kpi,i)=>{
-      const col=i%3,row=Math.floor(i/3);
-      const kx=0.3+col*4.24,ky=1.38+row*2.88;
-      R(kx,ky,4.08,2.72,WHITE,'E2E8F0');
-      R(kx,ky,4.08,0.22,kCols[i%6]);
-      T(kpi.nome||'—',kx,ky+0.3,4.08,0.55,{fontSize:10.5,bold:true,color:kCols[i%6],align:'center'});
-      T(String(kpi.realizado??'—'),kx,ky+0.9,4.08,0.95,{fontSize:30,bold:true,color:kCols[i%6],align:'center',valign:'middle'});
-      T((kpi.unidade||'')+'   Meta: '+(kpi.meta??'—'),kx,ky+2.1,4.08,0.45,{fontSize:9,color:SLATE,align:'center'});
-    });
-    addFooter(GREEN);
-  }
-
-  // ════════════════════════════════════════
-  // SLIDE FINAL — ENCERRAMENTO
-  // ════════════════════════════════════════
-  sl=pptx.addSlide();
-  R(0,0,13.33,7.5,DARK);
-  R(0,0,13.33,0.1,TEAL);
-  R(0,7.4,13.33,0.1,BLUE);
-  R(3.0,1.5,7.33,4.5,NAVY);
-  R(3.0,1.5,7.33,0.12,TEAL);
-  R(3.0,5.88,7.33,0.12,BLUE);
-  T('Processo formalizado.',3.0,2.0,7.33,0.7,{fontSize:14,bold:true,color:TEAL,align:'center'});
-  T(p.nome,3.0,2.8,7.33,1.6,{fontSize:21,bold:true,color:WHITE,align:'center',valign:'middle'});
-  R(3.5,4.6,6.33,0.06,SLATE2);
-  T('Escritório de Processos · CAGE/Sefaz-RS',3.0,4.8,7.33,0.5,{fontSize:11,color:'7FB3D3',align:'center'});
-  T('Membro EP: '+(usuarioLogado?.nome||'—'),3.0,5.38,7.33,0.38,{fontSize:9.5,color:SLATE2,align:'center'});
-
-  const nomeArq='POP_PPT_'+p.nome.replace(/[^a-zA-Z0-9]/g,'_').slice(0,38)+'_'+now().replace(/\//g,'-');
+    const nomeArq='POP_PPT_'+p.nome.replace(/[^a-zA-Z0-9]/g,'_').slice(0,38)+'_'+now().replace(/\//g,'-');
   await pptx.writeFile({fileName:nomeArq+'.pptx'});
 }
 function salvarAuditoria(concluir){
@@ -7176,7 +7050,17 @@ async function processarArquivoPOP(input){
     const arrayBuffer=await input.files[0].arrayBuffer();
     const result=await mammoth.extractRawText({arrayBuffer});
     const texto=result.value.trim().slice(0,12000);
-    const prompt=`Analise o POP abaixo e retorne APENAS um JSON com: {"nome":"...","area":"...","objetivo":"...","atores":["..."],"etapas":["..."]}\nPOP:\n${texto}`;
+    const prompt=`Analise o POP abaixo e retorne APENAS um JSON válido (sem markdown) com a estrutura:
+{"nome":"...","area":"...","objetivo":"...","atores":["..."],"etapas":[{"nome":"...","tipo":"Atividade|Decisao|Evento"}]}
+
+REGRAS para classificar cada elemento do fluxo:
+- "Atividade": tarefas, execuções, verificações, comunicações, registros (a maioria)
+- "Decisao": gateways, bifurcações, condicionais — frases que começam com "Verificar se", "Caso", "Se sim/não", "Aprovado?", perguntas com "?"
+- "Evento": início do processo, fim/encerramento, espera por prazo ou evento externo
+
+Inclua TODOS os elementos do fluxo, inclusive os gateways/condicionais.
+
+POP:\n${texto}`;
     const rawText = await chamarIA('extrair_pop', prompt, loadEl);
     if(!rawText) throw new Error('Sem resposta da IA.');
     const jsonStr=rawText.trim().replace(/```json?/g,'').replace(/```/g,'').trim();
@@ -7185,7 +7069,11 @@ async function processarArquivoPOP(input){
     document.getElementById('pop-area').value=extracted.area||'';
     document.getElementById('pop-objetivo').value=extracted.objetivo||'';
     document.getElementById('pop-atores').value=(extracted.atores||[]).join('\n');
-    document.getElementById('pop-etapas').value=(extracted.etapas||[]).join('\n');
+    // Encode type in textarea so confirmarImportPOP can recover it
+    const etapasExtraidas=(extracted.etapas||[]);
+    document.getElementById('pop-etapas').value=etapasExtraidas.map(e=>
+      typeof e==='string'?e:`[${e.tipo||'Atividade'}] ${e.nome||e}`
+    ).join('\n');
     loadEl.style.display='none';
     document.getElementById('pop-step1').style.display='none';
     document.getElementById('pop-step2').style.display='block';
@@ -7208,21 +7096,32 @@ function confirmarImportPOP(){
   const etapasTexto=document.getElementById('pop-etapas').value.trim();
   const agora=new Date().toLocaleDateString('pt-BR');
   const novoId=Date.now();
+  // Parse typed etapas: "[Tipo] Nome" prefix encoded by processarArquivoPOP
+  const etapasProc=etapasTexto.split('\n').filter(Boolean).map((d,i)=>{
+    const m=d.match(/^\[(Atividade|Decisao|Evento|Comentario)\]\s*/i);
+    const tipo=m?m[1]:'Atividade';
+    const nome=m?d.slice(m[0].length).trim():d.trim();
+    return {id:'ep'+(novoId+i),seq:i+1,nome,tipo,natureza:'Execucao',modo:'Manual',executor:atores,desc:''};
+  });
+  const ativTexto=etapasProc.map(e=>`${e.seq}. [${e.tipo}] ${e.nome}`).join('\n');
+  const donoNome=arqItem?.gerente||'';
   const novoProc={
     id:novoId,
     arq_id:arqId||null,
     nome,area,objetivo,
     macro:arqItem?.macro||'Importado via POP',
     produto:'POP',
-    dono:arqItem?.gerente||'',
+    dono:donoNome,
     resp_ep:usuarioLogado?.nome||'',
     pat:'',
     prio:'Normal',
     etapa:'publicacao', // inicia já na etapa de publicação
     mapeado:true,
     ent:{dt_inicio:agora,dt_prev:'',equipe:'',prob:[],prev_ops:[],analise:'',mat:0,quest_resp:{}},
-    mod:{asIs:'',toBe:'',etapas_proc:etapasTexto.split('\n').filter(Boolean).map((d,i)=>({id:i+1,desc:d,resp:atores,ent:'',sai:'',dur:'',sist:'',doc:''}))},
-    form:{faq:'',links:'',forms:'',pop_data:{area,objetivo,atores,atividades:etapasTexto}},
+    mod:{asIs:'',toBe:'',bpmnAsIs:null,bpmnToBe:null,obs:'',etapas_proc:etapasProc},
+    form:{faq:'',links:'',forms:'',pop_data:{area,objetivo,atores,atividades:etapasTexto},
+      pop:{area,ger:donoNome,mac:arqItem?.macro||'',obj:objetivo,def:'',ent:'',sai:'',ativ:ativTexto,ind:'',docs:''},
+      pop_ok:true},
     hist:[{acao:'Processo criado via importação de POP Word (IA)',role:'EP',data:agora}],
     auditoria:null
   };
