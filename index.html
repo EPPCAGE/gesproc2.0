@@ -2893,7 +2893,16 @@ function rAcao(p){
   if(role==='dono' && p.mod?.det_delegado && p.dono===usuarioLogado?.nome){
     const etDel=p.mod.det_delegado;
     const lbl=etDel==='det_asis'?'Detalhamento AS IS':'Detalhamento TO BE';
-    el.innerHTML=`<div class="ib ibt" style="margin-bottom:1rem">O EP solicitou que você preencha os detalhes de cada etapa do <strong>${lbl}</strong>. Expanda cada etapa (✎ Detalhar) e preencha o executor e a descrição.</div>
+    el.innerHTML=`<div class="ib ibt" style="margin-bottom:1rem">
+      <div style="font-weight:600;margin-bottom:.4rem">📋 ${lbl} — Preenchimento pelo dono</div>
+      <div style="font-size:13px;line-height:1.6">O EP solicitou a sua contribuição para detalhar as etapas do processo. Para cada etapa listada abaixo, clique em <strong>✎ Detalhar</strong> e preencha:</div>
+      <ul style="font-size:13px;line-height:1.8;margin:.4rem 0 0 1.2rem;padding:0">
+        <li><strong>Natureza</strong> — classifique a atividade (ex.: Execução, Controle, Comunicação...)</li>
+        <li><strong>Modo de execução</strong> — informe se é Manual, Automática ou Semi-automática</li>
+        <li><strong>Executor</strong> — confirme ou corrija quem realiza esta etapa</li>
+        <li><strong>Descrição detalhada</strong> — descreva como a etapa é executada na prática</li>
+      </ul>
+    </div>
     <div id="etapas-proc-list">${renderEtapasProc(p.mod.etapas_proc||[])}</div>
     <div class="btn-row" style="margin-top:1rem">
       <button class="btn btn-g" onclick="concluirDetalhamentoDono()">Concluir e devolver ao EP ✓</button>
