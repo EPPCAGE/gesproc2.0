@@ -1264,14 +1264,7 @@ function getEPEmail(proc){
   return u?.email||'';
 }
 
-function doLogin(){
-  const email = document.getElementById('login-email').value.trim().toLowerCase();
-  if(!email){mostrarErrLogin('Informe seu e-mail.');return;}
-  const user = USUARIOS.find(u=>u.email===email);
-  if(!user){
-    mostrarErrLogin('Acesso não autorizado. Solicite cadastro ao EPP.');
-    return;
-  }
+function _aplicarUsuario(user){
   usuarioLogado=user;
   document.getElementById('login-err').style.display='none';
   document.getElementById('login-screen').style.display='none';
@@ -1283,8 +1276,20 @@ function doLogin(){
   aplicarPermissoes();
   go('fila',document.getElementById('nb-fila'));
 }
+function doLogin(){
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  if(!email){mostrarErrLogin('Informe seu e-mail.');return;}
+  const user = USUARIOS.find(u=>u.email===email);
+  if(!user){mostrarErrLogin('Acesso não autorizado. Solicite cadastro ao EPP.');return;}
+  try{localStorage.setItem('siga_user',user.email);}catch(e){}
+  _aplicarUsuario(user);
+}
 function mostrarErrLogin(msg){const e=document.getElementById('login-err');e.textContent=msg;e.style.display='block';}
-function doLogout(){usuarioLogado=null;document.getElementById('login-screen').style.display='flex';}
+function doLogout(){
+  usuarioLogado=null;
+  try{localStorage.removeItem('siga_user');}catch(e){}
+  document.getElementById('login-screen').style.display='flex';
+}
 
 // ═══════════════════════════════════════════
 // NAVEGAÇÃO
@@ -6831,6 +6836,16 @@ document.getElementById('login-screen').style.display='flex';
   }
 
   if(loadMsg) loadMsg.remove();
+
+  // Restaurar sessão após reload
+  try {
+    const savedEmail = localStorage.getItem('siga_user');
+    if(savedEmail){
+      const user = USUARIOS.find(u=>u.email===savedEmail);
+      if(user) _aplicarUsuario(user);
+    }
+  } catch(e){}
+
   updCounts();
   fbStatusBadge();
   injectSaveBtn();
