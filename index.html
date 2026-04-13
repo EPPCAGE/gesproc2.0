@@ -2831,6 +2831,18 @@ function salvarRetroativo(etId){
       p.form.pub_link=document.getElementById('pub-link')?.value||p.form.pub_link;
       p.form.pub_local=document.getElementById('pub-local')?.value||p.form.pub_local;
     },
+    melhorias:()=>{
+      if(!p.ent.analise) p.ent.analise={};
+      const fb={};
+      (window._dfbItems||[]).forEach(({tipo,texto})=>{
+        const val=window._dfb?.[tipo]?.[texto];
+        if(val){if(!fb[tipo])fb[tipo]={};fb[tipo][texto]=val;}
+      });
+      // Preserva feedback existente e mescla com o atual
+      const existing=p.ent.analise.feedback_dono||{};
+      Object.keys(fb).forEach(t=>{existing[t]={...(existing[t]||{}),...fb[t]};});
+      p.ent.analise.feedback_dono=existing;
+    },
   };
   if(saves[etId]) saves[etId]();
   push(p,etId,'EP','Dados revisados retroativamente pelo EP');
@@ -3245,6 +3257,25 @@ async function gerarPOPPPT() {
     const dimText = Object.entries(dims).map(([d, v]) => `${d}: ${v.cnt > 0 ? (v.sum / v.cnt).toFixed(1) : '-'}/5`).join('; ');
 
     const a = p.ent?.analise || {};
+
+    // Filtra apenas itens CONFIRMADOS na etapa Melhorias do Processo
+    const fb = a.feedback_dono || {};
+    function confirmados(tipo) {
+      return Object.entries(fb[tipo] || {}).filter(([,v]) => v === 'confirmado').map(([k]) => k);
+    }
+    const mitigacoesConf  = confirmados('mitigacoes_riscos');
+    const solucoesConf    = confirmados('solucoes_problemas');
+    const gargalosConf    = confirmados('gargalos');
+    const oportunidadesConf = confirmados('oportunidades');
+    const gapsConf        = confirmados('gaps');
+    // Se não houver feedback ainda (etapa não percorrida), usa todos
+    const hasFeedback = Object.keys(fb).length > 0;
+    const gargalosFinal    = hasFeedback ? gargalosConf    : (a.gargalos || []);
+    const oportunidadesFinal = hasFeedback ? oportunidadesConf : (a.oportunidades || []);
+    const gapsFinal        = hasFeedback ? gapsConf        : (a.gaps || []);
+    const mitigacoesFinal  = hasFeedback ? mitigacoesConf  : (a.mitigacoes_riscos || []);
+    const solucoesFinal    = hasFeedback ? solucoesConf    : (a.solucoes_problemas || []);
+
     const riscosText = (p.ent?.riscos || []).map((r, i) => {
       const d = r.desc || r;
       const det = [r.prob ? 'Prob: ' + r.prob : '', r.impacto ? 'Impacto: ' + r.impacto : ''].filter(Boolean).join(', ');
@@ -3277,11 +3308,15 @@ PROBLEMAS RELATADOS:
 ${probsText || 'Nenhum registrado'}
 RISCOS IDENTIFICADOS:
 ${riscosText || 'Nenhum registrado'}
+MITIGAÇÕES DE RISCOS CONFIRMADAS PELA EQUIPE (usar no slide de soluções):
+${mitigacoesFinal.length ? mitigacoesFinal.map((m,i)=>`${i+1}. ${m}`).join('\n') : 'Nenhuma confirmada'}
+SOLUÇÕES DE PROBLEMAS CONFIRMADAS PELA EQUIPE (usar no slide de soluções):
+${solucoesFinal.length ? solucoesFinal.map((s,i)=>`${i+1}. ${s}`).join('\n') : 'Nenhuma confirmada'}
 SITUAÇÃO AS IS: ${p.mod?.asIs || '—'}
 SITUAÇÃO TO BE: ${p.mod?.toBe || '—'}
-GARGALOS: ${(a.gargalos || []).join('; ') || '—'}
-GAPS: ${(a.gaps || []).join('; ') || '—'}
-OPORTUNIDADES: ${(a.oportunidades || []).join('; ') || '—'}
+GARGALOS CONFIRMADOS: ${gargalosFinal.join('; ') || '—'}
+GAPS CONFIRMADOS: ${gapsFinal.join('; ') || '—'}
+OPORTUNIDADES CONFIRMADAS: ${oportunidadesFinal.join('; ') || '—'}
 FAQ:
 ${faqText || 'Não preenchido'}
 INDICADORES VINCULADOS:
