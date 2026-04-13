@@ -1143,14 +1143,13 @@ const ETAPAS = [
   {id:'questionario',lb:'Quest. maturidade',fase:'Entendimento',cor:'pip-e',resp:'dono'},
   // Modelagem AS IS
   {id:'esboco_asis',lb:'Esboço AS IS',fase:'Modelagem',cor:'pip-m',resp:'ep'},
-  {id:'det_asis',lb:'Detalhamento AS IS',fase:'Modelagem',cor:'pip-m',resp:'ep',pulavel:true},
+  {id:'det_valid_asis',lb:'Detalhamento e validação AS IS',fase:'Modelagem',cor:'pip-m',resp:'dono'},
   {id:'riscos',lb:'Identificação de riscos',fase:'Modelagem',cor:'pip-m',resp:'ep'},
   {id:'analise',lb:'Análise inteligente',fase:'Modelagem',cor:'pip-m',resp:'ep'},
-  {id:'valid_asis',lb:'Validação AS IS',fase:'Modelagem',cor:'pip-m',resp:'dono'},
+  {id:'melhorias',lb:'Melhorias do processo',fase:'Modelagem',cor:'pip-m',resp:'ep'},
   // Modelagem TO BE (apenas se produto incluir TO BE)
   {id:'esboco_tobe',lb:'Esboço TO BE',fase:'Modelagem',cor:'pip-m',resp:'ep',tobe:true},
-  {id:'det_tobe',lb:'Detalhamento TO BE',fase:'Modelagem',cor:'pip-m',resp:'ep',tobe:true,pulavel:true},
-  {id:'valid_tobe',lb:'Validação TO BE',fase:'Modelagem',cor:'pip-m',resp:'dono',tobe:true},
+  {id:'det_valid_tobe',lb:'Detalhamento e validação TO BE',fase:'Modelagem',cor:'pip-m',resp:'dono',tobe:true},
   // Formalização
   {id:'desenho_final',lb:'Desenho final',fase:'Formalizacao',cor:'pip-f',resp:'ep'},
   {id:'pop',lb:'Construção POP',fase:'Formalizacao',cor:'pip-f',resp:'ep'},
@@ -1169,9 +1168,9 @@ function getEtapas(p){
 }
 const FASES = ['Entendimento','Modelagem','Formalizacao','Operacao','Auditoria'];
 const FASE_COR = {Entendimento:'bt',Modelagem:'bp',Formalizacao:'ba',Operacao:'bb',Auditoria:'br'};
-const EBADGE = {abertura:'bt',reuniao:'bt',questionario:'bt',esboco_asis:'bp',det_asis:'bp',riscos:'bp',analise:'bp',valid_asis:'bp',esboco_tobe:'bp',det_tobe:'bp',valid_tobe:'bp',desenho_final:'ba',pop:'ba',complement:'ba',apresentacao:'ba',publicacao:'ba',acompanha:'bb',auditoria:'br',
+const EBADGE = {abertura:'bt',reuniao:'bt',questionario:'bt',esboco_asis:'bp',det_valid_asis:'bp',riscos:'bp',analise:'bp',melhorias:'bp',esboco_tobe:'bp',det_valid_tobe:'bp',desenho_final:'ba',pop:'ba',complement:'ba',apresentacao:'ba',publicacao:'ba',acompanha:'bb',auditoria:'br',
   // retrocompat com IDs antigos
-  esboco:'bp',det_etapas:'bp',analise_asis:'bp',valid_dono:'bp'};
+  esboco:'bp',det_etapas:'bp',analise_asis:'bp',valid_dono:'bp',det_asis:'bp',valid_asis:'bp',det_tobe:'bp',valid_tobe:'bp'};
 
 function etIdx(id,p){return getEtapas(p||curProc).findIndex(e=>e.id===id);}
 function etFase(id){return ETAPAS.find(e=>e.id===id)?.fase||'';}
@@ -1357,7 +1356,7 @@ function ibBadge(v){return '<span class="badge '+({Baixo:'bg',Medio:'ba',Alto:'b
 function mBadge(s){return '<span class="badge '+({Identificada:'bsl','Em analise':'bp','Em execucao':'bb',Concluida:'bg'}[s]||'bgr')+'">'+s+'</span>';}
 function updCounts(){
   document.getElementById('nb-total').textContent=processos.length;
-  document.getElementById('nb-pend').textContent=processos.filter(p=>['valid_asis','valid_tobe','complement','apresentacao'].includes(p.etapa)).length;
+  document.getElementById('nb-pend').textContent=processos.filter(p=>['det_valid_asis','det_valid_tobe','complement','apresentacao'].includes(p.etapa)).length;
   document.getElementById('nb-fila-cnt').textContent=getTarefasUsr().length;
   const mobFilaCnt=document.getElementById('mob-fila-cnt');if(mobFilaCnt){const c=getTarefasUsr().length;mobFilaCnt.textContent=c;mobFilaCnt.style.display=c>0?'inline-flex':'none';}
   document.getElementById('nb-notif-cnt').textContent=notifs.filter(n=>!n.lida).length;
@@ -1496,7 +1495,7 @@ function getTarefasUsr(){
     const et=proc.etapa,etObj=ETAPAS.find(e=>e.id===et);
     if(!etObj)return false;
     if(p==='ep')return etObj.resp==='ep';
-    if(p==='dono')return (etObj.resp==='dono'&&proc.dono===usuarioLogado.nome)||(!!proc.mod?.det_delegado&&proc.dono===usuarioLogado.nome);
+    if(p==='dono')return etObj.resp==='dono'&&proc.dono===usuarioLogado.nome;
     if(p==='gestor')return etObj.resp==='gestor';
     return false;
   });
@@ -1599,7 +1598,7 @@ function rFila(){
   rCarrosselAvisos();
   const tarefas=getTarefasUsr();
   document.getElementById('fila-sub').textContent=usuarioLogado.nome+' — '+(tarefas.length?tarefas.length+' tarefa(s) pendente(s)':'nenhuma tarefa pendente');
-  const ACT={abertura:'Abrir processo e vincular à arquitetura',questionario:'Responder questionário de maturidade',reuniao:'Conduzir reunião de entendimento',mapeamento:'Registrar volumetria, equipe e prazos',analise:'Elaborar análise completa do AS IS',esboco_asis:'Elaborar esboço AS IS com BPMN',det_asis:'Detalhar etapas do AS IS',riscos:'Identificar e avaliar riscos do processo',esboco_tobe:'Elaborar esboço TO BE com BPMN',det_tobe:'Detalhar etapas do TO BE',valid_asis:'Validar modelagem AS IS',valid_tobe:'Validar modelagem TO BE',desenho_final:'Finalizar desenho do processo',pop:'Construir POP no padrão CAGE',complement:'Complementar POP (FAQ, formulários)',apresentacao:'Apresentar ao gestor',publicacao:'Publicar no repositório oficial',acompanha:'Verificar conformidade na implementação',monitora:'Monitorar indicadores de desempenho',auditoria:'Conduzir auditoria do processo'};
+  const ACT={abertura:'Abrir processo e vincular à arquitetura',questionario:'Responder questionário de maturidade',reuniao:'Conduzir reunião de entendimento',analise:'Elaborar análise inteligente do AS IS',esboco_asis:'Elaborar esboço AS IS com BPMN',det_valid_asis:'Detalhar etapas e validar AS IS',riscos:'Identificar e avaliar riscos do processo',melhorias:'Revisar melhorias e mitigações identificadas',esboco_tobe:'Elaborar esboço TO BE com BPMN',det_valid_tobe:'Detalhar etapas e validar TO BE',desenho_final:'Finalizar desenho do processo',pop:'Construir POP no padrão CAGE',complement:'Complementar POP (FAQ, formulários)',apresentacao:'Apresentar ao gestor',publicacao:'Publicar no repositório oficial',acompanha:'Verificar conformidade na implementação',monitora:'Monitorar indicadores de desempenho',auditoria:'Conduzir auditoria do processo'};
   const el=document.getElementById('fila-content');
   if(!tarefas.length){el.innerHTML='<div style="text-align:center;padding:3rem"><div style="font-size:36px;margin-bottom:10px">✓</div><div style="font-size:15px;font-weight:600;color:var(--ink)">Você está em dia!</div><div style="font-size:12px;color:var(--ink3);margin-top:4px">Nenhuma tarefa pendente no momento.</div></div>';return;}
   const crit=tarefas.filter(t=>t.prio==='Critica');
@@ -1730,7 +1729,7 @@ function rDash(){
   // Pipeline
   const cnt={};ETAPAS.forEach(e=>{cnt[e.id]=processos.filter(p=>p.etapa===e.id).length;});
   document.getElementById('dash-pipe').innerHTML=buildPipelineHTML(cnt);
-  const pend=processos.filter(p=>['valid_asis','valid_tobe','complement','apresentacao'].includes(p.etapa));
+  const pend=processos.filter(p=>['det_valid_asis','det_valid_tobe','complement','apresentacao'].includes(p.etapa));
   document.getElementById('dash-pend').innerHTML=buildPendentesHTML(pend);
 }
 function filtEtapaGo(etId){filtFaseAtual='';document.querySelectorAll('#fase-chips .chip').forEach((c,i)=>c.classList.toggle('on',i===0));go('processos',document.getElementById('nb-proc'));}
@@ -2123,32 +2122,46 @@ function dfbToggle(idx,val){
   if(dBtn){dBtn.style.borderColor=discarded?'var(--red)':'var(--bdr)';dBtn.style.background=discarded?'var(--red-l)':'transparent';dBtn.style.color=discarded?'var(--red)':'var(--ink4)';}
   if(txt){txt.style.textDecoration=discarded?'line-through':'none';txt.style.opacity=discarded?'.45':'1';}
 }
-function aprovarComFeedback(){
+function aprovarDetValidAsis(){
   const p=curProc;
   if(!p.ent.analise)p.ent.analise={};
-  // Salvar dados da reunião
   const dt=document.getElementById('va-dt')?.value||'';
   const part=document.getElementById('va-part')?.value||'';
   const ata=document.getElementById('va-ata')?.value||'';
   if(dt||part||ata) p.ent.analise.reuniao_valid_asis={data:dt,participantes:part,ata};
+  avDono('det_valid_asis','Dono do processo','Detalhamento e validação AS IS concluídos pelo dono',null);
+}
+function reprovarDetValidAsis(){
+  const p=curProc;
+  if(!p.ent.analise)p.ent.analise={};
+  const dt=document.getElementById('va-dt')?.value||'';
+  const part=document.getElementById('va-part')?.value||'';
+  const ata=document.getElementById('va-ata')?.value||'';
+  const obs=document.getElementById('aobs')?.value||'';
+  if(dt||part||ata) p.ent.analise.reuniao_valid_asis={data:dt,participantes:part,ata};
+  reprovarDono('esboco_asis','Dono','Dono solicitou ajustes no AS IS'+(obs?' — '+obs:''));
+}
+function salvarMelhorias(){
+  const p=curProc;
+  if(!p.ent.analise)p.ent.analise={};
   const fb={};
   (window._dfbItems||[]).forEach(({tipo,texto})=>{
     const val=window._dfb?.[tipo]?.[texto];
     if(val){if(!fb[tipo])fb[tipo]={};fb[tipo][texto]=val;}
   });
   p.ent.analise.feedback_dono=fb;
-  avDono('valid_asis','Dono do processo','Validação AS IS concluída pelo dono',null);
+  av('melhorias','EP','Melhorias e mitigações revisadas pelo EP');
 }
-function aprovarValidToBe(){
+function aprovarDetValidTobe(){
   const p=curProc;
   if(!p.mod)p.mod={};
   const dt=document.getElementById('vtb-dt')?.value||'';
   const part=document.getElementById('vtb-part')?.value||'';
   const ata=document.getElementById('vtb-ata')?.value||'';
   p.mod.reuniao_valid_tobe={data:dt,participantes:part,ata};
-  avDono('valid_tobe','Dono do processo','Validação TO BE aprovada pelo dono',null);
+  avDono('det_valid_tobe','Dono do processo','Detalhamento e validação TO BE concluídos pelo dono',null);
 }
-function reprovarValidToBe(){
+function reprovarDetValidTobe(){
   const p=curProc;
   if(!p.mod)p.mod={};
   const dt=document.getElementById('vtb-dt')?.value||'';
@@ -2342,61 +2355,19 @@ const ACOES = {
     ${bpmnEditorHTML('asis', p.mod.bpmnAsIs)}
     <div class="btn-row"><button class="btn btn-p" onclick="salvarEsboco()">Encaminhar para detalhamento →</button></div>`},
 
-  det_asis:{titulo:'Detalhamento AS IS',sub:'Extrair e detalhar cada atividade, evento e decisão do fluxo atual. Etapa opcional.',role:'EP',rk:'ep',
+  det_valid_asis:{titulo:'Detalhamento e Validação AS IS',sub:'O dono detalha as etapas do fluxo e valida o desenho AS IS elaborado pelo EP.',role:'Dono do processo',rk:'dono',
     form:p=>{
-      const delegado=p.mod?.det_delegado==='det_asis';
-      return `${delegado?`<div class="ib ibt" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem"><span>⏳ Aguardando preenchimento pelo dono do processo.</span><button class="btn" onclick="retomarDetalhamento()">Retomar tarefa</button></div>`:'<div class="ib ibp">Extraia as etapas do BPMN ou adicione manualmente. Esta etapa é opcional — pode ser pulada.</div>'}
-      <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-        <button class="btn btn-p" onclick="extrairBpmn()">⚡ Extrair etapas do BPMN</button>
-        <button class="btn" onclick="addEtapaProc()">+ Adicionar manualmente</button>
+      const rv=p.ent.analise?.reuniao_valid_asis||{};
+      return `<div class="ib ibt" style="margin-bottom:1.2rem">
+        <div style="font-weight:600;margin-bottom:.4rem">Suas responsabilidades nesta etapa:</div>
+        <ul style="font-size:13px;line-height:1.8;margin:.2rem 0 0 1.2rem;padding:0">
+          <li>Registrar os dados da reunião de alinhamento</li>
+          <li>Para cada etapa listada, clicar em <strong>✎ Detalhar</strong> e preencher natureza, modo de execução, executor e descrição</li>
+          <li>Revisar o fluxo AS IS desenhado pelo EP e aprovar ou solicitar ajustes</li>
+        </ul>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 340px;gap:1.25rem;align-items:start">
-        <div>
-          <div id="etapas-proc-list">${renderEtapasProc(p.mod.etapas_proc||[])}</div>
-        </div>
-        <div style="position:sticky;top:1rem">
-          <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:.85rem;box-shadow:var(--sh)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
-              <div style="font-size:12px;font-weight:600;color:var(--ink2)">Fluxo gerado</div>
-              <div style="display:flex;gap:4px">
-                <button class="btn" style="font-size:10px;padding:2px 8px" onclick="atualizarMermaid()">↺ Ajustar</button>
-                <button class="btn" style="font-size:10px;padding:2px 8px" onclick="copiarMermaid()">⎘ Copiar</button>
-              </div>
-            </div>
-            <div id="mermaid-preview" style="overflow-x:auto;min-height:80px"><div style="font-size:11px;color:var(--ink3);text-align:center;padding:1rem">Adicione etapas para visualizar o fluxo</div></div>
-          </div>
-        </div>
-      </div>
-      <div class="btn-row">
-        <button class="btn" onclick="pularEtapa('det_asis')" style="color:var(--ink3)">Pular →</button>
-        ${delegado?'':`<button class="btn btn-t" onclick="delegarDetalhamento('det_asis')" title="Enviar ao dono para preencher executor e descrição de cada etapa">👤 Enviar ao dono</button>`}
-        <button class="btn btn-p" onclick="salvarDetEtapas()">Salvar e avançar →</button>
-      </div>`;
-    }},
 
-  valid_asis:{titulo:'Validação AS IS',sub:'O dono do processo revisa o fluxo atual, a análise inteligente e confirma os achados.',role:'Dono do processo',rk:'dono',
-    form:p=>{
-      const a=p.ent.analise||{};
-      const ia=a.ia_resultado||{};
-      const mat=p.ent.mat||0;
-      const ML=['','Inicial','Repetível','Definido','Gerenciado','Otimizado'];
-      const matCor=mat<=1?'var(--red)':mat<=2?'var(--amber)':mat<=3?'var(--amber)':mat<=4?'var(--teal)':'var(--green)';
-      const matBg=mat<=1?'var(--red-l)':mat<=2?'var(--amber-l)':mat<=3?'var(--amber-l)':mat<=4?'var(--teal-l)':'var(--green-l)';
-      const gargalos=[...new Set([...(a.gargalos||[]),...(ia.gargalos||[])])];
-      const retrabalhos=[...new Set([...(a.retrabalhos||[]),...(ia.retrabalhos||[])])];
-      const gaps=[...new Set([...(a.gaps||[]),...(ia.gaps||[])])];
-      const oportunidades=[...new Set([...(a.oportunidades||[]),...(ia.oportunidades||[])])];
-      const solucoes=ia.solucoes_problemas||a.solucoes_problemas||[];
-      const mitigacoes=ia.mitigacoes_riscos||a.mitigacoes_riscos||[];
-      const complexidade=a.complexidade||ia.complexidade||'';
-      const temAnalise=!!(ia.resumo||gargalos.length||retrabalhos.length||gaps.length||oportunidades.length||solucoes.length||mitigacoes.length);
-      const rv=a.reuniao_valid_asis||{};
-      window._dfb={};window._dfbItems=[];
-      const savedFb=a.feedback_dono||{};
-      Object.keys(savedFb).forEach(t=>{window._dfb[t]={...savedFb[t]};});
-      return `<div class="ib ibp" style="margin-bottom:1.2rem">Revise os materiais abaixo. Confirme (✓) ou descarte (✗) cada achado. Ao final, aprove ou solicite ajustes.</div>
-
-      <div class="card-t" style="margin-bottom:.6rem">1. Reunião de validação</div>
+      <div class="card-t" style="margin-bottom:.6rem">1. Reunião de alinhamento</div>
       <div class="g2" style="margin-bottom:.8rem">
         <div class="fg"><label class="fl">Data da reunião</label><input class="fi" id="va-dt" type="date" value="${rv.data||''}"></div>
         <div class="fg"><label class="fl">Participantes</label><input class="fi" id="va-part" placeholder="Nomes dos presentes" value="${esc(rv.participantes||'')}"></div>
@@ -2404,58 +2375,22 @@ const ACOES = {
       <div class="fg" style="margin-bottom:1rem"><label class="fl">Ata / encaminhamentos</label><textarea class="fi" id="va-ata" style="min-height:70px" placeholder="Registre as decisões e encaminhamentos da reunião...">${esc(rv.ata||'')}</textarea></div>
 
       <hr>
-      <div class="card-t" style="margin-bottom:.6rem">2. Desenho AS IS</div>
-      ${p.mod.asIs?`<div class="card" style="margin-bottom:.8rem"><div class="card-t">Descrição</div><div style="font-size:13px;color:var(--ink2);white-space:pre-wrap;line-height:1.7">${esc(p.mod.asIs)}</div></div>`:''}
-      ${bpmnEditorHTML('asis',p.mod.bpmnAsIs)}
-
-      <hr>
-      <div class="card-t" style="margin:.8rem 0 .2rem">3. Análise inteligente</div>
-      <div style="font-size:12px;color:var(--ink3);margin-bottom:.6rem">Confirme (✓) ou descarte (✗) cada item.</div>
-      ${temAnalise?`
-        ${ia.resumo?`<div class="card" style="margin-bottom:.8rem"><div class="card-t">Resumo</div><div style="font-size:13px;color:var(--ink2);line-height:1.7">${esc(ia.resumo)}</div></div>`:''}
-        <div class="g4" style="margin-bottom:.8rem">
-          ${[['Complexidade',complexidade||'—'],['Ciclo médio',a.t_ciclo_medio||'—'],['Tempo de espera',a.t_espera_medio||'—'],['Atividades',a.qtd_atividades||'—']].map(([l,v])=>`<div class="card"><div class="sec-lbl" style="margin-bottom:2px">${l}</div><div style="font-size:14px;font-weight:600">${v}</div></div>`).join('')}
-        </div>
-        ${gargalos.length?`<div class="analise-item" style="margin-bottom:.6rem"><div class="analise-cat analise-gar">Gargalos (${gargalos.length})</div>${gargalos.map(g=>dfbRow('gargalos',g,'⚠')).join('')}</div>`:''}
-        ${retrabalhos.length?`<div class="analise-item" style="margin-bottom:.6rem"><div class="analise-cat analise-ret">Retrabalhos (${retrabalhos.length})</div>${retrabalhos.map(r=>dfbRow('retrabalhos',r,'↩')).join('')}</div>`:''}
-        ${gaps.length?`<div class="analise-item" style="margin-bottom:.6rem"><div class="analise-cat analise-gap">Pontos cegos (${gaps.length})</div>${gaps.map(g=>dfbRow('gaps',g,'○')).join('')}</div>`:''}
-        ${oportunidades.length?`<div class="analise-item" style="margin-bottom:.6rem"><div class="analise-cat analise-oport">Oportunidades (${oportunidades.length})</div>${oportunidades.map(o=>dfbRow('oportunidades',o,'✦')).join('')}</div>`:''}
-        ${solucoes.length?`<div class="analise-item" style="margin-bottom:.6rem"><div class="analise-cat" style="background:var(--teal-l);color:var(--teal)">Soluções propostas (${solucoes.length})</div>${solucoes.map(s=>dfbRow('solucoes_problemas',s,'💡')).join('')}</div>`:''}
-        ${mitigacoes.length?`<div class="analise-item" style="margin-bottom:.6rem"><div class="analise-cat" style="background:var(--amber-l);color:var(--amber)">Mitigações de riscos (${mitigacoes.length})</div>${mitigacoes.map(m=>dfbRow('mitigacoes_riscos',m,'🛡')).join('')}</div>`:''}
-      `:`<div class="ib iba" style="margin-bottom:.8rem">Análise inteligente ainda não gerada pelo EP.</div>`}
-
-      <hr>
-      <div class="card-t" style="margin:.8rem 0 .6rem">4. Maturidade do processo</div>
-      ${mat?`
-        <div class="card" style="margin-bottom:.8rem">
-          <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap">
-            <div style="text-align:center;min-width:80px">
-              <div style="font-size:48px;font-weight:700;font-family:var(--fh);color:${matCor};line-height:1">${mat}</div>
-              <div style="font-size:12px;font-weight:600;color:${matCor};margin-top:2px">${ML[mat]||''}</div>
-            </div>
-            <div style="flex:1;min-width:160px">
-              <div style="background:var(--bg2);border-radius:99px;overflow:hidden;height:10px;margin-bottom:.5rem">
-                <div style="width:${mat*20}%;height:100%;background:${matCor};border-radius:99px"></div>
-              </div>
-              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;text-align:center">
-                ${['Inicial','Repetível','Definido','Gerenciado','Otimizado'].map((l,i)=>`
-                  <div style="padding:4px 2px;border-radius:6px;background:${mat===i+1?matBg:'transparent'};border:1px solid ${mat===i+1?matCor:'var(--bdr)'}">
-                    <div style="font-size:13px;font-weight:700;color:${mat===i+1?matCor:'var(--ink4)'}">${i+1}</div>
-                    <div style="font-size:9px;color:${mat===i+1?matCor:'var(--ink4)'};">${l}</div>
-                  </div>`).join('')}
-              </div>
-            </div>
-          </div>
-        </div>
-      `:`<div class="ib iba" style="margin-bottom:.8rem">Questionário de maturidade ainda não respondido.</div>`}
+      <div class="card-t" style="margin-bottom:.4rem">2. Detalhamento das etapas</div>
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:.8rem">Expanda cada etapa (✎ Detalhar) e preencha natureza, modo de execução, executor e descrição.</div>
+      <div id="etapas-proc-list">${renderEtapasProc(p.mod.etapas_proc||[])}</div>
 
       <hr style="margin:.8rem 0">
-      <div class="fg"><label class="fl">Comentários / ajustes solicitados</label>
-        <textarea class="fi" id="aobs" style="min-height:70px" placeholder="Descreva ajustes ou deixe em branco se aprovado..."></textarea>
+      <div class="card-t" style="margin-bottom:.6rem">3. Fluxo AS IS</div>
+      ${p.mod.asIs?`<div class="card" style="margin-bottom:.8rem"><div class="card-t">Descrição do processo</div><div style="font-size:13px;color:var(--ink2);white-space:pre-wrap;line-height:1.7">${esc(p.mod.asIs)}</div></div>`:''}
+      ${bpmnEditorHTML('asis',p.mod.bpmnAsIs)}
+
+      <hr style="margin:.8rem 0">
+      <div class="fg"><label class="fl">Comentários / ajustes solicitados ao EP</label>
+        <textarea class="fi" id="aobs" style="min-height:70px" placeholder="Descreva ajustes necessários ou deixe em branco se aprovado..."></textarea>
       </div>
       <div class="btn-row">
-        <button class="btn btn-a" onclick="reprovarDono('esboco_asis','Dono','Dono solicitou ajustes no AS IS')">Solicitar ajustes</button>
-        <button class="btn btn-g" onclick="aprovarComFeedback()">Aprovar AS IS ✓</button>
+        <button class="btn btn-a" onclick="reprovarDetValidAsis()">Solicitar ajustes no AS IS</button>
+        <button class="btn btn-g" onclick="aprovarDetValidAsis()">Aprovar AS IS ✓</button>
       </div>`;
     }},
 
@@ -2464,30 +2399,21 @@ const ACOES = {
     <div class="fg"><label class="fl">Descrição TO BE</label>
       <textarea class="fi" id="e-tobe" style="min-height:120px" placeholder="Como o processo deve funcionar após as melhorias...">${p.mod.toBe||''}</textarea></div>
     ${bpmnEditorHTML('tobe', p.mod.bpmnToBe)}
-    <div class="btn-row"><button class="btn btn-p" onclick="salvarEsbocaTobe()">Encaminhar para detalhamento TO BE →</button></div>`},
+    <div class="btn-row"><button class="btn btn-p" onclick="salvarEsbocaTobe()">Encaminhar para detalhamento e validação TO BE →</button></div>`},
 
-  det_tobe:{titulo:'Detalhamento TO BE',sub:'Detalhar atividades, eventos e decisões do fluxo futuro. Etapa opcional.',role:'EP',rk:'ep',
-    form:p=>{
-      const delegado=p.mod?.det_delegado==='det_tobe';
-      return `${delegado?`<div class="ib ibt" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem"><span>⏳ Aguardando preenchimento pelo dono do processo.</span><button class="btn" onclick="retomarDetalhamento()">Retomar tarefa</button></div>`:'<div class="ib ibp">Detalhe as etapas do processo TO BE. Esta etapa é opcional — pode ser pulada.</div>'}
-      <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-        <button class="btn btn-p" onclick="extrairBpmn()">⚡ Extrair etapas do BPMN TO BE</button>
-        <button class="btn" onclick="addEtapaProc()">+ Adicionar manualmente</button>
-      </div>
-      <div id="etapas-proc-list">${renderEtapasProc(p.mod.etapas_proc||[])}</div>
-      <div class="btn-row">
-        <button class="btn" onclick="pularEtapa('det_tobe')" style="color:var(--ink3)">Pular →</button>
-        ${delegado?'':`<button class="btn btn-t" onclick="delegarDetalhamento('det_tobe')" title="Enviar ao dono para preencher executor e descrição de cada etapa">👤 Enviar ao dono</button>`}
-        <button class="btn btn-p" onclick="salvarDetTobe()">Salvar e avançar →</button>
-      </div>`;
-    }},
-
-  valid_tobe:{titulo:'Validação TO BE',sub:'O dono do processo revisa e aprova o fluxo futuro proposto pelo EP.',role:'Dono do processo',rk:'dono',
+  det_valid_tobe:{titulo:'Detalhamento e Validação TO BE',sub:'O dono detalha as etapas do fluxo futuro e valida o desenho TO BE elaborado pelo EP.',role:'Dono do processo',rk:'dono',tobe:true,
     form:p=>{
       const rv=p.mod?.reuniao_valid_tobe||{};
-      return `<div class="ib ibp" style="margin-bottom:1.2rem">Revise o fluxo TO BE proposto. Aprove se concordar ou solicite ajustes com comentários.</div>
+      return `<div class="ib ibt" style="margin-bottom:1.2rem">
+        <div style="font-weight:600;margin-bottom:.4rem">Suas responsabilidades nesta etapa:</div>
+        <ul style="font-size:13px;line-height:1.8;margin:.2rem 0 0 1.2rem;padding:0">
+          <li>Registrar os dados da reunião de alinhamento</li>
+          <li>Para cada etapa listada, clicar em <strong>✎ Detalhar</strong> e preencher os detalhes do fluxo futuro</li>
+          <li>Revisar o fluxo TO BE desenhado pelo EP e aprovar ou solicitar ajustes</li>
+        </ul>
+      </div>
 
-      <div class="card-t" style="margin-bottom:.6rem">1. Reunião de validação TO BE</div>
+      <div class="card-t" style="margin-bottom:.6rem">1. Reunião de alinhamento TO BE</div>
       <div class="g2" style="margin-bottom:.8rem">
         <div class="fg"><label class="fl">Data da reunião</label><input class="fi" id="vtb-dt" type="date" value="${rv.data||''}"></div>
         <div class="fg"><label class="fl">Participantes</label><input class="fi" id="vtb-part" placeholder="Nomes dos presentes" value="${esc(rv.participantes||'')}"></div>
@@ -2495,18 +2421,50 @@ const ACOES = {
       <div class="fg" style="margin-bottom:1rem"><label class="fl">Ata / encaminhamentos</label><textarea class="fi" id="vtb-ata" style="min-height:70px" placeholder="Registre as decisões e encaminhamentos...">${esc(rv.ata||'')}</textarea></div>
 
       <hr>
-      <div class="card-t" style="margin-bottom:.6rem">2. Fluxo TO BE proposto</div>
+      <div class="card-t" style="margin-bottom:.4rem">2. Detalhamento das etapas TO BE</div>
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:.8rem">Expanda cada etapa (✎ Detalhar) e preencha os detalhes do fluxo futuro.</div>
+      <div id="etapas-proc-list">${renderEtapasProc(p.mod.etapas_proc||[])}</div>
+
+      <hr style="margin:.8rem 0">
+      <div class="card-t" style="margin-bottom:.6rem">3. Fluxo TO BE proposto</div>
       ${p.mod?.toBe?`<div class="card" style="margin-bottom:.8rem"><div class="card-t">Descrição TO BE</div><div style="font-size:13px;color:var(--ink2);white-space:pre-wrap;line-height:1.7">${esc(p.mod.toBe)}</div></div>`:''}
       ${bpmnEditorHTML('tobe',p.mod?.bpmnToBe)}
 
       <hr style="margin:.8rem 0">
-      <div class="fg"><label class="fl">Comentários / ajustes solicitados</label>
-        <textarea class="fi" id="vtb-obs" style="min-height:70px" placeholder="Descreva ajustes ou deixe em branco se aprovado..."></textarea>
+      <div class="fg"><label class="fl">Comentários / ajustes solicitados ao EP</label>
+        <textarea class="fi" id="vtb-obs" style="min-height:70px" placeholder="Descreva ajustes necessários ou deixe em branco se aprovado..."></textarea>
       </div>
       <div class="btn-row">
-        <button class="btn btn-a" onclick="reprovarValidToBe()">Solicitar ajustes no TO BE</button>
-        <button class="btn btn-g" onclick="aprovarValidToBe()">Aprovar TO BE ✓</button>
+        <button class="btn btn-a" onclick="reprovarDetValidTobe()">Solicitar ajustes no TO BE</button>
+        <button class="btn btn-g" onclick="aprovarDetValidTobe()">Aprovar TO BE ✓</button>
       </div>`;
+    }},
+
+  melhorias:{titulo:'Melhorias do Processo',sub:'Revise os achados da análise inteligente e defina quais melhorias e mitigações serão implementadas.',role:'EP',rk:'ep',
+    form:p=>{
+      const a=p.ent.analise||{};
+      const ia=a.ia_resultado||{};
+      const gargalos=[...new Set([...(a.gargalos||[]),...(ia.gargalos||[])])];
+      const retrabalhos=[...new Set([...(a.retrabalhos||[]),...(ia.retrabalhos||[])])];
+      const gaps=[...new Set([...(a.gaps||[]),...(ia.gaps||[])])];
+      const oportunidades=[...new Set([...(a.oportunidades||[]),...(ia.oportunidades||[])])];
+      const solucoes=ia.solucoes_problemas||a.solucoes_problemas||[];
+      const mitigacoes=ia.mitigacoes_riscos||a.mitigacoes_riscos||[];
+      const temAnalise=!!(ia.resumo||gargalos.length||retrabalhos.length||gaps.length||oportunidades.length||solucoes.length||mitigacoes.length);
+      window._dfb={};window._dfbItems=[];
+      const savedFb=a.feedback_dono||{};
+      Object.keys(savedFb).forEach(t=>{window._dfb[t]={...savedFb[t]};});
+      return `<div class="ib ibp" style="margin-bottom:1.2rem">Com base na análise inteligente e nos riscos identificados, confirme (✓) os itens que serão trabalhados como melhorias ou descarte (✗) os que não se aplicam.</div>
+      ${temAnalise?`
+        ${ia.resumo?`<div class="card" style="margin-bottom:.8rem"><div class="card-t">Resumo da análise</div><div style="font-size:13px;color:var(--ink2);line-height:1.7">${esc(ia.resumo)}</div></div>`:''}
+        ${gargalos.length?`<div class="analise-item" style="margin-bottom:.6rem"><div class="analise-cat analise-gar">Gargalos (${gargalos.length})</div>${gargalos.map(g=>dfbRow('gargalos',g,'⚠')).join('')}</div>`:''}
+        ${retrabalhos.length?`<div class="analise-item" style="margin-bottom:.6rem"><div class="analise-cat analise-ret">Retrabalhos (${retrabalhos.length})</div>${retrabalhos.map(r=>dfbRow('retrabalhos',r,'↩')).join('')}</div>`:''}
+        ${gaps.length?`<div class="analise-item" style="margin-bottom:.6rem"><div class="analise-cat analise-gap">Pontos cegos (${gaps.length})</div>${gaps.map(g=>dfbRow('gaps',g,'○')).join('')}</div>`:''}
+        ${oportunidades.length?`<div class="analise-item" style="margin-bottom:.6rem"><div class="analise-cat analise-oport">Oportunidades (${oportunidades.length})</div>${oportunidades.map(o=>dfbRow('oportunidades',o,'✦')).join('')}</div>`:''}
+        ${solucoes.length?`<div class="analise-item" style="margin-bottom:.6rem"><div class="analise-cat" style="background:var(--teal-l);color:var(--teal)">Soluções propostas (${solucoes.length})</div>${solucoes.map(s=>dfbRow('solucoes_problemas',s,'💡')).join('')}</div>`:''}
+        ${mitigacoes.length?`<div class="analise-item" style="margin-bottom:.6rem"><div class="analise-cat" style="background:var(--amber-l);color:var(--amber)">Mitigações de riscos (${mitigacoes.length})</div>${mitigacoes.map(m=>dfbRow('mitigacoes_riscos',m,'🛡')).join('')}</div>`:''}
+      `:`<div class="ib iba">Análise inteligente ainda não gerada. Execute a etapa de Análise inteligente antes.</div>`}
+      <div class="btn-row"><button class="btn btn-p" onclick="salvarMelhorias()">Concluir revisão de melhorias →</button></div>`;
     }},
 
     desenho_final:{titulo:'Desenho final do processo',sub:'Consolide e finalize o fluxo validado pelo dono.',role:'EP',rk:'ep',
@@ -2810,8 +2768,8 @@ function rAcaoRetro(){
       <button class="btn btn-p" onclick="salvarRetroativo('${etId}')">Salvar revisão</button>
     </div>`;
   document.querySelectorAll('#tab-acao .card .btn-row').forEach(r=>r.style.display='none');
-  if(etId==='esboco_asis'||etId==='valid_asis'||etId==='desenho_final') setTimeout(()=>initBpmnMod('asis',p),120);
-  if(etId==='esboco_tobe'||etId==='valid_tobe') setTimeout(()=>initBpmnMod('tobe',p),120);
+  if(etId==='esboco_asis'||etId==='det_valid_asis'||etId==='desenho_final') setTimeout(()=>initBpmnMod('asis',p),120);
+  if(etId==='esboco_tobe'||etId==='det_valid_tobe') setTimeout(()=>initBpmnMod('tobe',p),120);
 }
 function salvarRetroativo(etId){
   const p=curProc;
@@ -2889,26 +2847,6 @@ function buildAcaoCardHTML(ac, p, extraNote){
 function rAcao(p){
   const role=usuarioLogado?.perfil||'ep';
   const el=document.getElementById('tab-acao');
-  // Tarefa delegada de detalhamento ao dono
-  if(role==='dono' && p.mod?.det_delegado && p.dono===usuarioLogado?.nome){
-    const etDel=p.mod.det_delegado;
-    const lbl=etDel==='det_asis'?'Detalhamento AS IS':'Detalhamento TO BE';
-    el.innerHTML=`<div class="ib ibt" style="margin-bottom:1rem">
-      <div style="font-weight:600;margin-bottom:.4rem">📋 ${lbl} — Preenchimento pelo dono</div>
-      <div style="font-size:13px;line-height:1.6">O EP solicitou a sua contribuição para detalhar as etapas do processo. Para cada etapa listada abaixo, clique em <strong>✎ Detalhar</strong> e preencha:</div>
-      <ul style="font-size:13px;line-height:1.8;margin:.4rem 0 0 1.2rem;padding:0">
-        <li><strong>Natureza</strong> — classifique a atividade (ex.: Execução, Controle, Comunicação...)</li>
-        <li><strong>Modo de execução</strong> — informe se é Manual, Automática ou Semi-automática</li>
-        <li><strong>Executor</strong> — confirme ou corrija quem realiza esta etapa</li>
-        <li><strong>Descrição detalhada</strong> — descreva como a etapa é executada na prática</li>
-      </ul>
-    </div>
-    <div id="etapas-proc-list">${renderEtapasProc(p.mod.etapas_proc||[])}</div>
-    <div class="btn-row" style="margin-top:1rem">
-      <button class="btn btn-g" onclick="concluirDetalhamentoDono()">Concluir e devolver ao EP ✓</button>
-    </div>`;
-    return;
-  }
   const ac=ACOES[p.etapa];
   if(!ac){el.innerHTML='<div class="ib ibsl">Etapa não configurada.</div>';return;}
   if(role==='dono'){
@@ -2927,8 +2865,8 @@ function rAcao(p){
     el.innerHTML=minhaTarefa
       ?`<div class="ib ibt" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem"><span>O EP encaminhou esta tarefa para você. Complete quando estiver pronto.</span>${prazoBanner}</div>${buildAcaoCardHTML(ac,p,'')}`
       :`<div class="card"><div class="ib iba" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem"><span>Esta etapa — <strong>${ac.titulo}</strong> — aguarda ação de <strong>${p.dono||'dono'}</strong>.</span>${prazoBanner}</div><div style="font-size:13px;color:var(--ink2)">${ac.sub}</div></div>`;
-    if(p.etapa==='valid_asis' && minhaTarefa) setTimeout(()=>initBpmnMod('asis',p),120);
-    if(p.etapa==='valid_tobe' && minhaTarefa) setTimeout(()=>initBpmnMod('tobe',p),120);
+    if(p.etapa==='det_valid_asis' && minhaTarefa) setTimeout(()=>initBpmnMod('asis',p),120);
+    if(p.etapa==='det_valid_tobe' && minhaTarefa) setTimeout(()=>initBpmnMod('tobe',p),120);
     return;
   }
   const roleNote=role!==ac.rk?`<div class="ib iba" style="margin-top:.7rem">Esta etapa aguarda: <strong>${ac.role}</strong>. Troque o perfil para interagir.</div>`:'';
@@ -2936,7 +2874,7 @@ function rAcao(p){
   if(p.etapa==='esboco_asis') setTimeout(()=>{initBpmnMod('asis',p);},120);
   if(p.etapa==='esboco_tobe') setTimeout(()=>{initBpmnMod('tobe',p);},120);
   if(p.etapa==='desenho_final') setTimeout(()=>initBpmnMod('asis',p),120);
-  if(p.etapa==='det_asis'||p.etapa==='det_tobe') setTimeout(atualizarMermaid,300);
+  if(p.etapa==='esboco_asis') setTimeout(atualizarMermaid,300);
   if(p.etapa==='pop') setTimeout(injectIaPop, 100);
 }
 
@@ -3137,46 +3075,8 @@ function salvarEsbocaTobe(){
   if(mTo){mTo.saveXML({format:true}).then(({xml})=>{p.mod.bpmnToBe=xml;}).catch(e=>console.warn('bpmn saveXML tobe:',e.message));}
   av('esboco_tobe','EP','Esboço TO BE elaborado com BPMN');
 }
-function salvarDetEtapas(){
-  av('det_asis','EP','Detalhamento AS IS: '+(curProc?.mod?.etapas_proc||[]).length+' etapas');
-}
-function salvarDetTobe(){
-  av('det_tobe','EP','Detalhamento TO BE: '+(curProc?.mod?.etapas_proc||[]).length+' etapas');
-}
-function delegarDetalhamento(etId){
-  const p=curProc;
-  if(!p||!p.dono){toast('Processo sem dono definido.','var(--red)');return;}
-  if(!p.mod)p.mod={};
-  p.mod.det_delegado=etId;
-  push(p,etId,'EP','Detalhamento enviado ao dono para preenchimento');
-  fbAutoSave('delegarDetalhamento');
-  updCounts();
-  rDetalhe();
-  setTimeout(()=>perguntarNotifDono(etId),200);
-}
-function retomarDetalhamento(){
-  const p=curProc;
-  if(!p?.mod)return;
-  delete p.mod.det_delegado;
-  push(p,p.etapa,'EP','Detalhamento retomado pelo EP');
-  fbAutoSave('retomarDetalhamento');
-  updCounts();
-  rDetalhe();
-}
-function concluirDetalhamentoDono(){
-  const p=curProc;
-  if(!p?.mod?.det_delegado)return;
-  const etId=p.mod.det_delegado;
-  delete p.mod.det_delegado;
-  push(p,etId,'Dono do processo','Detalhamento das etapas preenchido pelo dono');
-  fbAutoSave('concluirDetalhamentoDono');
-  updCounts();
-  // Notificar EP
-  const notif={id:Date.now(),tipo:'info',titulo:'Detalhamento preenchido',msg:`${p.dono} preencheu os detalhes das etapas de "${p.nome}".`,data:now(),lida:false,procId:p.id};
-  notifs.unshift(notif);
-  rDetalhe();
-  toast('Detalhes enviados ao EP!','var(--teal)');
-}
+
+
 function pularEtapa(etId){
   push(curProc,etId,'EP','Etapa pulada (opcional)');
   const nx=nextEt(etId);
@@ -4062,7 +3962,7 @@ function addEtapaProc(){
 }
 function extrairBpmn(){
   const p=curProc;
-  const isTobe=p.etapa==='det_tobe';
+  const isTobe=p.etapa==='det_valid_tobe';
   const bpmnXml=isTobe?p.mod?.bpmnToBe:p.mod?.bpmnAsIs;
   if(!bpmnXml){
     toast('Nenhum fluxo BPMN '+(isTobe?'TO BE':'AS IS')+' salvo. Salve o BPMN na aba de Esboço primeiro.','var(--amber)');
