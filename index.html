@@ -4000,12 +4000,14 @@ function addEtapaProc(){
 }
 function extrairBpmn(){
   const p=curProc;
-  if(!p?.mod?.bpmnAsIs){
-    toast('Nenhum fluxo BPMN AS IS salvo. Salve o BPMN na aba de Esboço primeiro.','var(--amber)');
+  const isTobe=p.etapa==='det_tobe';
+  const bpmnXml=isTobe?p.mod?.bpmnToBe:p.mod?.bpmnAsIs;
+  if(!bpmnXml){
+    toast('Nenhum fluxo BPMN '+(isTobe?'TO BE':'AS IS')+' salvo. Salve o BPMN na aba de Esboço primeiro.','var(--amber)');
     return;
   }
   const parser=new DOMParser();
-  const xml=parser.parseFromString(p.mod.bpmnAsIs,'text/xml');
+  const xml=parser.parseFromString(bpmnXml,'text/xml');
   // Mapa elementId → nome da raia (lane)
   const laneMap={};
   xml.querySelectorAll('lane').forEach(lane=>{
