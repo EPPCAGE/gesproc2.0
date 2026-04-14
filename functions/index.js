@@ -2,6 +2,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const ALLOWED_ORIGINS = [
   "https://eppcage.github.io",
+  "https://sigaepp.web.app",
   "http://localhost:3000",
   "http://localhost:5000",
   "http://127.0.0.1:3000",
@@ -49,6 +50,7 @@ exports.ai = onRequest(
         extrair_pop: `Voc\u00ea \u00e9 especialista em an\u00e1lise de documentos de gest\u00e3o p\u00fablica.\nAnalise o POP (Procedimento Operacional Padr\u00e3o) fornecido e extraia as informa\u00e7\u00f5es no formato JSON exato:\n{"nome":"nome do processo","area":"\u00e1rea respons\u00e1vel","objetivo":"objetivo em uma frase","atores":["ator1","ator2"],"etapas":["etapa 1","etapa 2"]}\nRetorne APENAS o JSON, sem texto adicional.`,
 
         relatorio_auditoria: `Voc\u00ea \u00e9 especialista em auditoria de processos da administra\u00e7\u00e3o p\u00fablica brasileira.\nCom base nos dados da auditoria fornecidos, elabore um Relat\u00f3rio Executivo de Auditoria de Processo completo e profissional.\nRetorne APENAS um JSON v\u00e1lido (sem markdown, sem bloco de c\u00f3digo) com a estrutura:\n{\n  "sumario": "Sum\u00e1rio executivo em 2-3 par\u00e1grafos descrevendo o processo auditado, o per\u00edodo e os principais resultados",\n  "conformidade_justificativa": "Justificativa objetiva para a conformidade geral atribu\u00edda",\n  "achados_resumo": ["achado resumido 1", "achado resumido 2"],\n  "recomendacoes": ["recomenda\u00e7\u00e3o 1", "recomenda\u00e7\u00e3o 2", "recomenda\u00e7\u00e3o 3"],\n  "conclusao": "Par\u00e1grafo de conclus\u00e3o com avalia\u00e7\u00e3o final e pr\u00f3ximos passos"\n}`,
+        gerar_questoes: `Voc\u00ea \u00e9 especialista em auditoria de processos da administra\u00e7\u00e3o p\u00fablica brasileira.\nCom base no objetivo, escopo, crit\u00e9rios da auditoria e no conte\u00fado do processo mapeado fornecidos, gere uma lista de quest\u00f5es de auditoria relevantes e objetivas.\nCada quest\u00e3o deve ser verific\u00e1vel, diretamente ligada a um crit\u00e9rio e adequada ao contexto do processo.\nRetorne APENAS um JSON v\u00e1lido (sem markdown, sem bloco de c\u00f3digo) com a estrutura:\n[\n  {"questao": "texto da quest\u00e3o", "criterio": "crit\u00e9rio relacionado"},\n  ...\n]\nGere entre 8 e 15 quest\u00f5es cobrindo conformidade, desempenho, controles internos e evid\u00eancias documentais.`,
       };
 
       const systemPrompt = SYSTEM[mode];

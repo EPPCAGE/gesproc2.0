@@ -2776,8 +2776,15 @@ const ACOES = {
       const acoes=aud.acoes_list||[];
       const questoesHtml=questoes.length?questoes.map((q,i)=>`
         <div class="card" style="margin-bottom:.4rem;padding:.6rem .8rem;font-size:13px">
-          <strong>Q${i+1}:</strong> ${q.questao}
-          ${q.resposta?`<div style="color:var(--teal);margin-top:.2rem">✓ ${q.resposta}</div>`:'<div style="color:var(--amber);margin-top:.2rem">Aguardando resposta</div>'}
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div><strong>Q${i+1}:</strong> ${q.questao}
+            ${q.criterio?`<div style="font-size:11px;color:var(--ink3);margin-top:2px">Critério: ${q.criterio}</div>`:''}
+            ${q.resposta?`<div style="color:var(--teal);margin-top:.2rem">✓ ${q.resposta}</div>`:'<div style="color:var(--amber);margin-top:.2rem">Aguardando resposta</div>'}</div>
+            <div style="display:flex;gap:4px;flex-shrink:0">
+              <button class="btn" style="font-size:11px;padding:2px 7px" onclick="editarQuestaoAuditoria(${i})">Editar</button>
+              <button class="btn" style="font-size:11px;padding:2px 7px;color:var(--red);border-color:var(--red)" onclick="excluirQuestaoAuditoria(${i})">✕</button>
+            </div>
+          </div>
         </div>`).join(''):'';
       const achadosHtml=achados.length?achados.map((a,i)=>`
         <div class="card" style="margin-bottom:.4rem;padding:.6rem .8rem;font-size:13px">
@@ -2823,14 +2830,23 @@ const ACOES = {
         <button class="btn" onclick="salvarPlanejamentoAuditoria()">Salvar planejamento</button>
       </div>
       <div id="aud2" class="tab-p" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+          <span style="font-size:13px;color:var(--ink3)">${questoes.length} questão(ões) cadastrada(s)</span>
+          <button class="btn btn-p" style="font-size:12px" onclick="iaGerarQuestoesAuditoria()">✦ Gerar com IA</button>
+        </div>
+        <div id="aud-ia-questoes"></div>
         <div style="margin-bottom:1rem">${questoesHtml||'<div style="font-size:12px;color:var(--ink3)">Nenhuma questão cadastrada.</div>'}</div>
-        <div style="font-weight:600;font-size:13px;margin-bottom:.8rem;padding-top:.8rem;border-top:1px solid var(--bdr)">Adicionar questão de auditoria</div>
+        <div style="font-weight:600;font-size:13px;margin-bottom:.8rem;padding-top:.8rem;border-top:1px solid var(--bdr)" id="aud-q-form-title">Adicionar questão de auditoria</div>
+        <input type="hidden" id="aud-q-idx" value="">
         <div class="fg"><label class="fl">Questão</label><textarea class="fi" id="aud-q-texto" style="min-height:60px" placeholder="Ex: O processo é executado conforme o POP?"></textarea></div>
         <div class="g2">
           <div class="fg"><label class="fl">Critério relacionado</label><input class="fi" id="aud-q-crit" placeholder="Qual critério essa questão avalia?"></div>
           <div class="fg"><label class="fl">Responsável por responder</label><input class="fi" id="aud-q-resp" placeholder="Nome do respondente"></div>
         </div>
-        <button class="btn" onclick="adicionarQuestaoAuditoria()">＋ Adicionar questão</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-p" id="aud-q-save-btn" onclick="salvarQuestaoAuditoria()">＋ Adicionar questão</button>
+          <button class="btn" id="aud-q-cancel-btn" style="display:none" onclick="cancelarEdicaoQuestao()">Cancelar</button>
+        </div>
       </div>
       <div id="aud3" class="tab-p" style="display:none">
         <div style="margin-bottom:1rem">${achadosHtml||'<div style="font-size:12px;color:var(--ink3)">Nenhum achado registrado.</div>'}</div>
@@ -4083,6 +4099,106 @@ function adicionarQuestaoAuditoria(){
   p.auditoria.questoes.push(q);
   fbAutoSave('salvar');toast('Questão adicionada!','var(--teal)');
   rDetalhe();
+}
+
+function salvarQuestaoAuditoria(){
+  const p=curProc;if(!p)return;
+  if(!p.auditoria)p.auditoria={};
+  if(!p.auditoria.questoes)p.auditoria.questoes=[];
+  const texto=document.getElementById('aud-q-texto')?.value||'';
+  const criterio=document.getElementById('aud-q-crit')?.value||'';
+  const responsavel=document.getElementById('aud-q-resp')?.value||'';
+  const idxStr=document.getElementById('aud-q-idx')?.value||'';
+  if(!texto){toast('Informe a questão','var(--red)');return;}
+  if(idxStr!==''){
+    const idx=parseInt(idxStr);
+    p.auditoria.questoes[idx]={...p.auditoria.questoes[idx],questao:texto,criterio,responsavel};
+    toast('Questão atualizada!','var(--teal)');
+  } else {
+    p.auditoria.questoes.push({questao:texto,criterio,responsavel,resposta:'',criada_em:now()});
+    toast('Questão adicionada!','var(--teal)');
+  }
+  fbSaveAll();
+  rDetalhe();
+}
+
+function editarQuestaoAuditoria(idx){
+  const p=curProc;if(!p)return;
+  const q=(p.auditoria?.questoes||[])[idx];if(!q)return;
+  document.getElementById('aud-q-idx').value=idx;
+  document.getElementById('aud-q-texto').value=q.questao||'';
+  document.getElementById('aud-q-crit').value=q.criterio||'';
+  document.getElementById('aud-q-resp').value=q.responsavel||'';
+  document.getElementById('aud-q-form-title').textContent='Editar questão Q'+(idx+1);
+  document.getElementById('aud-q-save-btn').textContent='Salvar alterações';
+  document.getElementById('aud-q-cancel-btn').style.display='';
+  document.getElementById('aud-q-texto').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function cancelarEdicaoQuestao(){
+  document.getElementById('aud-q-idx').value='';
+  document.getElementById('aud-q-texto').value='';
+  document.getElementById('aud-q-crit').value='';
+  document.getElementById('aud-q-resp').value='';
+  document.getElementById('aud-q-form-title').textContent='Adicionar questão de auditoria';
+  document.getElementById('aud-q-save-btn').textContent='＋ Adicionar questão';
+  document.getElementById('aud-q-cancel-btn').style.display='none';
+}
+
+function excluirQuestaoAuditoria(idx){
+  const p=curProc;if(!p)return;
+  if(!confirm('Excluir esta questão?'))return;
+  p.auditoria.questoes.splice(idx,1);
+  fbSaveAll();
+  toast('Questão excluída','var(--amber)');
+  rDetalhe();
+}
+
+async function iaGerarQuestoesAuditoria(){
+  const p=curProc;if(!p)return;
+  const aud=p.auditoria||{};
+  if(!aud.objetivo && !aud.criterios){
+    toast('Preencha o objetivo e os critérios da auditoria na aba Planejamento antes de gerar.','var(--amber)');return;
+  }
+  const targetEl=document.getElementById('aud-ia-questoes');
+  const payload={
+    processo: p.nome,
+    area: p.area||'',
+    objetivo_processo: p.objetivo||'',
+    etapas: (p.mod?.etapas_proc||[]).map(e=>e.nome).join(', '),
+    entradas: p.ent?.entradas||'',
+    saidas: p.ent?.saidas||'',
+    atores: p.ent?.atores||'',
+    problemas: (p.ent?.prob||[]).join('; '),
+    pop_objetivo: p.form?.pop?.obj||'',
+    auditoria_objetivo: aud.objetivo||'',
+    auditoria_escopo: aud.escopo||'',
+    auditoria_criterios: aud.criterios||'',
+    auditoria_metodologia: aud.metodologia||'',
+  };
+  const result=await chamarIA('gerar_questoes', payload, targetEl);
+  if(!result)return;
+  try{
+    const clean=result.replace(/```json|```/g,'').trim();
+    const lista=JSON.parse(clean);
+    if(!Array.isArray(lista))throw new Error('Formato inválido');
+    if(!p.auditoria)p.auditoria={};
+    if(!p.auditoria.questoes)p.auditoria.questoes=[];
+    lista.forEach(item=>{
+      if(item.questao) p.auditoria.questoes.push({
+        questao:item.questao,
+        criterio:item.criterio||'',
+        responsavel:'',
+        resposta:'',
+        criada_em:now()
+      });
+    });
+    fbSaveAll();
+    toast(`${lista.length} questões geradas pela IA!`,'var(--teal)');
+    rDetalhe();
+  }catch(e){
+    if(targetEl)targetEl.innerHTML=`<div class="ai-result"><div class="ai-result-lbl">⚠ Erro ao processar resposta da IA</div>${e.message}</div>`;
+  }
 }
 function preencherApontamento(idx){
   const ap = APONTAMENTOS_PADRAO[idx];
