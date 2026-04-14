@@ -3187,7 +3187,7 @@ function registrarReuniaoAcomp(){
   if(!r.data){toast('Informe a data da reunião','var(--red)');return;}
   p.reunioes_acomp.push(r);
   push(p,'acompanha','EP','Reunião de acompanhamento registrada — '+r.data+' — '+r.conformidade);
-  fbAutoSave('salvar');
+  fbSaveAll();
   toast('Reunião registrada!','var(--teal)');
   rDetalhe();
 }
@@ -4819,7 +4819,7 @@ function salvarReuniaoAvulsa(){
     if(paths[tipo]) paths[tipo]();
   }
   push(p,'','EP','Reunião registrada: '+tipo.replace(/_/g,' ')+' — '+data);
-  fbAutoSave('reuniaoAvulsa');
+  fbSaveAll();
   toast('Reunião registrada!','var(--teal)');
   rReun(p);
 }
