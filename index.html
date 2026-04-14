@@ -6650,9 +6650,9 @@ function abrirModalUsr(idx){
     document.getElementById('usr-modal-t').textContent = 'Novo usuário';
     document.getElementById('usr-idx').value = '';
     ['usr-nome','usr-ini','usr-email'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('usr-perfil').value = 'ep';
+    document.getElementById('usr-perfil').value = 'dono';
     document.getElementById('usr-vinculos-list').innerHTML = '';
-    document.getElementById('usr-proc-section').style.display = 'none';
+    document.getElementById('usr-proc-section').style.display = 'block';
     delBtn.style.display = 'none';
   } else {
     const u = USUARIOS[idx];
