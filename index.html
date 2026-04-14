@@ -4274,19 +4274,25 @@ function cancelarEdicaoQuestao(){
   document.getElementById('aud-q-cancel-btn').style.display='none';
 }
 
-function excluirQuestaoAuditoria(idx){
+async function excluirQuestaoAuditoria(idx){
   const p=curProc;if(!p)return;
   if(!confirm('Excluir esta questão?'))return;
   p.auditoria.questoes.splice(idx,1);
-  fbSaveAll();
   toast('Questão excluída','var(--amber)');
   rDetalhe();
+  // Restore the Questões tab after rDetalhe resets it to Planejamento
+  const aud2Tab = document.getElementById('tab-acao')?.querySelector('.tab[onclick*="aud2"]');
+  if(aud2Tab) sstab('aud2', aud2Tab);
+  await fbSaveAll();
 }
 
 async function iaGerarQuestoesAuditoria(){
   const p=curProc;if(!p)return;
   const aud=p.auditoria||{};
-  if(!aud.objetivo && !aud.criterios){
+  // Read from DOM (current form values) falling back to last-saved in-memory state
+  const objetivo=(document.getElementById('aud-obj')?.value||'').trim()||aud.objetivo||'';
+  const criterios=(document.getElementById('aud-crit')?.value||'').trim()||aud.criterios||'';
+  if(!objetivo || !criterios){
     toast('Preencha o objetivo e os critérios da auditoria na aba Planejamento antes de gerar.','var(--amber)');return;
   }
   const targetEl=document.getElementById('aud-ia-questoes');
@@ -4300,10 +4306,10 @@ async function iaGerarQuestoesAuditoria(){
     atores: p.ent?.atores||'',
     problemas: (p.ent?.prob||[]).join('; '),
     pop_objetivo: p.form?.pop?.obj||'',
-    auditoria_objetivo: aud.objetivo||'',
-    auditoria_escopo: aud.escopo||'',
-    auditoria_criterios: aud.criterios||'',
-    auditoria_metodologia: aud.metodologia||'',
+    auditoria_objetivo: objetivo,
+    auditoria_escopo: (document.getElementById('aud-escopo')?.value||'').trim()||aud.escopo||'',
+    auditoria_criterios: criterios,
+    auditoria_metodologia: (document.getElementById('aud-metod')?.value||'')||aud.metodologia||'',
   };
   const result=await chamarIA('gerar_questoes', payload, targetEl);
   if(!result)return;
