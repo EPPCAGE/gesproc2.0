@@ -2297,17 +2297,21 @@ function dfbRow(tipo,texto,emoji){
     <button id="dfb-d-${idx}" onclick="dfbToggle(${idx},'descartado')" style="border:1.5px solid ${discarded?'var(--red)':'var(--bdr)'};background:${discarded?'var(--red-l)':'transparent'};color:${discarded?'var(--red)':'var(--ink4)'};border-radius:6px;padding:2px 10px;font-size:12px;font-weight:700;cursor:pointer">✗</button>
   </div>`;
 }
+function _dfbStyleBtn(btn, active, colorOn, bgOn){
+  if(!btn) return;
+  btn.style.borderColor = active ? colorOn : 'var(--bdr)';
+  btn.style.background  = active ? bgOn    : 'transparent';
+  btn.style.color       = active ? colorOn : 'var(--ink4)';
+}
 function dfbToggle(idx,val){
   const {tipo,texto}=window._dfbItems[idx];
   if(!window._dfb[tipo])window._dfb[tipo]={};
   window._dfb[tipo][texto]=window._dfb[tipo][texto]===val?null:val;
   const fb=window._dfb[tipo][texto];
   const confirmed=fb==='confirmado',discarded=fb==='descartado';
-  const cBtn=document.getElementById('dfb-c-'+idx);
-  const dBtn=document.getElementById('dfb-d-'+idx);
+  _dfbStyleBtn(document.getElementById('dfb-c-'+idx), confirmed, 'var(--green)', 'var(--green-l)');
+  _dfbStyleBtn(document.getElementById('dfb-d-'+idx), discarded, 'var(--red)',   'var(--red-l)');
   const txt=document.getElementById('dfb-txt-'+idx);
-  if(cBtn){cBtn.style.borderColor=confirmed?'var(--green)':'var(--bdr)';cBtn.style.background=confirmed?'var(--green-l)':'transparent';cBtn.style.color=confirmed?'var(--green)':'var(--ink4)';}
-  if(dBtn){dBtn.style.borderColor=discarded?'var(--red)':'var(--bdr)';dBtn.style.background=discarded?'var(--red-l)':'transparent';dBtn.style.color=discarded?'var(--red)':'var(--ink4)';}
   if(txt){txt.style.textDecoration=discarded?'line-through':'none';txt.style.opacity=discarded?'.45':'1';}
 }
 function aprovarDetValidAsis(){
@@ -3094,54 +3098,61 @@ function buildAcaoCardHTML(ac, p, extraNote){
     ${extraNote||''}
   </div>`;
 }
-function rAcao(p){
-  const role=usuarioLogado?.perfil||'ep';
-  const el=document.getElementById('tab-acao');
-  const ac=ACOES[p.etapa];
-  if(!ac){el.innerHTML='<div class="ib ibsl">Etapa não configurada.</div>';return;}
-  if(role==='dono'){
-    const etObj=ETAPAS.find(e=>e.id===p.etapa);
-    const isDonoProc=p.dono===usuarioLogado.nome;
-    const isVinc=(usuarioLogado.processos_vinculados||[]).includes(p.arq_id);
-    const minhaTarefa=etObj?.resp==='dono'&&(isDonoProc||isVinc);
-    const prazoBanner=(()=>{
-      if(!p.prazo_dono) return '';
-      const hoje=new Date().toISOString().split('T')[0];
-      const atrasado=p.prazo_dono<hoje;
-      const diff=Math.ceil((new Date(p.prazo_dono)-new Date())/(1000*60*60*24));
-      const pzFmt=p.prazo_dono.split('-').reverse().join('/');
-      const cor=atrasado?'var(--red)':diff<=3?'var(--amber)':'var(--ink2)';
-      const label=atrasado?` <span style="font-size:11px;font-weight:700;color:var(--red)">(ATRASADO)</span>`:diff<=3?` <span style="font-size:11px;color:var(--amber)">(${diff} dia(s))</span>`:'';
-      return `<span style="font-size:12px;font-weight:600;color:${cor}">📅 Prazo: ${pzFmt}${label}</span>`;
-    })();
-    if(minhaTarefa){
-      const jr=jaFoiRespondido(p.etapa);
-      if(jr){
-        const dtFmt=jr.dt?jr.dt.replace('T',' ').substring(0,16):'';
-        el.innerHTML=`<div class="card"><div class="ib" style="background:var(--amber-l,#fef3c7);border:1.5px solid var(--amber,#f59e0b);border-radius:8px;padding:1rem;margin-bottom:1rem;display:flex;align-items:flex-start;gap:.6rem">
-          <span style="font-size:1.4rem">🔒</span>
-          <div>
-            <div style="font-weight:700;font-size:14px;color:var(--amber,#b45309);margin-bottom:.25rem">Esta tarefa já foi respondida</div>
-            <div style="font-size:13px;color:var(--ink2)"><strong>${jr.nome}</strong> já enviou a resposta desta etapa${dtFmt?' em '+dtFmt:''}. A tarefa está concluída e o EP foi notificado.</div>
-          </div>
-        </div></div>`;
-        return;
-      }
-    }
-    el.innerHTML=minhaTarefa
-      ?`<div class="ib ibt" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem"><span>O EP encaminhou esta tarefa para você. Complete quando estiver pronto.</span>${prazoBanner}</div>${buildAcaoCardHTML(ac,p,'')}`
-      :`<div class="card"><div class="ib iba" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem"><span>Esta etapa — <strong>${ac.titulo}</strong> — aguarda ação de <strong>${p.dono||'dono'}</strong>.</span>${prazoBanner}</div><div style="font-size:13px;color:var(--ink2)">${ac.sub}</div></div>`;
-    if(p.etapa==='det_valid_asis' && minhaTarefa) setTimeout(()=>initBpmnMod('asis',p),120);
-    if(p.etapa==='det_valid_tobe' && minhaTarefa) setTimeout(()=>initBpmnMod('tobe',p),120);
-    return;
-  }
-  const roleNote=role!==ac.rk?`<div class="ib iba" style="margin-top:.7rem">Esta etapa aguarda: <strong>${ac.role}</strong>. Troque o perfil para interagir.</div>`:'';
-  el.innerHTML=buildAcaoCardHTML(ac,p,roleNote);
+function _rAcaoPrazoBanner(p){
+  if(!p.prazo_dono) return '';
+  const hoje=new Date().toISOString().split('T')[0];
+  const atrasado=p.prazo_dono<hoje;
+  const diff=Math.ceil((new Date(p.prazo_dono)-new Date())/(1000*60*60*24));
+  const pzFmt=p.prazo_dono.split('-').reverse().join('/');
+  const cor=atrasado?'var(--red)':diff<=3?'var(--amber)':'var(--ink2)';
+  const label=atrasado
+    ?` <span style="font-size:11px;font-weight:700;color:var(--red)">(ATRASADO)</span>`
+    :diff<=3?` <span style="font-size:11px;color:var(--amber)">(${diff} dia(s))</span>`:'';
+  return `<span style="font-size:12px;font-weight:600;color:${cor}">📅 Prazo: ${pzFmt}${label}</span>`;
+}
+function _rAcaoTarefaRespondidaHTML(jr){
+  const dtFmt=jr.dt?jr.dt.replace('T',' ').substring(0,16):'';
+  return `<div class="card"><div class="ib" style="background:var(--amber-l,#fef3c7);border:1.5px solid var(--amber,#f59e0b);border-radius:8px;padding:1rem;margin-bottom:1rem;display:flex;align-items:flex-start;gap:.6rem">
+    <span style="font-size:1.4rem">🔒</span>
+    <div>
+      <div style="font-weight:700;font-size:14px;color:var(--amber,#b45309);margin-bottom:.25rem">Esta tarefa já foi respondida</div>
+      <div style="font-size:13px;color:var(--ink2)"><strong>${jr.nome}</strong> já enviou a resposta desta etapa${dtFmt?' em '+dtFmt:''}. A tarefa está concluída e o EP foi notificado.</div>
+    </div>
+  </div></div>`;
+}
+function _rAcaoInitBpmn(p, minhaTarefa){
+  if(p.etapa==='det_valid_asis' && minhaTarefa) setTimeout(()=>initBpmnMod('asis',p),120);
+  if(p.etapa==='det_valid_tobe' && minhaTarefa) setTimeout(()=>initBpmnMod('tobe',p),120);
   if(p.etapa==='esboco_asis') setTimeout(()=>{initBpmnMod('asis',p);},120);
   if(p.etapa==='esboco_tobe') setTimeout(()=>{initBpmnMod('tobe',p);},120);
   if(p.etapa==='desenho_final') setTimeout(()=>initBpmnMod('asis',p),120);
   if(p.etapa==='esboco_asis') setTimeout(atualizarMermaid,300);
   if(p.etapa==='pop') setTimeout(injectIaPop, 100);
+}
+function _rAcaoHandleDono(el, ac, p){
+  const etObj=ETAPAS.find(e=>e.id===p.etapa);
+  const isDonoProc=p.dono===usuarioLogado.nome;
+  const isVinc=(usuarioLogado.processos_vinculados||[]).includes(p.arq_id);
+  const minhaTarefa=etObj?.resp==='dono'&&(isDonoProc||isVinc);
+  const prazoBanner=_rAcaoPrazoBanner(p);
+  if(minhaTarefa){
+    const jr=jaFoiRespondido(p.etapa);
+    if(jr){ el.innerHTML=_rAcaoTarefaRespondidaHTML(jr); return; }
+  }
+  el.innerHTML=minhaTarefa
+    ?`<div class="ib ibt" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem"><span>O EP encaminhou esta tarefa para você. Complete quando estiver pronto.</span>${prazoBanner}</div>${buildAcaoCardHTML(ac,p,'')}`
+    :`<div class="card"><div class="ib iba" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem"><span>Esta etapa — <strong>${ac.titulo}</strong> — aguarda ação de <strong>${p.dono||'dono'}</strong>.</span>${prazoBanner}</div><div style="font-size:13px;color:var(--ink2)">${ac.sub}</div></div>`;
+  _rAcaoInitBpmn(p, minhaTarefa);
+}
+function rAcao(p){
+  const role=usuarioLogado?.perfil||'ep';
+  const el=document.getElementById('tab-acao');
+  const ac=ACOES[p.etapa];
+  if(!ac){el.innerHTML='<div class="ib ibsl">Etapa não configurada.</div>';return;}
+  if(role==='dono'){ _rAcaoHandleDono(el,ac,p); return; }
+  const roleNote=role!==ac.rk?`<div class="ib iba" style="margin-top:.7rem">Esta etapa aguarda: <strong>${ac.role}</strong>. Troque o perfil para interagir.</div>`:'';
+  el.innerHTML=buildAcaoCardHTML(ac,p,roleNote);
+  _rAcaoInitBpmn(p, false);
 }
 
 // ═══════════════════════════════════════════
@@ -3179,6 +3190,13 @@ function setLikert(qid,val,btn){
   btn.closest('.likert').querySelectorAll('.lk-btn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
 }
+function _calcNivelMaturidade(media){
+  if(media<=1.5) return 1;
+  if(media<=2.5) return 2;
+  if(media<=3.5) return 3;
+  if(media<=4.5) return 4;
+  return 5;
+}
 function salvarQuestionario(){
   const p=curProc;
   const jr=jaFoiRespondido(p.etapa);
@@ -3188,7 +3206,7 @@ function salvarQuestionario(){
   if(respondidas<15&&!confirm(`Apenas ${respondidas}/15 afirmações respondidas. Continuar assim mesmo?`))return;
   const total=Object.values(resp).reduce((a,b)=>a+b,0);
   const media=respondidas>0?(total/respondidas).toFixed(1):0;
-  const nivel=media<=1.5?1:media<=2.5?2:media<=3.5?3:media<=4.5?4:5;
+  const nivel=_calcNivelMaturidade(parseFloat(media));
   p.ent.mat=nivel;
   const nota=document.getElementById('quest-nota')?.value||'';
   p.ent.quest_nota=nota;
@@ -3353,6 +3371,27 @@ function confirmarRegenerarAnalise(){
   }
   gerarAnaliseIA();
 }
+function _gerarAnaliseIAPayloadExtra(p){
+  const problemas=(p.ent?.prob||[]).filter(Boolean);
+  const riscos=(p.ent?.riscos||[]).map(r=>`${r.descricao||r.desc||''} (probabilidade: ${r.probabilidade||'—'}, impacto: ${r.impacto||'—'})`).filter(s=>s.trim()!=='(probabilidade: —, impacto: —)');
+  if(!problemas.length && !riscos.length) return '';
+  const probsStr=problemas.length?'\n\nProblemas/dores levantados na reunião de entendimento:\n'+problemas.map((x,i)=>`${i+1}. ${x}`).join('\n'):'';
+  const riscosStr=riscos.length?'\n\nRiscos identificados na etapa de identificação de riscos:\n'+riscos.map((r,i)=>`${i+1}. ${r}`).join('\n'):'';
+  const instrucoes='\n\nAlém dos campos padrão (resumo, gargalos, retrabalhos, gaps, oportunidades, complexidade), inclua obrigatoriamente no JSON:\n- "solucoes_problemas": array de strings com uma sugestão de solução concreta para cada problema listado acima (mesma ordem e quantidade)\n- "mitigacoes_riscos": array de strings com uma proposta de mitigação concreta para cada risco listado acima (mesma ordem e quantidade)';
+  return probsStr+riscosStr+instrucoes;
+}
+function _gerarAnaliseIASalvarJSON(p, json){
+  p.ent.analise.ia_resultado=json;
+  if(json.gargalos)p.ent.analise.gargalos=json.gargalos;
+  if(json.retrabalhos)p.ent.analise.retrabalhos=json.retrabalhos;
+  if(json.gaps)p.ent.analise.gaps=json.gaps;
+  if(json.oportunidades)p.ent.analise.oportunidades=json.oportunidades;
+  if(json.complexidade)p.ent.analise.complexidade=json.complexidade;
+  if(json.solucoes_problemas)p.ent.analise.solucoes_problemas=json.solucoes_problemas;
+  if(json.mitigacoes_riscos)p.ent.analise.mitigacoes_riscos=json.mitigacoes_riscos;
+  fbAutoSave('salvar');
+  rDetalhe();
+}
 async function gerarAnaliseIA(){
   const p=curProc;if(!p)return;
   if(!p.ent.analise)p.ent.analise={};
@@ -3360,10 +3399,7 @@ async function gerarAnaliseIA(){
   if(!el)return;
   const a=p.ent.analise;
   const etapas=(p.mod?.etapas_proc||[]).map((e,i)=>`${i+1}. ${e.nome||e.desc||''} | Resp: ${e.resp||''} | Tipo: ${e.tipo||''}`).join('\n');
-  const problemas=(p.ent?.prob||[]).filter(Boolean);
-  const riscos=(p.ent?.riscos||[]).map(r=>`${r.descricao||r.desc||''} (probabilidade: ${r.probabilidade||'—'}, impacto: ${r.impacto||'—'})`).filter(s=>s.trim()!=='(probabilidade: —, impacto: —)');
-  const payloadExtra=`${problemas.length?'\n\nProblemas/dores levantados na reunião de entendimento:\n'+problemas.map((p,i)=>`${i+1}. ${p}`).join('\n'):''}${riscos.length?'\n\nRiscos identificados na etapa de identificação de riscos:\n'+riscos.map((r,i)=>`${i+1}. ${r}`).join('\n'):''}${(problemas.length||riscos.length)?'\n\nAlém dos campos padrão (resumo, gargalos, retrabalhos, gaps, oportunidades, complexidade), inclua obrigatoriamente no JSON:\n- "solucoes_problemas": array de strings com uma sugestão de solução concreta para cada problema listado acima (mesma ordem e quantidade)\n- "mitigacoes_riscos": array de strings com uma proposta de mitigação concreta para cada risco listado acima (mesma ordem e quantidade)':''}`;
-  // Usa valores derivados da volumetria/etapas quando não há dados salvos explicitamente
+  const payloadExtra=_gerarAnaliseIAPayloadExtra(p);
   const etapasProc=p.mod?.etapas_proc||[];
   const tCiclo=a.t_ciclo_medio||(p.ent.t_ciclo!=null?p.ent.t_ciclo+' h':'não informado');
   const tEspera=a.t_espera_medio||(p.ent.t_gaveta!=null?p.ent.t_gaveta+' h':'não informado');
@@ -3373,17 +3409,7 @@ async function gerarAnaliseIA(){
   const result=await chamarIA('analisar_bpmn',payload,el);
   if(result){
     try{
-      const json=JSON.parse(result);
-      p.ent.analise.ia_resultado=json;
-      if(json.gargalos)p.ent.analise.gargalos=json.gargalos;
-      if(json.retrabalhos)p.ent.analise.retrabalhos=json.retrabalhos;
-      if(json.gaps)p.ent.analise.gaps=json.gaps;
-      if(json.oportunidades)p.ent.analise.oportunidades=json.oportunidades;
-      if(json.complexidade)p.ent.analise.complexidade=json.complexidade;
-      if(json.solucoes_problemas)p.ent.analise.solucoes_problemas=json.solucoes_problemas;
-      if(json.mitigacoes_riscos)p.ent.analise.mitigacoes_riscos=json.mitigacoes_riscos;
-      fbAutoSave('salvar');
-      rDetalhe();
+      _gerarAnaliseIASalvarJSON(p, JSON.parse(result));
     }catch(e){
       el.innerHTML=`<div class="ai-result"><div class="ai-result-lbl">✦ Análise IA</div>${esc(result)}</div>`;
     }
@@ -3766,6 +3792,125 @@ async function montarPOPPPT(p, dados, logoB64, bpmnAsisPng, bpmnTobePng, indsPro
     sl.addText('EP·CAGE — Escritório de Processos — CAGE/Sefaz-RS', {x:0,y:6.65,w:'100%',h:0.3,fontSize:10,color:'5A7A95',align:'center',fontFace:'Calibri'});
   }
 
+  function renderSlideDados(sl, slide, cor) {
+    const itens = slide.dados || [];
+    const cols = itens.length > 4 ? 2 : 1;
+    const perCol = Math.ceil(itens.length / cols);
+    itens.forEach((d, i) => {
+      const col = Math.floor(i / perCol), row = i % perCol;
+      const bx = 0.4 + col * 6.4, by = 1.22 + row * 1.02;
+      sl.addShape(pptx.ShapeType.roundRect, {x:bx,y:by,w:6.0,h:0.86,fill:{color:CW},line:{color:cor,width:1.5},rectRadius:0.07});
+      sl.addText(d.label||'', {x:bx+0.18,y:by+0.06,w:5.65,h:0.26,fontSize:9.5,color:'888888',fontFace:'Calibri'});
+      sl.addText(d.valor||'', {x:bx+0.18,y:by+0.36,w:5.65,h:0.4,fontSize:13,color:cor,fontFace:'Calibri',bold:true});
+    });
+  }
+  function renderSlideSipoc(sl, slide, cor) {
+    const sipoc = slide.sipoc || {};
+    const sdata = {
+      S: sipoc.S || p.ent?.fornecedores || '—',
+      I: sipoc.I || p.ent?.entradas || '—',
+      P: sipoc.P || p.nome,
+      O: sipoc.O || p.ent?.saidas || '—',
+      C: sipoc.C || p.ent?.clientes || '—'
+    };
+    const skeys=['S','I','P','O','C'];
+    const slabels={S:'Fornecedores',I:'Entradas',P:'Processo',O:'Saídas',C:'Clientes'};
+    const sbg={S:'DBEAFE',I:'DCFCE7',P:'EDE9FE',O:'FEF3C7',C:'FCE7F3'};
+    const stxt={S:'1D4ED8',I:'166534',P:'5B21B6',O:'92400E',C:'9D174D'};
+    const cw=2.45, by0=1.18, bh=2.1;
+    skeys.forEach((k, ki) => {
+      const bx = 0.28 + ki * cw;
+      sl.addShape(pptx.ShapeType.rect, {x:bx,y:by0,w:cw-0.04,h:bh,fill:{color:sbg[k]}});
+      sl.addText(k, {x:bx+0.07,y:by0+0.04,w:0.44,h:0.52,fontSize:20,bold:true,color:stxt[k],fontFace:'Georgia'});
+      sl.addText(slabels[k], {x:bx+0.07,y:by0+0.54,w:cw-0.18,h:0.22,fontSize:8,bold:true,color:stxt[k],fontFace:'Calibri'});
+      sl.addText(sdata[k], {x:bx+0.07,y:by0+0.78,w:cw-0.18,h:bh-0.86,fontSize:9.5,color:'1E293B',fontFace:'Calibri',wrap:true,valign:'top'});
+    });
+    const vols = slide.volumetria || [];
+    sl.addText('Volumetria e Tempos', {x:0.28,y:3.38,w:5,h:0.26,fontSize:9.5,bold:true,color:CA,fontFace:'Calibri'});
+    vols.slice(0, 4).forEach((v, i) => {
+      const bx = 0.28 + i * 3.06;
+      sl.addShape(pptx.ShapeType.roundRect, {x:bx,y:3.67,w:2.96,h:0.74,fill:{color:CW},line:{color:C2,width:1},rectRadius:0.05});
+      sl.addText(v.label||'', {x:bx+0.1,y:3.7,w:2.76,h:0.22,fontSize:8,color:'888888',fontFace:'Calibri'});
+      sl.addText(v.valor||'—', {x:bx+0.1,y:3.92,w:2.76,h:0.36,fontSize:11,bold:true,color:CA,fontFace:'Calibri'});
+    });
+    const mats = slide.maturidade || [];
+    sl.addText('Maturidade por Eixo', {x:0.28,y:4.52,w:5,h:0.26,fontSize:9.5,bold:true,color:CA,fontFace:'Calibri'});
+    mats.slice(0, 6).forEach((m, i) => {
+      const col = i % 3, row = Math.floor(i / 3);
+      const bx = 0.28 + col * 4.18, by = 4.8 + row * 0.4;
+      sl.addText((m.eixo||''), {x:bx,y:by,w:3.4,h:0.36,fontSize:9.5,color:CG,fontFace:'Calibri'});
+      sl.addShape(pptx.ShapeType.roundRect, {x:bx+3.45,y:by+0.03,w:0.52,h:0.28,fill:{color:cor},rectRadius:0.04});
+      sl.addText(m.nota||'—', {x:bx+3.45,y:by+0.03,w:0.52,h:0.28,fontSize:9,bold:true,color:CW,fontFace:'Calibri',align:'center',valign:'middle'});
+    });
+    const matGeral = p.ent?.mat || 0;
+    sl.addText(`Maturidade Geral: ${matGeral}/5 — ${ML_[matGeral]||''}`, {x:8.5,y:4.52,w:4.2,h:0.26,fontSize:9.5,bold:true,color:cor,fontFace:'Calibri',align:'right'});
+  }
+  function renderSlideObjetivo(sl, slide) {
+    sl.addText('Objetivo', {x:0.5,y:1.18,w:11.5,h:0.27,fontSize:10.5,bold:true,color:CA,fontFace:'Calibri'});
+    sl.addShape(pptx.ShapeType.rect, {x:0.5,y:1.47,w:12.1,h:1.32,fill:{color:'EEF4FA'},line:{color:CL,width:1}});
+    sl.addText(slide.objetivo||'—', {x:0.7,y:1.51,w:11.72,h:1.24,fontSize:12,color:CG,fontFace:'Calibri',valign:'middle',wrap:true});
+    sl.addText('Problemas Relatados', {x:0.5,y:2.88,w:11.5,h:0.27,fontSize:10.5,bold:true,color:CA,fontFace:'Calibri'});
+    (slide.problemas||[]).slice(0, 6).forEach((pr, i) => {
+      const by = 3.18 + i * 0.59;
+      sl.addShape(pptx.ShapeType.rect, {x:0.5,y:by+0.1,w:0.2,h:0.2,fill:{color:'C0392B'},line:{color:'C0392B'}});
+      sl.addText(pr, {x:0.85,y:by,w:11.52,h:0.54,fontSize:11.5,color:CG,fontFace:'Calibri',valign:'middle',wrap:true});
+    });
+  }
+  function renderSlideSolucoes(sl, slide) {
+    const itens = slide.itens || [];
+    sl.addShape(pptx.ShapeType.rect, {x:0.3,y:1.15,w:6.0,h:0.36,fill:{color:'B03030'}});
+    sl.addText('Problema / Risco', {x:0.42,y:1.17,w:5.8,h:0.32,fontSize:10.5,bold:true,color:CW,fontFace:'Calibri',valign:'middle'});
+    sl.addShape(pptx.ShapeType.rect, {x:6.42,y:1.15,w:6.22,h:0.36,fill:{color:'1A6674'}});
+    sl.addText('Mitigação / Solução', {x:6.54,y:1.17,w:6.0,h:0.32,fontSize:10.5,bold:true,color:CW,fontFace:'Calibri',valign:'middle'});
+    itens.slice(0, 6).forEach((item, i) => {
+      const by = 1.55 + i * 0.87, bg = i % 2 === 0 ? 'F2F7FB' : CW;
+      sl.addShape(pptx.ShapeType.rect, {x:0.3,y:by,w:6.0,h:0.82,fill:{color:bg},line:{color:'DDDDDD',width:0.5}});
+      sl.addText(item.problema||'', {x:0.42,y:by+0.05,w:5.78,h:0.72,fontSize:10,color:CG,fontFace:'Calibri',wrap:true,valign:'middle'});
+      sl.addShape(pptx.ShapeType.rect, {x:6.42,y:by,w:6.22,h:0.82,fill:{color:bg},line:{color:'DDDDDD',width:0.5}});
+      sl.addText(item.solucao||'', {x:6.54,y:by+0.05,w:6.0,h:0.72,fontSize:10,color:CG,fontFace:'Calibri',wrap:true,valign:'middle'});
+    });
+  }
+  function renderSlideFaq(sl, slide) {
+    (slide.itens||[]).slice(0, 5).forEach((item, i) => {
+      const by = 1.2 + i * 1.1;
+      sl.addShape(pptx.ShapeType.roundRect, {x:0.35,y:by,w:12.35,h:1.0,fill:{color:'EEF4FA'},line:{color:CL,width:1},rectRadius:0.06});
+      sl.addText(item.pergunta||'', {x:0.55,y:by+0.05,w:12.05,h:0.34,fontSize:11,bold:true,color:CA,fontFace:'Calibri',wrap:true});
+      sl.addText(item.resposta||'', {x:0.55,y:by+0.42,w:12.05,h:0.5,fontSize:10.5,color:CG,fontFace:'Calibri',wrap:true});
+    });
+  }
+  function renderSlideIndicadores(sl, slide, cor) {
+    const source = indsProc.length > 0
+      ? indsProc.slice(0, 8).map(k => ({
+          label: k.enunciado || k.indicador || '',
+          valor: [k.ciclo, k.meta ? 'Meta: ' + k.meta : ''].filter(Boolean).join(' | ') || '—'
+        }))
+      : (slide.itens || []).slice(0, 8);
+    if (!source.length) {
+      sl.addText('Nenhum indicador cadastrado para este processo.', {x:0.6,y:2.5,w:11.5,h:1,fontSize:13,color:'888888',fontFace:'Calibri',align:'center'});
+      return;
+    }
+    const cols = source.length > 3 ? 2 : 1, perCol = Math.ceil(source.length / cols);
+    source.forEach((d, i) => {
+      const col = Math.floor(i / perCol), row = i % perCol;
+      const bx = 0.4 + col * 6.45, by = 1.22 + row * 0.94;
+      sl.addShape(pptx.ShapeType.roundRect, {x:bx,y:by,w:6.06,h:0.8,fill:{color:CW},line:{color:cor,width:1.2},rectRadius:0.06});
+      sl.addText(d.label||'', {x:bx+0.15,y:by+0.05,w:5.78,h:0.28,fontSize:9,color:'888888',fontFace:'Calibri',wrap:true});
+      sl.addText(d.valor||'—', {x:bx+0.15,y:by+0.36,w:5.78,h:0.36,fontSize:11,bold:true,color:cor,fontFace:'Calibri'});
+    });
+  }
+  function renderSlideBullets(sl, slide, cor) {
+    const bts = slide.bullets || [];
+    if (slide.texto) {
+      sl.addText(slide.texto, {x:0.55,y:1.22,w:11.5,h:5.4,fontSize:12.5,color:CG,fontFace:'Calibri',valign:'top',wrap:true,lineSpacingMultiple:1.4});
+    } else {
+      bts.slice(0, 7).forEach((b, i) => {
+        const by = 1.22 + i * 0.77;
+        sl.addShape(pptx.ShapeType.rect, {x:0.5,y:by+0.14,w:0.22,h:0.22,fill:{color:cor},line:{color:cor}});
+        sl.addText(b, {x:0.88,y:by,w:11.5,h:0.68,fontSize:12.5,color:CG,fontFace:'Calibri',valign:'middle',wrap:true});
+      });
+    }
+  }
+
   const slides = dados.slides || [];
   for (let idx = 0; idx < slides.length; idx++) {
     const slide = slides[idx];
@@ -3773,7 +3918,6 @@ async function montarPOPPPT(p, dados, logoB64, bpmnAsisPng, bpmnTobePng, indsPro
     const cor = HCOLS[idx % HCOLS.length];
     const sl = pptx.addSlide();
 
-    // ── ENCERRAMENTO ──
     if (tipo === 'encerramento') {
       sl.background = {color:C1};
       sl.addShape(pptx.ShapeType.rect, {x:0,y:2.85,w:'100%',h:0.07,fill:{color:C2}});
@@ -3790,152 +3934,32 @@ async function montarPOPPPT(p, dados, logoB64, bpmnAsisPng, bpmnTobePng, indsPro
     addHeader(sl, slide.titulo, cor);
     addFooter(sl, idx + 1);
 
-    // ── DADOS (caixas métricas) ──
     if (tipo === 'dados') {
-      const itens = slide.dados || [];
-      const cols = itens.length > 4 ? 2 : 1;
-      const perCol = Math.ceil(itens.length / cols);
-      itens.forEach((d, i) => {
-        const col = Math.floor(i / perCol), row = i % perCol;
-        const bx = 0.4 + col * 6.4, by = 1.22 + row * 1.02;
-        sl.addShape(pptx.ShapeType.roundRect, {x:bx,y:by,w:6.0,h:0.86,fill:{color:CW},line:{color:cor,width:1.5},rectRadius:0.07});
-        sl.addText(d.label||'', {x:bx+0.18,y:by+0.06,w:5.65,h:0.26,fontSize:9.5,color:'888888',fontFace:'Calibri'});
-        sl.addText(d.valor||'', {x:bx+0.18,y:by+0.36,w:5.65,h:0.4,fontSize:13,color:cor,fontFace:'Calibri',bold:true});
-      });
-
-    // ── SIPOC + VOLUMETRIA + MATURIDADE ──
+      renderSlideDados(sl, slide, cor);
     } else if (tipo === 'sipoc') {
-      const sipoc = slide.sipoc || {};
-      // Preenche SIPOC com dados reais do processo caso AI não tenha preenchido
-      const sdata = {
-        S: sipoc.S || p.ent?.fornecedores || '—',
-        I: sipoc.I || p.ent?.entradas || '—',
-        P: sipoc.P || p.nome,
-        O: sipoc.O || p.ent?.saidas || '—',
-        C: sipoc.C || p.ent?.clientes || '—'
-      };
-      const skeys=['S','I','P','O','C'];
-      const slabels={S:'Fornecedores',I:'Entradas',P:'Processo',O:'Saídas',C:'Clientes'};
-      const sbg={S:'DBEAFE',I:'DCFCE7',P:'EDE9FE',O:'FEF3C7',C:'FCE7F3'};
-      const stxt={S:'1D4ED8',I:'166534',P:'5B21B6',O:'92400E',C:'9D174D'};
-      const cw=2.45, by0=1.18, bh=2.1;
-      skeys.forEach((k, ki) => {
-        const bx = 0.28 + ki * cw;
-        sl.addShape(pptx.ShapeType.rect, {x:bx,y:by0,w:cw-0.04,h:bh,fill:{color:sbg[k]}});
-        sl.addText(k, {x:bx+0.07,y:by0+0.04,w:0.44,h:0.52,fontSize:20,bold:true,color:stxt[k],fontFace:'Georgia'});
-        sl.addText(slabels[k], {x:bx+0.07,y:by0+0.54,w:cw-0.18,h:0.22,fontSize:8,bold:true,color:stxt[k],fontFace:'Calibri'});
-        sl.addText(sdata[k], {x:bx+0.07,y:by0+0.78,w:cw-0.18,h:bh-0.86,fontSize:9.5,color:'1E293B',fontFace:'Calibri',wrap:true,valign:'top'});
-      });
-      // Volumetria
-      const vols = slide.volumetria || [];
-      sl.addText('Volumetria e Tempos', {x:0.28,y:3.38,w:5,h:0.26,fontSize:9.5,bold:true,color:CA,fontFace:'Calibri'});
-      vols.slice(0, 4).forEach((v, i) => {
-        const bx = 0.28 + i * 3.06;
-        sl.addShape(pptx.ShapeType.roundRect, {x:bx,y:3.67,w:2.96,h:0.74,fill:{color:CW},line:{color:C2,width:1},rectRadius:0.05});
-        sl.addText(v.label||'', {x:bx+0.1,y:3.7,w:2.76,h:0.22,fontSize:8,color:'888888',fontFace:'Calibri'});
-        sl.addText(v.valor||'—', {x:bx+0.1,y:3.92,w:2.76,h:0.36,fontSize:11,bold:true,color:CA,fontFace:'Calibri'});
-      });
-      // Maturidade por eixo
-      const mats = slide.maturidade || [];
-      sl.addText('Maturidade por Eixo', {x:0.28,y:4.52,w:5,h:0.26,fontSize:9.5,bold:true,color:CA,fontFace:'Calibri'});
-      mats.slice(0, 6).forEach((m, i) => {
-        const col = i % 3, row = Math.floor(i / 3);
-        const bx = 0.28 + col * 4.18, by = 4.8 + row * 0.4;
-        sl.addText((m.eixo||''), {x:bx,y:by,w:3.4,h:0.36,fontSize:9.5,color:CG,fontFace:'Calibri'});
-        sl.addShape(pptx.ShapeType.roundRect, {x:bx+3.45,y:by+0.03,w:0.52,h:0.28,fill:{color:cor},rectRadius:0.04});
-        sl.addText(m.nota||'—', {x:bx+3.45,y:by+0.03,w:0.52,h:0.28,fontSize:9,bold:true,color:CW,fontFace:'Calibri',align:'center',valign:'middle'});
-      });
-      // Nota geral
-      const matGeral = p.ent?.mat || 0;
-      sl.addText(`Maturidade Geral: ${matGeral}/5 — ${ML_[matGeral]||''}`, {x:8.5,y:4.52,w:4.2,h:0.26,fontSize:9.5,bold:true,color:cor,fontFace:'Calibri',align:'right'});
-
-    // ── OBJETIVO + PROBLEMAS ──
+      renderSlideSipoc(sl, slide, cor);
     } else if (tipo === 'objetivo') {
-      sl.addText('Objetivo', {x:0.5,y:1.18,w:11.5,h:0.27,fontSize:10.5,bold:true,color:CA,fontFace:'Calibri'});
-      sl.addShape(pptx.ShapeType.rect, {x:0.5,y:1.47,w:12.1,h:1.32,fill:{color:'EEF4FA'},line:{color:CL,width:1}});
-      sl.addText(slide.objetivo||'—', {x:0.7,y:1.51,w:11.72,h:1.24,fontSize:12,color:CG,fontFace:'Calibri',valign:'middle',wrap:true});
-      sl.addText('Problemas Relatados', {x:0.5,y:2.88,w:11.5,h:0.27,fontSize:10.5,bold:true,color:CA,fontFace:'Calibri'});
-      (slide.problemas||[]).slice(0, 6).forEach((pr, i) => {
-        const by = 3.18 + i * 0.59;
-        sl.addShape(pptx.ShapeType.rect, {x:0.5,y:by+0.1,w:0.2,h:0.2,fill:{color:'C0392B'},line:{color:'C0392B'}});
-        sl.addText(pr, {x:0.85,y:by,w:11.52,h:0.54,fontSize:11.5,color:CG,fontFace:'Calibri',valign:'middle',wrap:true});
-      });
-
-    // ── BPMN AS IS ──
+      renderSlideObjetivo(sl, slide);
     } else if (tipo === 'bpmn_asis') {
       if (bpmnAsisPng) {
         sl.addImage({data:bpmnAsisPng, x:0.22,y:1.17,w:12.9,h:5.56, sizing:{type:'contain',w:12.9,h:5.56}});
       } else {
         sl.addText(slide.resumo || p.mod?.asIs || 'Diagrama AS IS não disponível.', {x:0.6,y:1.3,w:11.5,h:5.3,fontSize:12,color:CG,fontFace:'Calibri',valign:'top',wrap:true,lineSpacingMultiple:1.4});
       }
-
-    // ── BPMN TO BE ──
     } else if (tipo === 'bpmn_tobe') {
       if (bpmnTobePng) {
         sl.addImage({data:bpmnTobePng, x:0.22,y:1.17,w:12.9,h:5.56, sizing:{type:'contain',w:12.9,h:5.56}});
       } else {
         sl.addText(slide.resumo || p.mod?.toBe || 'Diagrama TO BE não disponível.', {x:0.6,y:1.3,w:11.5,h:5.3,fontSize:12,color:CG,fontFace:'Calibri',valign:'top',wrap:true,lineSpacingMultiple:1.4});
       }
-
-    // ── PROPOSTAS DE SOLUÇÕES ──
     } else if (tipo === 'solucoes') {
-      const itens = slide.itens || [];
-      sl.addShape(pptx.ShapeType.rect, {x:0.3,y:1.15,w:6.0,h:0.36,fill:{color:'B03030'}});
-      sl.addText('Problema / Risco', {x:0.42,y:1.17,w:5.8,h:0.32,fontSize:10.5,bold:true,color:CW,fontFace:'Calibri',valign:'middle'});
-      sl.addShape(pptx.ShapeType.rect, {x:6.42,y:1.15,w:6.22,h:0.36,fill:{color:'1A6674'}});
-      sl.addText('Mitigação / Solução', {x:6.54,y:1.17,w:6.0,h:0.32,fontSize:10.5,bold:true,color:CW,fontFace:'Calibri',valign:'middle'});
-      itens.slice(0, 6).forEach((item, i) => {
-        const by = 1.55 + i * 0.87, bg = i % 2 === 0 ? 'F2F7FB' : CW;
-        sl.addShape(pptx.ShapeType.rect, {x:0.3,y:by,w:6.0,h:0.82,fill:{color:bg},line:{color:'DDDDDD',width:0.5}});
-        sl.addText(item.problema||'', {x:0.42,y:by+0.05,w:5.78,h:0.72,fontSize:10,color:CG,fontFace:'Calibri',wrap:true,valign:'middle'});
-        sl.addShape(pptx.ShapeType.rect, {x:6.42,y:by,w:6.22,h:0.82,fill:{color:bg},line:{color:'DDDDDD',width:0.5}});
-        sl.addText(item.solucao||'', {x:6.54,y:by+0.05,w:6.0,h:0.72,fontSize:10,color:CG,fontFace:'Calibri',wrap:true,valign:'middle'});
-      });
-
-    // ── FAQ ──
+      renderSlideSolucoes(sl, slide);
     } else if (tipo === 'faq') {
-      const itens = slide.itens || [];
-      itens.slice(0, 5).forEach((item, i) => {
-        const by = 1.2 + i * 1.1;
-        sl.addShape(pptx.ShapeType.roundRect, {x:0.35,y:by,w:12.35,h:1.0,fill:{color:'EEF4FA'},line:{color:CL,width:1},rectRadius:0.06});
-        sl.addText(item.pergunta||'', {x:0.55,y:by+0.05,w:12.05,h:0.34,fontSize:11,bold:true,color:CA,fontFace:'Calibri',wrap:true});
-        sl.addText(item.resposta||'', {x:0.55,y:by+0.42,w:12.05,h:0.5,fontSize:10.5,color:CG,fontFace:'Calibri',wrap:true});
-      });
-
-    // ── INDICADORES ──
+      renderSlideFaq(sl, slide);
     } else if (tipo === 'indicadores') {
-      // Usa indicadores reais do processo; se não houver, usa o que a IA gerou
-      const source = indsProc.length > 0
-        ? indsProc.slice(0, 8).map(k => ({
-            label: k.enunciado || k.indicador || '',
-            valor: [k.ciclo, k.meta ? 'Meta: ' + k.meta : ''].filter(Boolean).join(' | ') || '—'
-          }))
-        : (slide.itens || []).slice(0, 8);
-      if (!source.length) {
-        sl.addText('Nenhum indicador cadastrado para este processo.', {x:0.6,y:2.5,w:11.5,h:1,fontSize:13,color:'888888',fontFace:'Calibri',align:'center'});
-      } else {
-        const cols = source.length > 3 ? 2 : 1, perCol = Math.ceil(source.length / cols);
-        source.forEach((d, i) => {
-          const col = Math.floor(i / perCol), row = i % perCol;
-          const bx = 0.4 + col * 6.45, by = 1.22 + row * 0.94;
-          sl.addShape(pptx.ShapeType.roundRect, {x:bx,y:by,w:6.06,h:0.8,fill:{color:CW},line:{color:cor,width:1.2},rectRadius:0.06});
-          sl.addText(d.label||'', {x:bx+0.15,y:by+0.05,w:5.78,h:0.28,fontSize:9,color:'888888',fontFace:'Calibri',wrap:true});
-          sl.addText(d.valor||'—', {x:bx+0.15,y:by+0.36,w:5.78,h:0.36,fontSize:11,bold:true,color:cor,fontFace:'Calibri'});
-        });
-      }
-
-    // ── BULLETS / NARRATIVA ──
+      renderSlideIndicadores(sl, slide, cor);
     } else {
-      const bts = slide.bullets || [];
-      if (slide.texto) {
-        sl.addText(slide.texto, {x:0.55,y:1.22,w:11.5,h:5.4,fontSize:12.5,color:CG,fontFace:'Calibri',valign:'top',wrap:true,lineSpacingMultiple:1.4});
-      } else {
-        bts.slice(0, 7).forEach((b, i) => {
-          const by = 1.22 + i * 0.77;
-          sl.addShape(pptx.ShapeType.rect, {x:0.5,y:by+0.14,w:0.22,h:0.22,fill:{color:cor},line:{color:cor}});
-          sl.addText(b, {x:0.88,y:by,w:11.5,h:0.68,fontSize:12.5,color:CG,fontFace:'Calibri',valign:'middle',wrap:true});
-        });
-      }
+      renderSlideBullets(sl, slide, cor);
     }
   }
 
@@ -4326,23 +4350,9 @@ function renderGatewaySection(path,depth){
   </div>`;
 }
 
-function renderEtapaDetalheConteudo(e){
-  const id=e.id;
-  return `<div class="g2" style="margin-top:.6rem">
-    <div class="fg"><label class="fl">Nome da etapa</label>
-      <input class="fi" value="${(e.nome||'').replace(/"/g,'&quot;')}"
-        oninput="curProc.mod.etapas_proc.find(x=>x.id==='${id}').nome=this.value;document.querySelector('#ep-${id} .etapa-nome').textContent=this.value;clearTimeout(window._mmT);window._mmT=setTimeout(atualizarMermaid,600)">
-    </div>
-    <div class="fg"><label class="fl">Tipo</label>
-      <select class="fi" onchange="(function(s){const _e=curProc.mod.etapas_proc.find(x=>x.id==='${id}');_e.tipo=s.value;_e.subtipo_evento=null;const _b=document.querySelector('#ep-${id} .etapa-tipo');_b.className='etapa-tipo '+tipoCls(s.value,null);_b.textContent=s.value;reRenderEtapaDetalhe('${id}')})(this)">
-        <option ${e.tipo==='Atividade'?'selected':''}>Atividade</option>
-        <option ${e.tipo==='Evento'?'selected':''}>Evento</option>
-        <option ${e.tipo==='Decisao'?'selected':''}>Decisao</option>
-        <option ${e.tipo==='Comentario'?'selected':''}>Comentario</option>
-      </select>
-    </div>
-  </div>
-  ${e.tipo==='Atividade'?`<div class="g3" style="margin-top:.4rem">
+function _renderEtapaAtividadeFields(e, id){
+  if(e.tipo !== 'Atividade') return '';
+  return `<div class="g3" style="margin-top:.4rem">
     <div class="fg"><label class="fl">Natureza</label>
       <select class="fi" onchange="curProc.mod.etapas_proc.find(x=>x.id==='${id}').natureza=this.value">
         <option value="">Selecione...</option>
@@ -4360,15 +4370,37 @@ function renderEtapaDetalheConteudo(e){
       <input class="fi" value="${(e.executor||'').replace(/"/g,'&quot;')}"
         oninput="curProc.mod.etapas_proc.find(x=>x.id==='${id}').executor=this.value">
     </div>
-  </div>`:''}
-  ${e.tipo==='Evento'?`<div class="fg" style="margin-top:.4rem"><label class="fl">Subtipo do evento</label>
+  </div>`;
+}
+function _renderEtapaEventoFields(e, id){
+  if(e.tipo !== 'Evento') return '';
+  return `<div class="fg" style="margin-top:.4rem"><label class="fl">Subtipo do evento</label>
     <select class="fi" onchange="(function(s){const _e=curProc.mod.etapas_proc.find(x=>x.id==='${id}');_e.subtipo_evento=s.value||null;const _b=document.querySelector('#ep-${id} .etapa-tipo');if(_b){_b.className='etapa-tipo '+tipoCls('Evento',s.value||null);_b.textContent='Evento'+(_e.subtipo_evento?' · '+_e.subtipo_evento:'');}})(this)">
       <option value="" ${!e.subtipo_evento?'selected':''}>Selecione...</option>
       <option ${e.subtipo_evento==='Início'?'selected':''}>Início</option>
       <option ${e.subtipo_evento==='Intermediário'?'selected':''}>Intermediário</option>
       <option ${e.subtipo_evento==='Fim'?'selected':''}>Fim</option>
     </select>
-  </div>`:''}
+  </div>`;
+}
+function renderEtapaDetalheConteudo(e){
+  const id=e.id;
+  return `<div class="g2" style="margin-top:.6rem">
+    <div class="fg"><label class="fl">Nome da etapa</label>
+      <input class="fi" value="${(e.nome||'').replace(/"/g,'&quot;')}"
+        oninput="curProc.mod.etapas_proc.find(x=>x.id==='${id}').nome=this.value;document.querySelector('#ep-${id} .etapa-nome').textContent=this.value;clearTimeout(window._mmT);window._mmT=setTimeout(atualizarMermaid,600)">
+    </div>
+    <div class="fg"><label class="fl">Tipo</label>
+      <select class="fi" onchange="(function(s){const _e=curProc.mod.etapas_proc.find(x=>x.id==='${id}');_e.tipo=s.value;_e.subtipo_evento=null;const _b=document.querySelector('#ep-${id} .etapa-tipo');_b.className='etapa-tipo '+tipoCls(s.value,null);_b.textContent=s.value;reRenderEtapaDetalhe('${id}')})(this)">
+        <option ${e.tipo==='Atividade'?'selected':''}>Atividade</option>
+        <option ${e.tipo==='Evento'?'selected':''}>Evento</option>
+        <option ${e.tipo==='Decisao'?'selected':''}>Decisao</option>
+        <option ${e.tipo==='Comentario'?'selected':''}>Comentario</option>
+      </select>
+    </div>
+  </div>
+  ${_renderEtapaAtividadeFields(e, id)}
+  ${_renderEtapaEventoFields(e, id)}
   ${e.tipo==='Decisao'?`<div id="gw-${id}">${renderGatewaySection(id,0)}</div>`:''}
   <div class="fg" style="margin-top:.4rem"><label class="fl">Descrição detalhada</label>
     <textarea class="fi" style="min-height:60px"
@@ -4450,53 +4482,57 @@ function etapasToMermaid(etapas){
   let nodeId = 0;
   const getId = () => 'N'+(nodeId++);
 
+  function pushNodeShape(id, e, lbl){
+    if(e.tipo==='Evento'){
+      const sub = e.subtipo_evento||'';
+      if(sub==='Início') lines.push(`  ${id}([▶ ${lbl}])`);
+      else if(sub==='Fim') lines.push(`  ${id}([■ ${lbl}])`);
+      else lines.push(`  ${id}((${lbl}))`);
+      lines.push(`  style ${id} fill:#d1fae5,stroke:#16a34a,color:#14532d`);
+    } else if(e.tipo==='Decisao'){
+      lines.push(`  ${id}{${lbl}}`);
+      lines.push(`  style ${id} fill:#fef3c7,stroke:#d97706,color:#78350f`);
+    } else if(e.tipo==='Comentario'){
+      lines.push(`  ${id}[/${lbl}/]`);
+      lines.push(`  style ${id} fill:#f3f4f6,stroke:#d1d5db,color:#6b7280`);
+    } else {
+      lines.push(`  ${id}[${lbl}]`);
+      lines.push(`  style ${id} fill:#dbeafe,stroke:#2563eb,color:#1e3a5f`);
+    }
+  }
+  function pushGatewayCaminhos(id, e){
+    const mergeId = getId();
+    lines.push(`  ${mergeId}[ ]`);
+    lines.push(`  style ${mergeId} fill:transparent,stroke:transparent`);
+    e.caminhos.forEach(cam=>{
+      const clbl = safe(cam.label||'');
+      const acoes = cam.acoes||[];
+      if(!acoes.length){
+        const emptyId = getId();
+        lines.push(`  ${emptyId}[ ]`);
+        lines.push(`  style ${emptyId} fill:transparent,stroke:transparent`);
+        lines.push(`  ${id} -->|${clbl}| ${emptyId}`);
+        lines.push(`  ${emptyId} --> ${mergeId}`);
+      } else {
+        const firstId = 'N'+nodeId;
+        buildNodes(acoes, null);
+        const lastId = 'N'+(nodeId-1);
+        lines.push(`  ${id} -->|${clbl}| ${firstId}`);
+        lines.push(`  ${lastId} --> ${mergeId}`);
+      }
+    });
+    return mergeId;
+  }
   function buildNodes(items, parentEndId){
     let prevId = parentEndId;
     items.forEach(e => {
       const id = getId();
       const lbl = safe(e.nome);
-      if(e.tipo==='Evento'){
-        const sub = e.subtipo_evento||'';
-        if(sub==='Início') lines.push(`  ${id}([▶ ${lbl}])`);
-        else if(sub==='Fim')  lines.push(`  ${id}([■ ${lbl}])`);
-        else                  lines.push(`  ${id}((${lbl}))`);
-        lines.push(`  style ${id} fill:#d1fae5,stroke:#16a34a,color:#14532d`);
-      } else if(e.tipo==='Decisao'){
-        lines.push(`  ${id}{${lbl}}`);
-        lines.push(`  style ${id} fill:#fef3c7,stroke:#d97706,color:#78350f`);
-      } else if(e.tipo==='Comentario'){
-        lines.push(`  ${id}[/${lbl}/]`);
-        lines.push(`  style ${id} fill:#f3f4f6,stroke:#d1d5db,color:#6b7280`);
-      } else {
-        lines.push(`  ${id}[${lbl}]`);
-        lines.push(`  style ${id} fill:#dbeafe,stroke:#2563eb,color:#1e3a5f`);
-      }
+      pushNodeShape(id, e, lbl);
       if(prevId!==null) lines.push(`  ${prevId} --> ${id}`);
-
       if(e.tipo==='Decisao' && e.caminhos && e.caminhos.length){
-        // Each path branches from the gateway node
-        const mergeId = getId();
-        lines.push(`  ${mergeId}[ ]`);
-        lines.push(`  style ${mergeId} fill:transparent,stroke:transparent`);
-        e.caminhos.forEach(cam=>{
-          const clbl = safe(cam.label||'');
-          const acoes = cam.acoes||[];
-          if(!acoes.length){
-            const emptyId = getId();
-            lines.push(`  ${emptyId}[ ]`);
-            lines.push(`  style ${emptyId} fill:transparent,stroke:transparent`);
-            lines.push(`  ${id} -->|${clbl}| ${emptyId}`);
-            lines.push(`  ${emptyId} --> ${mergeId}`);
-          } else {
-            const firstId = 'N'+nodeId;
-            buildNodes(acoes, null);
-            const lastId = 'N'+(nodeId-1);
-            lines.push(`  ${id} -->|${clbl}| ${firstId}`);
-            lines.push(`  ${lastId} --> ${mergeId}`);
-          }
-        });
-        prevId = mergeId;
-        return; // prevId already set
+        prevId = pushGatewayCaminhos(id, e);
+        return;
       }
       prevId = id;
     });
@@ -4757,6 +4793,15 @@ function rEnt(p){
   </div>`:''}`;
 }
 
+function _rModBizagiHTML(arqId, base64){
+  return `<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:.8rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+      <span style="font-size:12px;font-weight:600;color:var(--ink2)">🗺 Fluxo Bizagi</span>
+      <button class="btn" onclick="verFluxoBizagi('${arqId}',event)">⤢ Tela cheia</button>
+    </div>
+    <img src="${base64}" style="max-width:100%;border-radius:6px;border:1px solid var(--bdr);cursor:zoom-in" onclick="verFluxoBizagi('${arqId}',event)">
+  </div>`;
+}
 async function rMod(p){
   document.getElementById('tab-mod').innerHTML=`
   <div class="tabs" style="margin-bottom:1rem">
@@ -4783,26 +4828,19 @@ async function rMod(p){
       ${(p.mod.etapas_proc||[]).length?renderEtapasProc(p.mod.etapas_proc):'<div class="ib iba">Nenhuma etapa detalhada ainda.</div>'}
     </div>
   </div>`;
-  if(p.arq_id){
+  if(!p.arq_id){ setTimeout(()=>initBpmnMod('asis',p),80); }
+  else {
     const base64=await loadFluxoImg(p.arq_id);
     const el=document.getElementById('vm-asis-fluxo');
     if(!el) return;
     if(base64){
-      el.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:.8rem">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
-          <span style="font-size:12px;font-weight:600;color:var(--ink2)">🗺 Fluxo Bizagi</span>
-          <button class="btn" onclick="verFluxoBizagi('${p.arq_id}',event)">⤢ Tela cheia</button>
-        </div>
-        <img src="${base64}" style="max-width:100%;border-radius:6px;border:1px solid var(--bdr);cursor:zoom-in" onclick="verFluxoBizagi('${p.arq_id}',event)">
-      </div>`;
+      el.innerHTML=_rModBizagiHTML(p.arq_id, base64);
       p._hasBizagi=true;
     } else {
       el.innerHTML=bpmnEditorHTML('asis',p.mod.bpmnAsIs);
       p._hasBizagi=false;
       setTimeout(()=>initBpmnMod('asis',p),80);
     }
-  } else {
-    setTimeout(()=>initBpmnMod('asis',p),80);
   }
   setTimeout(()=>{ injectIaBpmn('asis'); injectIaBpmn('tobe'); }, 200);
 }
@@ -5514,21 +5552,50 @@ function macroArqHTML(m){
   </div>`;
 }
 
+function _procArqStatusBadge(p, hasSubs, linked){
+  if(hasSubs) return `<span class="badge bgr" style="font-size:10px">Agrupador · ${p.subprocessos.length} subprocesso${p.subprocessos.length!==1?'s':''}</span>`;
+  if(linked) return `<span class="badge ${EBADGE[linked.etapa]||'bgr'}" style="font-size:10px">${etLb(linked.etapa)}</span><button class="btn btn-p" style="font-size:10px;padding:2px 7px" onclick="event.stopPropagation();abrirProc(${linked.id})">Abrir</button>`;
+  return isMapeado(p.id)
+    ? `<span class="badge bg" style="font-size:10px">Mapeado</span>`
+    : `<span class="badge bgr" style="font-size:10px">Não mapeado</span>`;
+}
+function _subArqItemHTML(mid, pid, s){
+  const sl=s.proc_id?processos.find(pr=>pr.id===s.proc_id):null;
+  const slBadge=sl
+    ?`<span class="badge ${EBADGE[sl.etapa]||'bgr'}" style="font-size:10px">${etLb(sl.etapa)}</span><button class="btn btn-p" style="font-size:10px;padding:2px 6px" onclick="event.stopPropagation();abrirProc(${sl.id})">Abrir mapeamento</button>`
+    :isMapeado(s.id)?`<span class="badge bg" style="font-size:10px">Mapeado</span>`:`<span class="badge bgr" style="font-size:10px">Não mapeado</span>`;
+  return `<div style="border-top:1px solid var(--bdr)">
+    <div style="display:flex;align-items:center;gap:8px;padding:.5rem .9rem;cursor:pointer" onclick="toggleEl('arq-ssub-${s.id}','chvss-${s.id}')">
+      <span class="arq-chevron" id="chvss-${s.id}" style="color:var(--ink3);font-size:10px">▶</span>
+      <span style="font-size:12.5px;font-weight:600;color:var(--ink);flex:1">${s.nome}</span>
+      <span style="font-size:11px;color:var(--ink3)">${s.gerente||s.area||''}</span>
+      ${isMeuProcesso(s.id)?'<span class="badge bb" style="font-size:9px">Meu processo</span>':''}
+      ${slBadge}
+      ${isEP()?`<button class="btn" style="font-size:10px;padding:2px 7px;color:${isMapeado(s.id)?'var(--red)':'var(--teal)'}" onclick="toggleMapeadoManual('${s.id}',event)">${isMapeado(s.id)?'Desmarcar':'✓ Mapeado'}</button>`:''}
+      ${isCritico(s.id)?`<span class="badge" style="font-size:10px;background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px">⚠ Crítico</span>`:''}
+      ${isEP()?`<button class="btn" style="font-size:10px;padding:2px 7px;color:${isCritico(s.id)?'#dc2626':'var(--ink3)'}" onclick="toggleCriticoManual('${s.id}',event)">${isCritico(s.id)?'Desmarcar crítico':'⚠ Crítico'}</button>`:''}
+      <button class="btn" style="font-size:10px;padding:2px 7px" onclick="event.stopPropagation();editSubArqFull('${mid}','${pid}','${s.id}')">✎ Editar</button>
+      <button class="btn" style="font-size:10px;padding:2px 6px;color:var(--red)" onclick="event.stopPropagation();remSubArq('${mid}','${pid}','${s.id}')">×</button>
+    </div>
+    <div id="arq-ssub-${s.id}" style="display:none;padding:.6rem 1.2rem .8rem 2.2rem;background:var(--surf);border-top:1px dashed var(--bdr)">
+      ${metaFieldsReadonly(s)}
+    </div>
+  </div>`;
+}
 function procArqHTML(mid,p){
   const hasSubs = p.subprocessos && p.subprocessos.length > 0;
   const linked = !hasSubs && p.proc_id ? processos.find(pr=>pr.id===p.proc_id) : null;
+  const bodyHTML = hasSubs
+    ? `<div style="padding:.5rem .8rem .2rem"><div class="ib ibsl" style="font-size:11px;margin-bottom:.5rem">Processo agrupador — os subprocessos abaixo são as unidades mapeáveis individualmente.</div></div>
+       ${p.subprocessos.map(s=>_subArqItemHTML(mid,p.id,s)).join('')}
+       <div style="padding:.5rem .8rem"><button class="arq-add-btn" onclick="novoSubArq('${mid}','${p.id}')">+ Adicionar subprocesso</button></div>`
+    : `<div style="padding:.6rem .9rem .8rem">${metaFieldsReadonly(p)}<button class="arq-add-btn" style="margin-top:4px" onclick="novoSubArq('${mid}','${p.id}')">+ Adicionar subprocesso</button></div>`;
   return `<div style="margin-bottom:.5rem">
     <div class="arq-proc-hd" onclick="toggleEl('arq-sub-${p.id}','chvp-${p.id}')">
       <span class="arq-chevron" id="chvp-${p.id}" style="color:var(--ink3)">▶</span>
       <span style="font-size:13px;font-weight:600;color:var(--ink);flex:1">${p.nome}</span>
       <span style="font-size:11px;color:var(--ink3)">${p.area||''} · ${p.gerente||''}</span>
-      ${hasSubs
-        ? `<span class="badge bgr" style="font-size:10px">Agrupador · ${p.subprocessos.length} subprocesso${p.subprocessos.length!==1?'s':''}</span>`
-        : linked
-          ? `<span class="badge ${EBADGE[linked.etapa]||'bgr'}" style="font-size:10px">${etLb(linked.etapa)}</span><button class="btn btn-p" style="font-size:10px;padding:2px 7px" onclick="event.stopPropagation();abrirProc(${linked.id})">Abrir</button>`
-          : isMapeado(p.id)
-            ? `<span class="badge bg" style="font-size:10px">Mapeado</span>`
-            : `<span class="badge bgr" style="font-size:10px">Não mapeado</span>`}
+      ${_procArqStatusBadge(p, hasSubs, linked)}
       ${isEP()&&!hasSubs?`<button class="btn" style="font-size:10px;padding:2px 7px;color:${isMapeado(p.id)?'var(--red)':'var(--teal)'}" onclick="toggleMapeadoManual('${p.id}',event)">${isMapeado(p.id)?'Desmarcar mapeado':'✓ Mapeado'}</button>`:''}
       ${!hasSubs&&isCritico(p.id)?`<span class="badge" style="font-size:10px;background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px">⚠ Crítico</span>`:''}
       ${isEP()&&!hasSubs?`<button class="btn" style="font-size:10px;padding:2px 7px;color:${isCritico(p.id)?'#dc2626':'var(--ink3)'}" onclick="toggleCriticoManual('${p.id}',event)">${isCritico(p.id)?'Desmarcar crítico':'⚠ Crítico'}</button>`:''}
@@ -5537,72 +5604,25 @@ function procArqHTML(mid,p){
       <button class="btn" style="font-size:10px;padding:2px 7px;color:var(--red);border-color:var(--red-b)" onclick="event.stopPropagation();removerProcArq('${mid}','${p.id}')">× Apagar</button>`:''}
     </div>
     <div id="arq-sub-${p.id}" style="display:none;background:var(--surf2);border:1px solid var(--bdr);border-top:none;border-radius:0 0 var(--r) var(--r)">
-
-      ${hasSubs ? `
-        <!-- AGRUPADOR: lista subprocessos mapeáveis -->
-        <div style="padding:.5rem .8rem .2rem">
-          <div class="ib ibsl" style="font-size:11px;margin-bottom:.5rem">Processo agrupador — os subprocessos abaixo são as unidades mapeáveis individualmente.</div>
-        </div>
-        ${p.subprocessos.map((s,i)=>{
-          const sl=s.proc_id?processos.find(pr=>pr.id===s.proc_id):null;
-          return `<div style="border-top:1px solid var(--bdr)">
-            <div style="display:flex;align-items:center;gap:8px;padding:.5rem .9rem;cursor:pointer" onclick="toggleEl('arq-ssub-${s.id}','chvss-${s.id}')">
-              <span class="arq-chevron" id="chvss-${s.id}" style="color:var(--ink3);font-size:10px">▶</span>
-              <span style="font-size:12.5px;font-weight:600;color:var(--ink);flex:1">${s.nome}</span>
-              <span style="font-size:11px;color:var(--ink3)">${s.gerente||s.area||''}</span>
-              ${isMeuProcesso(s.id)?'<span class="badge bb" style="font-size:9px">Meu processo</span>':''}
-              ${sl?`<span class="badge ${EBADGE[sl.etapa]||'bgr'}" style="font-size:10px">${etLb(sl.etapa)}</span><button class="btn btn-p" style="font-size:10px;padding:2px 6px" onclick="event.stopPropagation();abrirProc(${sl.id})">Abrir mapeamento</button>`:isMapeado(s.id)?`<span class="badge bg" style="font-size:10px">Mapeado</span>`:`<span class="badge bgr" style="font-size:10px">Não mapeado</span>`}
-              ${isEP()?`<button class="btn" style="font-size:10px;padding:2px 7px;color:${isMapeado(s.id)?'var(--red)':'var(--teal)'}" onclick="toggleMapeadoManual('${s.id}',event)">${isMapeado(s.id)?'Desmarcar':'✓ Mapeado'}</button>`:''}
-              ${isCritico(s.id)?`<span class="badge" style="font-size:10px;background:#dc2626;color:#fff;padding:2px 6px;border-radius:4px">⚠ Crítico</span>`:''}
-              ${isEP()?`<button class="btn" style="font-size:10px;padding:2px 7px;color:${isCritico(s.id)?'#dc2626':'var(--ink3)'}" onclick="toggleCriticoManual('${s.id}',event)">${isCritico(s.id)?'Desmarcar crítico':'⚠ Crítico'}</button>`:''}
-              <button class="btn" style="font-size:10px;padding:2px 7px" onclick="event.stopPropagation();editSubArqFull('${mid}','${p.id}','${s.id}')">✎ Editar</button>
-              <button class="btn" style="font-size:10px;padding:2px 6px;color:var(--red)" onclick="event.stopPropagation();remSubArq('${mid}','${p.id}','${s.id}')">×</button>
-            </div>
-            <div id="arq-ssub-${s.id}" style="display:none;padding:.6rem 1.2rem .8rem 2.2rem;background:var(--surf);border-top:1px dashed var(--bdr)">
-              ${metaFieldsReadonly(s)}
-            </div>
-          </div>`;
-        }).join('')}
-        <div style="padding:.5rem .8rem"><button class="arq-add-btn" onclick="novoSubArq('${mid}','${p.id}')">+ Adicionar subprocesso</button></div>
-      ` : `
-        <!-- PROCESSO SEM SUBPROCESSOS: exibe metadados dele mesmo -->
-        <div style="padding:.6rem .9rem .8rem">
-          ${metaFieldsReadonly(p)}
-          <button class="arq-add-btn" style="margin-top:4px" onclick="novoSubArq('${mid}','${p.id}')">+ Adicionar subprocesso</button>
-        </div>
-      `}
+      ${bodyHTML}
     </div>
   </div>`;
 }
 
-// Render metadata fields read-only (expandable view) + linked mapeamento data
-function metaFieldsReadonly(item){
-  const fields=[
-    ['Natureza',item.natureza],['Área',item.area],['Gerente',item.gerente],
-    ['Objetivo',item.objetivo],['Objetivo estratégico',item.objetivo_estrategico],
-    ['Entradas',item.entradas],['Entregas',item.entregas],
-    ['Clientes',item.clientes],['Documentações/Regulamentações',item.docs],
-  ];
-  const metaHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px">
-    ${fields.map(([l,v])=>v?`<div style="font-size:11px"><span style="font-weight:600;color:var(--ink2)">${l}:</span> <span style="color:var(--ink3)">${v}</span></div>`:'').join('')}
-  </div>`;
-
-  // Linked mapeamento
-  const proc = processos.find(pr=>pr.arq_id===item.id);
-  if(!proc) return metaHTML;
-
+function _metaFieldsProgBar(proc){
   const etIdx_ = etIdx(proc.etapa);
-  const progBar = ETAPAS.slice(0,etIdx_+1).map((e,i)=>
+  return ETAPAS.slice(0,etIdx_+1).map((e,i)=>
     `<span title="${e.lb}" style="flex:1;height:4px;border-radius:2px;background:${i<etIdx_?'var(--teal)':i===etIdx_?'var(--blue)':'var(--bg3)'}"></span>`
   ).join('') + ETAPAS.slice(etIdx_+1).map(()=>
     `<span style="flex:1;height:4px;border-radius:2px;background:var(--bg3)"></span>`
   ).join('');
-
+}
+function _metaFieldsMapeamentoHTML(item, proc){
+  const ML_ = ['','Inicial','Repetível','Definido','Gerenciado','Otimizado'];
   const analise = proc.ent?.analise;
   const matNivel = proc.ent?.mat||0;
-  const ML_ = ['','Inicial','Repetível','Definido','Gerenciado','Otimizado'];
-
-  return metaHTML + `
+  const progBar = _metaFieldsProgBar(proc);
+  return `
   <div style="margin-top:.8rem;padding-top:.8rem;border-top:1px solid var(--bdr)">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:.5rem;flex-wrap:wrap">
       <span style="font-size:11px;font-weight:600;color:var(--ink2)">Mapeamento vinculado</span>
@@ -5624,6 +5644,21 @@ function metaFieldsReadonly(item){
     ${analise&&analise.gargalos?.length?`<div style="margin-top:.5rem;font-size:11px"><span style="font-weight:600;color:var(--red)">Gargalos:</span> <span style="color:var(--ink3)">${analise.gargalos.join(' · ')}</span></div>`:''}
     ${analise&&analise.oportunidades?.length?`<div style="margin-top:3px;font-size:11px"><span style="font-weight:600;color:var(--green)">Oportunidades:</span> <span style="color:var(--ink3)">${analise.oportunidades.slice(0,2).join(' · ')}${analise.oportunidades.length>2?' …':''}</span></div>`:''}
   </div>`;
+}
+// Render metadata fields read-only (expandable view) + linked mapeamento data
+function metaFieldsReadonly(item){
+  const fields=[
+    ['Natureza',item.natureza],['Área',item.area],['Gerente',item.gerente],
+    ['Objetivo',item.objetivo],['Objetivo estratégico',item.objetivo_estrategico],
+    ['Entradas',item.entradas],['Entregas',item.entregas],
+    ['Clientes',item.clientes],['Documentações/Regulamentações',item.docs],
+  ];
+  const metaHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px">
+    ${fields.map(([l,v])=>v?`<div style="font-size:11px"><span style="font-weight:600;color:var(--ink2)">${l}:</span> <span style="color:var(--ink3)">${v}</span></div>`:'').join('')}
+  </div>`;
+  const proc = processos.find(pr=>pr.arq_id===item.id);
+  if(!proc) return metaHTML;
+  return metaHTML + _metaFieldsMapeamentoHTML(item, proc);
 }
 
 // Edit full metadata of a PROCESS (no subs)
@@ -6373,6 +6408,24 @@ function kpiCard(k){
   </div>`;
 }
 
+function _kpiFormSetFields(k){
+  const fv = (id, v) => { const el=document.getElementById(id); if(el) el.value=v; };
+  fv('nkpi-area',       k.area       || '');
+  fv('nkpi-codigo',     k.codigo     || '');
+  fv('nkpi-nome',       k.nome       || '');
+  fv('nkpi-desc',       k.desc       || '');
+  fv('nkpi-period',     k.periodicidade || 'Mensal');
+  fv('nkpi-periodo',    k.periodo    || '');
+  fv('nkpi-ciclo',      k.ciclo      || '');
+  fv('nkpi-ppe',        k.ppe        || 'Não');
+  fv('nkpi-indice',     k.indice     || '');
+  fv('nkpi-meta',       k.meta       || '');
+  fv('nkpi-real',       k.realizado  || '');
+  fv('nkpi-pct-real',   k.pct_realizado ? k.pct_realizado+'%' : '');
+  fv('nkpi-unidade',    k.unidade    || '');
+  fv('nkpi-polaridade', k.polaridade || 'Maior é melhor');
+  fv('nkpi-analise',    k.analise    || '');
+}
 function abrirNovoKpi(preselArea){
   if(!isEP()){alert('Ação restrita ao EPP.');return;}
   const modal = document.getElementById('novo-kpi-modal');
@@ -6380,21 +6433,7 @@ function abrirNovoKpi(preselArea){
   document.getElementById('kpi-modal-titulo').textContent = 'Novo indicador';
   document.getElementById('nkpi-edit-idx').value = '';
   document.getElementById('kpi-del-btn').style.display = 'none';
-  document.getElementById('nkpi-area').value     = preselArea || '';
-  document.getElementById('nkpi-codigo').value   = '';
-  document.getElementById('nkpi-nome').value     = '';
-  document.getElementById('nkpi-desc').value     = '';
-  document.getElementById('nkpi-period').value   = 'Mensal';
-  document.getElementById('nkpi-periodo').value  = '';
-  document.getElementById('nkpi-ciclo').value    = '';
-  document.getElementById('nkpi-ppe').value        = 'Não';
-  document.getElementById('nkpi-indice').value     = '';
-  document.getElementById('nkpi-meta').value       = '';
-  document.getElementById('nkpi-real').value       = '';
-  document.getElementById('nkpi-pct-real').value   = '';
-  document.getElementById('nkpi-unidade').value    = '';
-  document.getElementById('nkpi-polaridade').value = 'Maior é melhor';
-  document.getElementById('nkpi-analise').value    = '';
+  _kpiFormSetFields({area: preselArea||'', periodicidade:'Mensal', ppe:'Não', polaridade:'Maior é melhor'});
   modal.style.display = 'flex';
 }
 
@@ -6416,23 +6455,9 @@ function editKpi(id){
   if(!k) return;
   const modal = document.getElementById('novo-kpi-modal');
   document.getElementById('kpi-modal-titulo').textContent = 'Editar indicador';
-  document.getElementById('nkpi-edit-idx').value    = id;
+  document.getElementById('nkpi-edit-idx').value = id;
   document.getElementById('kpi-del-btn').style.display = 'inline-flex';
-  document.getElementById('nkpi-area').value        = k.area || '';
-  document.getElementById('nkpi-codigo').value      = k.codigo || '';
-  document.getElementById('nkpi-nome').value        = k.nome || '';
-  document.getElementById('nkpi-desc').value        = k.desc || '';
-  document.getElementById('nkpi-period').value      = k.periodicidade || 'Mensal';
-  document.getElementById('nkpi-periodo').value     = k.periodo || '';
-  document.getElementById('nkpi-ciclo').value       = k.ciclo || '';
-  document.getElementById('nkpi-ppe').value         = k.ppe || 'Não';
-  document.getElementById('nkpi-indice').value      = k.indice || '';
-  document.getElementById('nkpi-meta').value        = k.meta || '';
-  document.getElementById('nkpi-real').value        = k.realizado || '';
-  document.getElementById('nkpi-pct-real').value    = k.pct_realizado ? k.pct_realizado+'%' : '';
-  document.getElementById('nkpi-unidade').value     = k.unidade || '';
-  document.getElementById('nkpi-polaridade').value  = k.polaridade || 'Maior é melhor';
-  document.getElementById('nkpi-analise').value     = k.analise || '';
+  _kpiFormSetFields(k);
   modal.style.display = 'flex';
 }
 
