@@ -6488,6 +6488,7 @@ function kpiGrupoCardHTML(key, items){
         <div style="font-size:12px;color:var(--ink3);margin-bottom:2px">${esc(area)}${items[0].codigo?' · '+esc(items[0].codigo):''} · ${polaridade==='Menor é melhor'?'↓':'↑'}</div>
         <div style="font-size:14px;font-weight:600;color:var(--ink)">${esc(nome)}</div>
       </div>
+      <div style="display:flex;gap:5px;flex-shrink:0">${isEP()?`<button class="btn" style="font-size:10px;padding:2px 8px" onclick="editKpi(${items[0].id})">✎ Editar</button><button class="btn" style="font-size:10px;padding:2px 8px;color:var(--red);border-color:var(--red-b)" onclick="deletarKpi(${items[0].id})">×</button>`:''}</div>
     </div>
     <div style="position:relative;height:200px"><canvas id="chart-kpi-${key.replace(/\W/g,'_')}"></canvas></div>
   </div>`;
@@ -6789,16 +6790,16 @@ function deletarKpi(id){
 }
 
 async function limparKpisImportados(){
-  const importados = kpis.filter(k => k.origem === 'importado');
+  const importados = kpis.filter(k => k.origem === 'importado' || k.origem === 'gsheets');
   if(!importados.length){ toast('Nenhum indicador importado encontrado.', 'var(--amber)'); return; }
-  if(!confirm(`Remover ${importados.length} indicador(es) importado(s)? Os indicadores manuais serão mantidos.`)) return;
+  if(!confirm(`Remover ${importados.length} indicador(es) importado(s)/sincronizado(s)? Os indicadores manuais serão mantidos.`)) return;
   if(fbReady()){
     const {db,doc,deleteDoc}=fb();
     await Promise.all(importados.map(k => deleteDoc(doc(db,'kpis',String(k.id))).catch(e=>console.warn(e.message))));
   }
-  kpis = kpis.filter(k => k.origem !== 'importado');
+  kpis = kpis.filter(k => k.origem !== 'importado' && k.origem !== 'gsheets');
   rInd();
-  toast(`${importados.length} indicador(es) importado(s) removido(s).`, 'var(--amber)');
+  toast(`${importados.length} indicador(es) removido(s).`, 'var(--amber)');
 }
 
 function salvarGSheetsUrl(){
@@ -6873,6 +6874,7 @@ async function sincronizarGSheets(){
       cPctReal=col(['% realizado','pct realizado']);
 
     // Remove previously synced entries from this URL before re-importing
+    const oldGSheets = kpis.filter(k => k.origem === 'gsheets');
     kpis = kpis.filter(k => k.origem !== 'gsheets');
     let added = 0;
     rows.forEach(row => {
@@ -6897,7 +6899,16 @@ async function sincronizarGSheets(){
     });
 
     rInd();
-    fbAutoSave('sincronizarGSheets');
+
+    // Delete old GSheets indicators from Firestore
+    if(fbReady() && oldGSheets.length){
+      const {db,doc,deleteDoc}=fb();
+      await Promise.all(oldGSheets.map(k => deleteDoc(doc(db,'kpis',String(k.id))).catch(e=>console.warn(e.message))));
+    }
+
+    // Save all changes
+    await fbSaveAll();
+
     const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     if(statusEl) statusEl.textContent = `✓ ${added} indicador(es) — ${now}`;
   }catch(err){
