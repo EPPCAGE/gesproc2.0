@@ -6789,16 +6789,16 @@ function deletarKpi(id){
 }
 
 async function limparKpisImportados(){
-  const importados = kpis.filter(k => k.origem === 'importado');
+  const importados = kpis.filter(k => k.origem === 'importado' || k.origem === 'gsheets');
   if(!importados.length){ toast('Nenhum indicador importado encontrado.', 'var(--amber)'); return; }
-  if(!confirm(`Remover ${importados.length} indicador(es) importado(s)? Os indicadores manuais serão mantidos.`)) return;
+  if(!confirm(`Remover ${importados.length} indicador(es) importado(s)/sincronizado(s)? Os indicadores manuais serão mantidos.`)) return;
   if(fbReady()){
     const {db,doc,deleteDoc}=fb();
     await Promise.all(importados.map(k => deleteDoc(doc(db,'kpis',String(k.id))).catch(e=>console.warn(e.message))));
   }
-  kpis = kpis.filter(k => k.origem !== 'importado');
+  kpis = kpis.filter(k => k.origem !== 'importado' && k.origem !== 'gsheets');
   rInd();
-  toast(`${importados.length} indicador(es) importado(s) removido(s).`, 'var(--amber)');
+  toast(`${importados.length} indicador(es) removido(s).`, 'var(--amber)');
 }
 
 function salvarGSheetsUrl(){
@@ -6873,6 +6873,7 @@ async function sincronizarGSheets(){
       cPctReal=col(['% realizado','pct realizado']);
 
     // Remove previously synced entries from this URL before re-importing
+    const oldGSheets = kpis.filter(k => k.origem === 'gsheets');
     kpis = kpis.filter(k => k.origem !== 'gsheets');
     let added = 0;
     rows.forEach(row => {
@@ -6897,7 +6898,16 @@ async function sincronizarGSheets(){
     });
 
     rInd();
-    fbAutoSave('sincronizarGSheets');
+
+    // Delete old GSheets indicators from Firestore
+    if(fbReady() && oldGSheets.length){
+      const {db,doc,deleteDoc}=fb();
+      await Promise.all(oldGSheets.map(k => deleteDoc(doc(db,'kpis',String(k.id))).catch(e=>console.warn(e.message))));
+    }
+
+    // Save all changes
+    await fbSaveAll();
+
     const now = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     if(statusEl) statusEl.textContent = `✓ ${added} indicador(es) — ${now}`;
   }catch(err){
