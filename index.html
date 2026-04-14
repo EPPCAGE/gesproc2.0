@@ -1563,34 +1563,38 @@ function enviarNotif(para_email,para_nome,acao,proc_nome,prazo,de_nome){
     console.warn('enviarNotif: e-mail não enviado —',motivo,'— para_email:',para_email);
   }
 }
-function rNotif(){
-  const cfgCard = document.getElementById('ejs-config-card');
-  if(cfgCard) cfgCard.style.display = isEP() ? 'block' : 'none';
-  // Pre-fill saved credentials
-  if(isEP()){
-    const sf = document.getElementById('ejs-service');
-    const tf = document.getElementById('ejs-template');
-    const pf = document.getElementById('ejs-pubkey');
-    const st = document.getElementById('emailjs-status');
-    if(sf) sf.value = ejsConfig.service  || '';
-    if(tf) tf.value = ejsConfig.template || '';
-    if(pf) pf.value = ejsConfig.pubkey   || '';
-    if(st && ejsConfig.service && ejsConfig.template && ejsConfig.pubkey){
-      st.textContent = '✓ EmailJS configurado — envio real de e-mails ativado.';
-      st.className = 'ib ibg';
-    }
+function _rNotifPreencherEmailJS(){
+  const sf = document.getElementById('ejs-service');
+  const tf = document.getElementById('ejs-template');
+  const pf = document.getElementById('ejs-pubkey');
+  const st = document.getElementById('emailjs-status');
+  if(sf) sf.value = ejsConfig.service  || '';
+  if(tf) tf.value = ejsConfig.template || '';
+  if(pf) pf.value = ejsConfig.pubkey   || '';
+  if(st && ejsConfig.service && ejsConfig.template && ejsConfig.pubkey){
+    st.textContent = '✓ EmailJS configurado — envio real de e-mails ativado.';
+    st.className = 'ib ibg';
   }
-  const el=document.getElementById('notif-log');
-  if(!el)return;
-  el.innerHTML=notifs.length?notifs.map(n=>`
-    <div class="notif-item ${n.lida?'':''}">
+}
+function _rNotifItemHTML(n){
+  return `<div class="notif-item ${n.lida?'':''}">
       <div class="notif-dot" style="${n.lida?'background:var(--bdr2)':''}"></div>
       <div style="flex:1">
         <div style="font-weight:500">${esc(n.acao)}</div>
         <div style="color:var(--ink3)">Para: ${esc(n.para)} · Processo: ${esc(n.proc_nome)} · Prazo: ${esc(n.prazo||'—')} · ${esc(n.data)}</div>
         ${!n.lida?'<button class="btn" style="font-size:10px;padding:2px 7px;margin-top:3px" onclick="marcarLida('+n.id+')">Marcar como lida</button>':''}
       </div>
-    </div>`).join(''):'<div style="font-size:12px;color:var(--ink3)">Nenhuma notificação.</div>';
+    </div>`;
+}
+function rNotif(){
+  const cfgCard = document.getElementById('ejs-config-card');
+  if(cfgCard) cfgCard.style.display = isEP() ? 'block' : 'none';
+  if(isEP()) _rNotifPreencherEmailJS();
+  const el=document.getElementById('notif-log');
+  if(!el)return;
+  el.innerHTML=notifs.length
+    ? notifs.map(_rNotifItemHTML).join('')
+    : '<div style="font-size:12px;color:var(--ink3)">Nenhuma notificação.</div>';
   if(isEP()) setTimeout(injectAiConfigField, 100);
 }
 function marcarLida(id){const n=notifs.find(x=>x.id===id);if(n)n.lida=true;updCounts();rNotif();}
@@ -1781,20 +1785,15 @@ function isEP(){ return usuarioLogado?.perfil === 'ep'; }
 function isDono(){ return usuarioLogado?.perfil === 'dono'; }
 
 
-function aplicarPermissoes(){
-  // Processos page: novo processo button
+function _aplicarPermissoesNavBtns(){
   const btnNovo = document.getElementById('btn-novo-proc');
   if(btnNovo) btnNovo.innerHTML = isEP()
     ? '<button class="btn btn-p" onclick="abrirNovoProc()">+ Novo processo</button>'
     : '';
-
-  // Dashboard: novo processo button
   const btnNovoDash = document.getElementById('btn-novo-proc-dash');
   if(btnNovoDash) btnNovoDash.innerHTML = isEP()
     ? '<button class="btn btn-p" onclick="abrirNovoProc()">+ Novo processo</button>'
     : '';
-
-  // Arquitetura actions
   const btnArq = document.getElementById('btn-arq-actions');
   if(btnArq) btnArq.innerHTML = isEP()
     ? `<div style="display:flex;gap:8px">
@@ -1805,32 +1804,32 @@ function aplicarPermissoes(){
         <button class="btn btn-p" onclick="novoMacro()">+ Macroprocesso</button>
        </div>`
     : '';
-
-  // Admin nav — only EP
+}
+function _aplicarPermissoesAdminBadge(){
   const nbAdmin = document.getElementById('nb-admin');
-  if(nbAdmin){
-    nbAdmin.style.display = isEP() ? '' : 'none';
-    const pendCount = solicitacoes.filter(s=>s.status==='pendente').length;
-    let badgeEl = nbAdmin.querySelector('.sol-badge');
-    if(pendCount>0 && isEP()){
-      if(!badgeEl){
-        badgeEl = document.createElement('span');
-        badgeEl.className = 'nav-cnt hot sol-badge';
-        nbAdmin.appendChild(badgeEl);
-      }
-      badgeEl.textContent = pendCount;
-      badgeEl.style.display = '';
-    } else if(badgeEl){
-      badgeEl.style.display = 'none';
+  if(!nbAdmin) return;
+  nbAdmin.style.display = isEP() ? '' : 'none';
+  const pendCount = solicitacoes.filter(s=>s.status==='pendente').length;
+  let badgeEl = nbAdmin.querySelector('.sol-badge');
+  if(pendCount>0 && isEP()){
+    if(!badgeEl){
+      badgeEl = document.createElement('span');
+      badgeEl.className = 'nav-cnt hot sol-badge';
+      nbAdmin.appendChild(badgeEl);
     }
+    badgeEl.textContent = pendCount;
+    badgeEl.style.display = '';
+  } else if(badgeEl){
+    badgeEl.style.display = 'none';
   }
-  // Auditoria nav — only EP
+}
+function aplicarPermissoes(){
+  _aplicarPermissoesNavBtns();
+  _aplicarPermissoesAdminBadge();
   const nbAud = document.getElementById('nb-aud');
   if(nbAud) nbAud.style.display = isEP() ? '' : 'none';
-  // Painel geral — hidden for dono (executores de processo)
   const nbDash = document.getElementById('nb-dash');
   if(nbDash) nbDash.style.display = usuarioLogado?.perfil === 'dono' ? 'none' : '';
-  // Botões marcados ep-only
   document.querySelectorAll('.ep-only').forEach(el=>{ el.style.display=isEP()?'':'none'; });
 }
 
@@ -2194,7 +2193,7 @@ function av(etAtu, role, acao, _prazoEl, notifDest){
   if(isEP() && curProc?.dono){
     const etObj = getEtapas(curProc).find(e=>e.id===nx);
     if(etObj?.resp==='dono'){
-      setTimeout(()=>perguntarNotifDono(nx, etAtu),200);
+      setTimeout(()=>perguntarNotifDono(nx),200);
     }
   }
 }
@@ -3413,7 +3412,7 @@ function pularEtapa(etId){
   rDetalhe();updCounts();fbAutoSave('pularEtapa');
   if(isEP()&&curProc?.dono){
     const etObj=getEtapas(curProc).find(e=>e.id===nx);
-    if(etObj?.resp==='dono')setTimeout(()=>perguntarNotifDono(nx,etId),200);
+    if(etObj?.resp==='dono')setTimeout(()=>perguntarNotifDono(nx),200);
   }
 }
 function salvarPOP(){
