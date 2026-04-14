@@ -650,46 +650,22 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
     <button class="btn btn-p" onclick="sincronizarGSheets()" style="font-size:12px;white-space:nowrap">↻ Sincronizar</button>
     <span id="ind-gsheets-status" style="font-size:11px;color:var(--ink3)"></span>
   </div>
-  <div class="tabs" style="margin-bottom:.75rem">
-    <div class="tab on" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('ind-tab-lista',this)">Lista</div>
-    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('ind-tab-graficos',this);rIndGraficos()">Gráficos</div>
+  <div class="fbar" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
+    <span class="fbar-l">Indicador</span>
+    <select class="fi" id="ind-nome-sel" onchange="rInd()" style="max-width:220px"><option value="">Todos</option></select>
+    <span class="fbar-l">Área</span>
+    <select class="fi" id="ind-area-sel" onchange="rInd()" style="max-width:160px"><option value="">Todas</option></select>
+    <span class="fbar-l">PPE?</span>
+    <select class="fi" id="ind-ppe-sel" onchange="rInd()" style="max-width:90px">
+      <option value="">Todos</option><option>Sim</option><option>Não</option>
+    </select>
+    <span class="fbar-l">Ciclo</span>
+    <select class="fi" id="ind-ciclo-sel" onchange="rInd()" style="max-width:150px"><option value="">Todos</option></select>
+    <span class="fbar-l">Período</span>
+    <select class="fi" id="ind-periodo-sel" onchange="rInd()" style="max-width:140px"><option value="">Todos</option></select>
   </div>
-  <div id="ind-tab-lista" class="tab-p">
-    <div class="fbar" style="align-items:center;gap:10px;flex-wrap:wrap">
-      <span class="fbar-l">Área</span>
-      <select class="fi" id="ind-area-sel" onchange="rInd()" style="max-width:180px"><option value="">Todas</option></select>
-      <span class="fbar-l">Ciclo</span>
-      <select class="fi" id="ind-ciclo-sel" onchange="rInd()" style="max-width:180px"><option value="">Todos</option></select>
-      <span class="fbar-l">Período</span>
-      <select class="fi" id="ind-periodo-sel" onchange="rInd()" style="max-width:140px"><option value="">Todos</option></select>
-      <span class="fbar-l">Indicador</span>
-      <select class="fi" id="ind-nome-sel" onchange="rInd()" style="max-width:220px"><option value="">Todos</option></select>
-      <span class="fbar-l">PPE?</span>
-      <div class="chips">
-        <button class="chip on" onclick="indFiltPpe('',this)">Todos</button>
-        <button class="chip" onclick="indFiltPpe('Sim',this)">Sim</button>
-        <button class="chip" onclick="indFiltPpe('Não',this)">Não</button>
-      </div>
-    </div>
-    <div id="ind-summary" style="margin-bottom:.8rem"></div>
-    <div id="ind-c"></div>
-  </div>
-  <div id="ind-tab-graficos" class="tab-p" style="display:none">
-    <div class="fbar" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:.75rem">
-      <select class="fi" id="grfk-srch" onchange="rIndGraficos()" style="max-width:220px"><option value="">Todos os indicadores</option></select>
-      <span class="fbar-l">Área</span>
-      <select class="fi" id="grfk-area" onchange="rIndGraficos()" style="max-width:160px"><option value="">Todas</option></select>
-      <span class="fbar-l">PPE?</span>
-      <select class="fi" id="grfk-ppe" onchange="rIndGraficos()" style="max-width:90px">
-        <option value="">Todos</option><option>Sim</option><option>Não</option>
-      </select>
-      <span class="fbar-l">Ciclo</span>
-      <select class="fi" id="grfk-ciclo" onchange="rIndGraficos()" style="max-width:150px"><option value="">Todos</option></select>
-      <span class="fbar-l">Período</span>
-      <select class="fi" id="grfk-periodo" onchange="rIndGraficos()" style="max-width:140px"><option value="">Todos</option></select>
-    </div>
-    <div id="ind-graficos-c"></div>
-  </div>
+  <div id="ind-summary" style="margin-bottom:.8rem"></div>
+  <div id="ind-c"></div>
 
   <!-- Modal novo/editar KPI -->
   <div id="novo-kpi-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center;padding:1rem">
@@ -6422,29 +6398,43 @@ function rInd(){
   if(gsUrlInput && !gsUrlInput.value){
     try{ gsUrlInput.value = localStorage.getItem('epcage_gsheets_url') || ''; }catch(_e){}
   }
+
+  // Destroy previous charts
+  _indCharts.forEach(c=>{ try{ c.destroy(); }catch(e){} });
+  _indCharts = [];
+
   populateIndFilters();
   const area   = document.getElementById('ind-area-sel')?.value   || '';
   const ciclo  = document.getElementById('ind-ciclo-sel')?.value  || '';
   const period = document.getElementById('ind-periodo-sel')?.value || '';
   const nome   = document.getElementById('ind-nome-sel')?.value   || '';
+  const ppe    = document.getElementById('ind-ppe-sel')?.value    || '';
 
   const lista = kpis.filter(k=>
     (!area   || k.area   === area)   &&
     (!ciclo  || k.ciclo  === ciclo)  &&
     (!period || k.periodo === period) &&
     (!nome   || k.nome   === nome)   &&
-    (!_indPpeFiltro || k.ppe === _indPpeFiltro)
+    (!ppe    || k.ppe    === ppe)
   );
+
+  const grupos = kpiGroupByKey(lista);
+  const nGrupos = Object.keys(grupos).length;
 
   // Summary
   const sumEl = document.getElementById('ind-summary');
   if(sumEl && lista.length){
-    const ating = lista.filter(k => k.meta > 0 && k.pct_realizado >= 100).length;
-    const abaixo = lista.filter(k => k.meta > 0 && k.pct_realizado < k.meta).length;
+    const ating = Object.values(grupos).filter(items => {
+      const last = items[items.length-1];
+      const pol = items[0].polaridade||'Maior é melhor';
+      if(!(last.meta>0)) return false;
+      const pct = pol==='Menor é melhor' ? (last.realizado>0?(last.meta/last.realizado)*100:0) : (last.realizado/last.meta)*100;
+      return pct >= 100;
+    }).length;
     sumEl.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <span style="font-size:12px;color:var(--ink3)">${lista.length} indicador${lista.length!==1?'es':''}</span>
+      <span style="font-size:12px;color:var(--ink3)">${nGrupos} indicador${nGrupos!==1?'es':''}</span>
       <span class="badge bg">${ating} atingindo meta</span>
-      ${abaixo > 0 ? `<span class="badge br">${abaixo} abaixo da meta</span>` : ''}
+      ${nGrupos-ating > 0 ? `<span class="badge br">${nGrupos-ating} abaixo da meta</span>` : ''}
     </div>`;
   } else if(sumEl){ sumEl.innerHTML = ''; }
 
@@ -6455,60 +6445,51 @@ function rInd(){
     return;
   }
 
-  // Group by area
-  const g = {};
-  lista.forEach(k=>{ if(!g[k.area]) g[k.area]=[]; g[k.area].push(k); });
-
-  el.innerHTML = Object.entries(g).map(([area, inds])=>`
-    <div style="margin-bottom:1.4rem">
-      <div style="font-family:var(--fh);font-size:14px;font-weight:600;margin-bottom:.7rem;padding:.5rem .8rem;background:var(--ink);color:#fff;border-radius:var(--r);display:flex;justify-content:space-between;align-items:center">
-        <span>${area}</span>
-        <span style="font-size:11px;font-weight:400;opacity:.5">${inds.length} indicador${inds.length!==1?'es':''}</span>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px">${inds.map(k=>kpiCard(k)).join('')}</div>
-    </div>`).join('');
+  Object.values(grupos).forEach(kpiApplyMetaFallback);
+  el.innerHTML = Object.entries(grupos).map(([key,items])=>kpiGrupoCardHTML(key,items)).join('');
+  setTimeout(()=>{ Object.entries(grupos).forEach(([key,items])=>createKpiChart(key,items)); }, 50);
   setTimeout(injectIaIndicadores, 100);
 }
 
-function indFiltPpe(val, el){
-  _indPpeFiltro = val;
-  document.querySelectorAll('#page-indicadores .chips .chip').forEach(c=>c.classList.remove('on'));
-  if(el) el.classList.add('on');
-  rInd();
-}
+function indFiltPpe(val, el){ rInd(); }
 
 let _indCharts = [];
 function kpiGrupoCardHTML(key, items){
   const nome = items[0].nome;
   const polaridade = items[0].polaridade||'Maior é melhor';
   const area = items[0].area||'';
-  return `<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:1rem;margin-bottom:1rem;box-shadow:var(--sh)">
+  const isPpe = items[0].ppe === 'Sim';
+
+  // Border color based on most recent period WITH data (realizado > 0)
+  const withData = items.filter(i=>(Number.parseFloat(i.realizado)||0) > 0);
+  const last = withData.length ? withData[withData.length-1] : null;
+  const hasMeta = last && (last.meta||0) > 0;
+  let borderColor = 'var(--bdr)';
+  if(hasMeta){
+    const pct = polaridade==='Menor é melhor'
+      ? (last.realizado > 0 ? (last.meta/last.realizado)*100 : 0)
+      : (last.realizado/last.meta)*100;
+    borderColor = pct>=100 ? 'var(--green)' : pct>=80 ? 'var(--amber)' : 'var(--red)';
+  }
+
+  // Analysis lines with period label
+  const analises = items.filter(i=>i.analise).map(i=>
+    `<div style="margin-bottom:.3rem"><span style="font-size:10px;font-weight:600;color:var(--ink3)">${esc(i.periodo||'?')}:</span> <span style="font-size:11px;color:var(--ink2);line-height:1.5">${esc(i.analise)}</span></div>`
+  ).join('');
+
+  return `<div style="background:var(--surf);border:1px solid var(--bdr);border-left:3px solid ${borderColor};border-radius:var(--r);padding:1rem;margin-bottom:1rem;box-shadow:var(--sh)">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;gap:8px;flex-wrap:wrap">
       <div>
-        <div style="font-size:12px;color:var(--ink3);margin-bottom:2px">${esc(area)}${items[0].codigo?' · '+esc(items[0].codigo):''} · ${polaridade==='Menor é melhor'?'↓':'↑'}</div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:2px">${esc(area)}${items[0].codigo?' · '+esc(items[0].codigo):''} · ${polaridade==='Menor é melhor'?'↓':'↑'}${isPpe?' · <span title="Indicador PPE" style="color:#f59e0b">⭐</span>':''}</div>
         <div style="font-size:14px;font-weight:600;color:var(--ink)">${esc(nome)}</div>
       </div>
       <div style="display:flex;gap:5px;flex-shrink:0">${isEP()?`<button class="btn" style="font-size:10px;padding:2px 8px" onclick="editKpi(${items[0].id})">✎ Editar</button><button class="btn" style="font-size:10px;padding:2px 8px;color:var(--red);border-color:var(--red-b)" onclick="deletarKpi(${items[0].id})">×</button>`:''}</div>
     </div>
     <div style="position:relative;height:200px"><canvas id="chart-kpi-${key.replace(/\W/g,'_')}"></canvas></div>
+    ${analises?`<div style="margin-top:.5rem;padding:.4rem .6rem;background:var(--bg2);border-radius:5px;border-left:2px solid var(--bdr2)">${analises}</div>`:''}
   </div>`;
 }
-function populateGrfkFilters(){
-  const areaSel  = document.getElementById('grfk-area');
-  const cicloSel = document.getElementById('grfk-ciclo');
-  const periSel  = document.getElementById('grfk-periodo');
-  const nomeSel  = document.getElementById('grfk-srch');
-  if(!areaSel) return;
-  const cur = {area:areaSel.value, ciclo:cicloSel.value, peri:periSel.value, nome:nomeSel?.value||''};
-  const areas   = [...new Set(kpis.map(k=>k.area).filter(Boolean))].sort();
-  const ciclos  = [...new Set(kpis.map(k=>k.ciclo).filter(Boolean))].sort();
-  const periods = [...new Set(kpis.map(k=>k.periodo).filter(Boolean))].sort();
-  const nomes   = [...new Set(kpis.map(k=>k.nome).filter(Boolean))].sort();
-  areaSel.innerHTML  = '<option value="">Todas as áreas</option>'  + areas.map(a=>`<option ${cur.area===a?'selected':''}>${esc(a)}</option>`).join('');
-  cicloSel.innerHTML = '<option value="">Todos os ciclos</option>' + ciclos.map(a=>`<option ${cur.ciclo===a?'selected':''}>${esc(a)}</option>`).join('');
-  periSel.innerHTML  = '<option value="">Todos os períodos</option>' + periods.map(a=>`<option ${cur.peri===a?'selected':''}>${esc(a)}</option>`).join('');
-  if(nomeSel) nomeSel.innerHTML = '<option value="">Todos os indicadores</option>' + nomes.map(n=>`<option ${cur.nome===n?'selected':''}>${esc(n)}</option>`).join('');
-}
+function populateGrfkFilters(){ populateIndFilters(); }
 function kpiBarColor(r, m, polaridade){
   if(!m) return 'rgba(96,165,250,0.7)';
   let pct;
@@ -6555,16 +6536,19 @@ function kpiGroupByKey(list){
 function createKpiChart(key, items){
   const canvas = document.getElementById('chart-kpi-'+key.replace(/\W/g,'_'));
   if(!canvas) return;
+  // Only show periods that have data (realizado > 0)
+  const withData = items.filter(i=>(Number.parseFloat(i.realizado)||0) > 0);
+  if(!withData.length){ canvas.parentElement.style.display='none'; return; }
   const polaridade = items[0].polaridade||'Maior é melhor';
   const unidade = items[0].unidade||'';
-  const realizados = items.map(i=>Number.parseFloat(i.realizado)||0);
-  const metas = items.map(i=>{ const m=Number.parseFloat(i.meta)||0; return m>0?m:(i._metaFallback||null); });
-  const hasHistoricFallback = metas.some((m,i)=>m!==null&&items[i]?._metaFallback);
+  const realizados = withData.map(i=>Number.parseFloat(i.realizado)||0);
+  const metas = withData.map(i=>{ const m=Number.parseFloat(i.meta)||0; return m>0?m:(i._metaFallback||null); });
+  const hasHistoricFallback = metas.some((m,i)=>m!==null&&withData[i]?._metaFallback);
   const metaLabel = 'Meta'+(unidade?' ('+unidade+')':(hasHistoricFallback?'  (média histórica)':''));
   const chart = new Chart(canvas, {
     type: 'bar',
     data: {
-      labels: items.map(i=>i.periodo||'?'),
+      labels: withData.map(i=>i.periodo||'?'),
       datasets: [
         { label:'Realizado'+(unidade?' ('+unidade+')':''), data:realizados, borderRadius:4, order:2,
           backgroundColor: realizados.map((r,i)=>kpiBarColor(r,metas[i],polaridade)) },
@@ -6584,31 +6568,7 @@ function createKpiChart(key, items){
   });
   _indCharts.push(chart);
 }
-function rIndGraficos(){
-  const el = document.getElementById('ind-graficos-c');
-  if(!el) return;
-  _indCharts.forEach(c=>{ try{ c.destroy(); }catch(e){} });
-  _indCharts = [];
-  if(!kpis.length){ el.innerHTML='<div class="ib ibsl">Nenhum indicador cadastrado.</div>'; return; }
-  populateGrfkFilters();
-  const srch   = document.getElementById('grfk-srch')?.value||'';
-  const area   = document.getElementById('grfk-area')?.value||'';
-  const ppe    = document.getElementById('grfk-ppe')?.value||'';
-  const ciclo  = document.getElementById('grfk-ciclo')?.value||'';
-  const period = document.getElementById('grfk-periodo')?.value||'';
-  const filtered = kpis.filter(k=>
-    (!srch   || k.nome   === srch)  &&
-    (!area   || k.area   === area)  &&
-    (!ppe    || k.ppe    === ppe)   &&
-    (!ciclo  || k.ciclo  === ciclo) &&
-    (!period || k.periodo === period)
-  );
-  if(!filtered.length){ el.innerHTML='<div class="ib iba">Nenhum indicador encontrado com os filtros selecionados.</div>'; return; }
-  const grupos = kpiGroupByKey(filtered);
-  Object.values(grupos).forEach(kpiApplyMetaFallback);
-  el.innerHTML = Object.entries(grupos).map(([key,items])=>kpiGrupoCardHTML(key,items)).join('');
-  setTimeout(()=>{ Object.entries(grupos).forEach(([key,items])=>createKpiChart(key,items)); }, 50);
-}
+function rIndGraficos(){ rInd(); }
 
 function kpiCard(k){
   const polaridade = k.polaridade || 'Maior é melhor';
