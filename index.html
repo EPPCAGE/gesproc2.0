@@ -952,9 +952,9 @@ Não responda este e-mail.</pre>
     <div style="background:var(--surf);border-radius:var(--rl);padding:1.5rem;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:var(--sh2)">
       <div style="font-family:var(--fh);font-size:16px;font-weight:600;margin-bottom:1rem" id="pub-modal-titulo">Nova publicação</div>
       <input type="hidden" id="pub-edit-id">
-      <div class="fg"><label class="fl">Título<span>*</span></label><input class="fi" id="pub-titulo" placeholder="Ex: Manual de Mapeamento de Processos v2"></div>
+      <div class="fg"><label class="fl" for="pub-titulo">Título<span>*</span></label><input class="fi" id="pub-titulo" placeholder="Ex: Manual de Mapeamento de Processos v2"></div>
       <div class="g2">
-        <div class="fg"><label class="fl">Categoria</label>
+        <div class="fg"><label class="fl" for="pub-cat">Categoria</label>
           <select class="fi" id="pub-cat">
             <option>Manual</option>
             <option>Drop</option>
@@ -963,15 +963,15 @@ Não responda este e-mail.</pre>
             <option>Outro</option>
           </select>
         </div>
-        <div class="fg"><label class="fl">Versão</label><input class="fi" id="pub-versao" placeholder="Ex: v1.0, 2026"></div>
+        <div class="fg"><label class="fl" for="pub-versao">Versão</label><input class="fi" id="pub-versao" placeholder="Ex: v1.0, 2026"></div>
       </div>
-      <div class="fg"><label class="fl">Descrição</label><textarea class="fi" id="pub-desc" style="min-height:65px" placeholder="Resumo do conteúdo ou objetivo do documento..."></textarea></div>
-      <div class="fg"><label class="fl">Link / URL do documento</label><input class="fi" id="pub-url" placeholder="https://... ou caminho da rede"></div>
+      <div class="fg"><label class="fl" for="pub-desc">Descrição</label><textarea class="fi" id="pub-desc" style="min-height:65px" placeholder="Resumo do conteúdo ou objetivo do documento..."></textarea></div>
+      <div class="fg"><label class="fl" for="pub-url">Link / URL do documento</label><input class="fi" id="pub-url" placeholder="https://... ou caminho da rede"></div>
       <div class="g2">
-        <div class="fg"><label class="fl">Data de publicação</label><input class="fi" type="date" id="pub-data"></div>
-        <div class="fg"><label class="fl">Responsável</label><input class="fi" id="pub-resp" placeholder="Ex: EP·CAGE"></div>
+        <div class="fg"><label class="fl" for="pub-data">Data de publicação</label><input class="fi" type="date" id="pub-data"></div>
+        <div class="fg"><label class="fl" for="pub-resp">Responsável</label><input class="fi" id="pub-resp" placeholder="Ex: EP·CAGE"></div>
       </div>
-      <div class="fg"><label class="fl">Tags (separadas por vírgula)</label><input class="fi" id="pub-tags" placeholder="Ex: bpmn, mapeamento, tutorial"></div>
+      <div class="fg"><label class="fl" for="pub-tags">Tags (separadas por vírgula)</label><input class="fi" id="pub-tags" placeholder="Ex: bpmn, mapeamento, tutorial"></div>
       <div class="btn-row">
         <button class="btn btn-r" id="pub-del-btn" style="margin-right:auto;display:none" onclick="deletarPub()">Remover</button>
         <button class="btn" onclick="document.getElementById('pub-modal').style.display='none'">Cancelar</button>
@@ -1004,11 +1004,11 @@ Não responda este e-mail.</pre>
       <div style="font-family:var(--fh);font-size:16px;font-weight:600;margin-bottom:1rem" id="usr-modal-t">Novo usuário</div>
       <input type="hidden" id="usr-idx">
       <div class="g2">
-        <div class="fg"><label class="fl">Nome<span>*</span></label><input class="fi" id="usr-nome"></div>
-        <div class="fg"><label class="fl">Iniciais</label><input class="fi" id="usr-ini" maxlength="2"></div>
+        <div class="fg"><label class="fl" for="usr-nome">Nome<span>*</span></label><input class="fi" id="usr-nome"></div>
+        <div class="fg"><label class="fl" for="usr-ini">Iniciais</label><input class="fi" id="usr-ini" maxlength="2"></div>
       </div>
-      <div class="fg"><label class="fl">E-mail<span>*</span></label><input class="fi" id="usr-email" type="email"></div>
-      <div class="fg"><label class="fl">Perfil<span>*</span></label>
+      <div class="fg"><label class="fl" for="usr-email">E-mail<span>*</span></label><input class="fi" id="usr-email" type="email"></div>
+      <div class="fg"><label class="fl" for="usr-perfil">Perfil<span>*</span></label>
         <select class="fi" id="usr-perfil" onchange="onUsrPerfilChg()">
           <option value="ep">EPP</option>
           <option value="dono">Executor de Processo</option>
@@ -1058,10 +1058,10 @@ Não responda este e-mail.</pre>
     <div style="background:var(--surf);border-radius:var(--rl);padding:1.5rem;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:var(--sh2)">
       <div style="font-family:var(--fh);font-size:16px;font-weight:600;margin-bottom:1rem" id="aviso-modal-t">Novo aviso</div>
       <input type="hidden" id="aviso-id">
-      <div class="fg"><label class="fl">Título<span>*</span></label><input class="fi" id="aviso-titulo" placeholder="Ex: Manutenção programada em 15/04"></div>
-      <div class="fg"><label class="fl">Mensagem<span>*</span></label><textarea class="fi" id="aviso-corpo" rows="4" placeholder="Texto do aviso..."></textarea></div>
+      <div class="fg"><label class="fl" for="aviso-titulo">Título<span>*</span></label><input class="fi" id="aviso-titulo" placeholder="Ex: Manutenção programada em 15/04"></div>
+      <div class="fg"><label class="fl" for="aviso-corpo">Mensagem<span>*</span></label><textarea class="fi" id="aviso-corpo" rows="4" placeholder="Texto do aviso..."></textarea></div>
       <div class="fg">
-        <label class="fl">Destinatários<span>*</span></label>
+        <label class="fl" for="aviso-perfil-todos">Destinatários<span>*</span></label>
         <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
           <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
             <input type="checkbox" id="aviso-perfil-todos" onchange="onAvisoPerfisChg()" checked> Todos os perfis
