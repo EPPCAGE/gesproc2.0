@@ -6624,6 +6624,10 @@ function deletarPub(id){
   if(!confirm('Remover esta publicação?')) return;
   publicacoes = publicacoes.filter(p=>p.id!==delId);
   document.getElementById('pub-modal').style.display = 'none';
+  if(fbReady()){
+    const {db,doc,deleteDoc}=fb();
+    deleteDoc(doc(db,'publicacoes',String(delId))).catch(e=>console.warn('deletarPub error:',e.message));
+  }
   fbAutoSave('deletarPub');
   rPub();
   toast('Publicação removida','var(--amber)');
