@@ -391,7 +391,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
     <div class="user-av" id="mob-user-av" style="width:28px;height:28px;font-size:11px">?</div>
   </div>
 </div>
-<div class="mob-drawer-backdrop" id="mob-backdrop" onclick="mobToggleDrawer()"></div>
+<div class="mob-drawer-backdrop" id="mob-backdrop" role="button" tabindex="0" aria-label="Fechar menu" onclick="mobToggleDrawer()" onkeydown="if(event.key==='Enter'||event.key===' '||event.key==='Escape'){event.preventDefault();mobToggleDrawer()}"></div>
 <div class="shell">
 <aside class="aside">
   <div class="aside-top" style="display:flex;align-items:center;justify-content:space-between">
@@ -482,12 +482,12 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   <div class="fbar">
     <span class="fbar-l">Fase</span>
     <div class="chips" id="fase-chips">
-      <span class="chip on" onclick="filtFase('',this)">Todos</span>
-      <span class="chip" onclick="filtFase('Entendimento',this)">Entendimento</span>
-      <span class="chip" onclick="filtFase('Modelagem',this)">Modelagem</span>
-      <span class="chip" onclick="filtFase('Formalizacao',this)">Formalização</span>
-      <span class="chip" onclick="filtFase('Operacao',this)">Operação</span>
-      <span class="chip" onclick="filtFase('Auditoria',this)">Auditoria</span>
+      <span class="chip on" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtFase('',this)">Todos</span>
+      <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtFase('Entendimento',this)">Entendimento</span>
+      <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtFase('Modelagem',this)">Modelagem</span>
+      <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtFase('Formalizacao',this)">Formalização</span>
+      <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtFase('Operacao',this)">Operação</span>
+      <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtFase('Auditoria',this)">Auditoria</span>
     </div>
     <input class="srch" id="srch-p" placeholder="Buscar..." oninput="renderProcs()">
   </div>
@@ -551,13 +551,13 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   </div>
   <div class="prog-tr" id="det-prog"></div>
   <div class="tabs" id="det-tabs">
-    <div class="tab on" onclick="stab('acao',this)">Ação atual</div>
-    <div class="tab" onclick="stab('ent',this)">Entendimento</div>
-    <div class="tab" onclick="stab('mod',this)">Modelagem</div>
-    <div class="tab" onclick="stab('form',this)">Formalização</div>
-    <div class="tab" onclick="stab('mon',this)">Monitoramento</div>
-    <div class="tab" onclick="stab('reun',this)">Reuniões</div>
-    <div class="tab" onclick="stab('hist',this)">Histórico</div>
+    <div class="tab on" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('acao',this)">Ação atual</div>
+    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('ent',this)">Entendimento</div>
+    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('mod',this)">Modelagem</div>
+    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('form',this)">Formalização</div>
+    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('mon',this)">Monitoramento</div>
+    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('reun',this)">Reuniões</div>
+    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('hist',this)">Histórico</div>
   </div>
   <div id="tab-acao"  class="tab-p on"></div>
   <div id="tab-ent"   class="tab-p"></div>
@@ -627,8 +627,8 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
     </div>
   </div>
   <div class="tabs" style="margin-bottom:.75rem">
-    <div class="tab on" onclick="sstab('ind-tab-lista',this)">Lista</div>
-    <div class="tab" onclick="sstab('ind-tab-graficos',this);rIndGraficos()">Gráficos</div>
+    <div class="tab on" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('ind-tab-lista',this)">Lista</div>
+    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('ind-tab-graficos',this);rIndGraficos()">Gráficos</div>
   </div>
   <div id="ind-tab-lista" class="tab-p">
     <div class="fbar" style="align-items:center;gap:10px;flex-wrap:wrap">
@@ -640,9 +640,9 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
       <select class="fi" id="ind-periodo-sel" onchange="rInd()" style="max-width:140px"><option value="">Todos</option></select>
       <span class="fbar-l">PPE?</span>
       <div class="chips">
-        <span class="chip on" onclick="indFiltPpe('',this)">Todos</span>
-        <span class="chip" onclick="indFiltPpe('Sim',this)">Sim</span>
-        <span class="chip" onclick="indFiltPpe('Não',this)">Não</span>
+        <span class="chip on" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="indFiltPpe('',this)">Todos</span>
+        <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="indFiltPpe('Sim',this)">Sim</span>
+        <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="indFiltPpe('Não',this)">Não</span>
       </div>
     </div>
     <div id="ind-summary" style="margin-bottom:.8rem"></div>
@@ -827,9 +827,9 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   <div class="card" style="margin-bottom:1rem;display:none" id="ejs-config-card">
     <div class="card-t">Configuração de envio de e-mail (EmailJS)</div>
     <div class="tabs" style="margin-bottom:1rem">
-      <div class="tab on" onclick="sstab('ejs-config',this)">Credenciais</div>
-      <div class="tab" onclick="sstab('ejs-guide',this)">Como configurar</div>
-      <div class="tab" onclick="sstab('ejs-template-guide',this)">Modelo de e-mail</div>
+      <div class="tab on" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('ejs-config',this)">Credenciais</div>
+      <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('ejs-guide',this)">Como configurar</div>
+      <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('ejs-template-guide',this)">Modelo de e-mail</div>
     </div>
 
     <!-- ABA: Credenciais -->
@@ -936,12 +936,12 @@ Não responda este e-mail.</pre>
   <div class="fbar" style="margin-bottom:1.25rem">
     <span class="fbar-l">Categoria</span>
     <div class="chips" id="pub-chips">
-      <span class="chip on" onclick="filtPub('',this)">Todas</span>
-      <span class="chip" onclick="filtPub('Manual',this)">Manual</span>
-      <span class="chip" onclick="filtPub('Drop',this)">Drop</span>
-      <span class="chip" onclick="filtPub('Metodologia',this)">Metodologia</span>
-      <span class="chip" onclick="filtPub('Formulário',this)">Formulário</span>
-      <span class="chip" onclick="filtPub('Outro',this)">Outro</span>
+      <span class="chip on" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtPub('',this)">Todas</span>
+      <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtPub('Manual',this)">Manual</span>
+      <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtPub('Drop',this)">Drop</span>
+      <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtPub('Metodologia',this)">Metodologia</span>
+      <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtPub('Formulário',this)">Formulário</span>
+      <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtPub('Outro',this)">Outro</span>
     </div>
   </div>
 
@@ -986,10 +986,10 @@ Não responda este e-mail.</pre>
   <button class="btn btn-p" onclick="abrirModalUsr(null)">+ Novo usuário</button></div>
   <div class="fbar"><span class="fbar-l">Perfil</span>
     <div class="chips" id="usr-chips">
-      <span class="chip on" onclick="filtUsr('',this)">Todos</span>
-      <span class="chip" onclick="filtUsr('ep',this)">EPP</span>
-      <span class="chip" onclick="filtUsr('dono',this)">Executor</span>
-      <span class="chip" onclick="filtUsr('gestor',this)">Gestor</span>
+      <span class="chip on" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtUsr('',this)">Todos</span>
+      <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtUsr('ep',this)">EPP</span>
+      <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtUsr('dono',this)">Executor</span>
+      <span class="chip" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="filtUsr('gestor',this)">Gestor</span>
     </div>
     <input class="srch" id="srch-usr" placeholder="Buscar..." oninput="renderAdmin()">
   </div>
@@ -1198,7 +1198,8 @@ function etLb(id){return ETAPAS.find(e=>e.id===id)?.lb||id;}
 function nextEt(id,p){const et=getEtapas(p||curProc);const i=et.findIndex(e=>e.id===id);return i>=0&&i<et.length-1?et[i+1].id:null;}
 function fBadge(etId){const f=etFase(etId);return '<span class="badge '+(FASE_COR[f]||'bgr')+'">'+f+'</span>';}
 function eBadge(etId){return '<span class="badge '+(EBADGE[etId]||'bgr')+'">'+etLb(etId)+'</span>';}
-function pBadge(p){return '<span class="badge '+(p==='Critica'?'br':p==='Alta'?'ba':'bgr')+'">'+p+'</span>';}
+function _pBadgeCls(p){if(p==='Critica')return 'br';if(p==='Alta')return 'ba';return 'bgr';}
+function pBadge(p){return '<span class="badge '+_pBadgeCls(p)+'">'+p+'</span>';}
 
 // QUESTIONÁRIO DE MATURIDADE — 15 perguntas, 6 dimensões
 const QUESTOES = [
@@ -1577,7 +1578,7 @@ function _rNotifPreencherEmailJS(){
   }
 }
 function _rNotifItemHTML(n){
-  return `<div class="notif-item ${n.lida?'':''}">
+  return `<div class="notif-item">
       <div class="notif-dot" style="${n.lida?'background:var(--bdr2)':''}"></div>
       <div style="flex:1">
         <div style="font-weight:500">${esc(n.acao)}</div>
@@ -1698,12 +1699,15 @@ function rAuditoria(){
   el.innerHTML=lista.map(p=>{
     const aud=p.auditoria||{};
     const concluida=aud.concluida===true;
+    const audConf=aud.conformidade?' · '+esc(aud.conformidade):'';
+    const audRow=aud.data?`<div style="font-size:11px;color:var(--ink3);margin-top:3px">Auditoria: ${esc(aud.data)}${audConf}</div>`:'';
+    const audConclusaoRow=aud.conclusao?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px">${esc(aud.conclusao)}</div>`:'';
     return `<div class="prc ${p.prio==='Critica'?'urg':''}" onclick="abrirProc(${p.id})" style="margin-bottom:8px">
       <div style="flex:1">
         <div class="prc-t">${esc(p.nome)}</div>
         <div class="prc-m"><strong>${esc(p.macro)}</strong> · ${esc(p.area)} · Dono: ${esc(p.dono)}</div>
-        ${aud.data?`<div style="font-size:11px;color:var(--ink3);margin-top:3px">Auditoria: ${esc(aud.data)}${aud.conformidade?' · '+esc(aud.conformidade):''}</div>`:''}
-        ${aud.conclusao?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px">${esc(aud.conclusao)}</div>`:''}
+        ${audRow}
+        ${audConclusaoRow}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
         <span class="badge ${concluida?'bg':'ba'}">${concluida?'Concluída':'Em andamento'}</span>
@@ -1761,7 +1765,7 @@ function rMeusProc(){
       </div>
       <div style="font-size:11px;color:var(--ink3);margin-bottom:6px">${u.macro}</div>
       ${mapeado ? `
-        <div style="display:flex;gap:2px;margin-bottom:4px">${ETAPAS.map((e,i)=>`<span style="flex:1;height:3px;border-radius:2px;background:${i<etIdx(proc.etapa)?'var(--teal)':i===etIdx(proc.etapa)?'var(--blue)':'var(--bg3)'}"></span>`).join('')}</div>
+        <div style="display:flex;gap:2px;margin-bottom:4px">${ETAPAS.map((e,i)=>{const ei=etIdx(proc.etapa);const bg=i<ei?'var(--teal)':i===ei?'var(--blue)':'var(--bg3)';return`<span style="flex:1;height:3px;border-radius:2px;background:${bg}"></span>`;}).join('')}</div>
         <div style="font-size:11px;color:var(--ink3)">${mat?'Maturidade '+mat+'/5 — '+ML_[mat]:'Maturidade não avaliada'}</div>
       ` : `<div style="font-size:11px;color:var(--ink4)">Clique para ver na arquitetura</div>`}
     </div>`;
@@ -1944,10 +1948,11 @@ function rDetalhe(){
   const epUser=isEP();
   document.getElementById('det-prog').innerHTML=_etapasEfetivas.map((e,i)=>{
     const past=i<idx,cur=i===idx;
+    const stageCls=past?'dn':cur?'da':'';
     const clickable=epUser&&!cur;
     const tip=past?`Ver etapa: ${e.lb}`:`Visualizar: ${e.lb}`;
-    return `<div class="prog-s ${past?'dn':cur?'da':''}" ${clickable?`onclick="navegarRetro('${e.id}')" style="cursor:pointer" title="${tip}"`:''}">
-      <div class="prog-d ${past?'dn':cur?'da':''}">${past?'✓':(i+1)}</div>
+    return `<div class="prog-s ${stageCls}" ${clickable?`onclick="navegarRetro('${e.id}')" style="cursor:pointer" title="${tip}"`:''}">
+      <div class="prog-d ${stageCls}">${past?'✓':(i+1)}</div>
       <div class="prog-l ${cur?'da':''}">${e.lb}</div>
     </div>`;
   }).join('');
@@ -1955,8 +1960,8 @@ function rDetalhe(){
     const etObj=_etapasEfetivas.find(e=>e.id===p.etapa);
     const minhaTarefa=etObj?.resp==='dono'&&p.dono===usuarioLogado.nome;
     document.getElementById('det-tabs').innerHTML=
-      `<div class="tab on" onclick="stab('acao',this)">${minhaTarefa?'Minha tarefa':'Sobre o processo'}</div>`+
-      `<div class="tab" onclick="stab('hist',this)">Histórico</div>`;
+      `<div class="tab on" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('acao',this)">${minhaTarefa?'Minha tarefa':'Sobre o processo'}</div>`+
+      `<div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('hist',this)">Histórico</div>`;
     ['ent','mod','form','mon'].forEach(id=>{
       const el=document.getElementById('tab-'+id);
       if(el){el.innerHTML='';el.classList.remove('on');}
@@ -2665,9 +2670,9 @@ const ACOES = {
   pop:{titulo:'Construção do POP',sub:'Redigir o Procedimento Operacional Padrão no modelo CAGE.',role:'EP',rk:'ep',
     form:p=>`<div class="ib iba">Preencha as seções do POP conforme padrão CAGE.</div>
     <div class="tabs" style="margin-bottom:.8rem">
-      <div class="tab on" onclick="sstab('pp1',this)">Identificação</div>
-      <div class="tab" onclick="sstab('pp2',this)">Objetivo</div>
-      <div class="tab" onclick="sstab('pp3',this)">Atividades</div>
+      <div class="tab on" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('pp1',this)">Identificação</div>
+      <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('pp2',this)">Objetivo</div>
+      <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('pp3',this)">Atividades</div>
     </div>
     <div id="pp1" class="tab-p on">
       <div class="g3">
@@ -2807,11 +2812,11 @@ const ACOES = {
           <span class="badge ${a.status==='Concluída'?'bg':a.status==='Em andamento'?'ba':'bt'}">${a.status}</span>
         </div>`).join(''):'';
       return `<div class="tabs" style="margin-bottom:1rem">
-        <div class="tab on" onclick="sstab('aud1',this)">Planejamento</div>
-        <div class="tab" onclick="sstab('aud2',this)">Questões</div>
-        <div class="tab" onclick="sstab('aud3',this)">Achados</div>
-        <div class="tab" onclick="sstab('aud4',this)">Ações</div>
-        <div class="tab" onclick="sstab('aud5',this)">Relatório</div>
+        <div class="tab on" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('aud1',this)">Planejamento</div>
+        <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('aud2',this)">Questões</div>
+        <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('aud3',this)">Achados</div>
+        <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('aud4',this)">Ações</div>
+        <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sstab('aud5',this)">Relatório</div>
       </div>
       <div id="aud1" class="tab-p">
         <div class="g2">
@@ -4921,9 +4926,9 @@ function _rModBizagiHTML(arqId, base64){
 async function rMod(p){
   document.getElementById('tab-mod').innerHTML=`
   <div class="tabs" style="margin-bottom:1rem">
-    <div class="tab on" onclick="sModTab('vm-asis',this)">AS IS</div>
-    <div class="tab" onclick="sModTab('vm-tobe',this)">TO BE</div>
-    <div class="tab" onclick="sModTab('vm-etapas',this)">Etapas detalhadas</div>
+    <div class="tab on" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sModTab('vm-asis',this)">AS IS</div>
+    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sModTab('vm-tobe',this)">TO BE</div>
+    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="sModTab('vm-etapas',this)">Etapas detalhadas</div>
   </div>
   <div id="vm-asis" class="tab-p on">
     <div class="card" style="margin-bottom:.8rem">
