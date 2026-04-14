@@ -1,17 +1,17 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
-const ALLOWED_ORIGINS = [
+const ALLOWED_ORIGINS = new Set([
   "https://eppcage.github.io",
   "http://localhost:3000",
   "http://localhost:5000",
   "http://127.0.0.1:3000",
   "http://127.0.0.1:5000",
-];
+]);
 const corsMiddleware = require("cors")({
   origin: (origin, callback) => {
     // Allow requests with no origin (e.g. curl, same-origin server calls)
     if (!origin) return callback(null, true);
-    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    if (ALLOWED_ORIGINS.has(origin)) return callback(null, true);
     callback(new Error("CORS: origin not allowed"));
   },
   methods: ["POST", "OPTIONS"],
