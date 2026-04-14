@@ -21,9 +21,9 @@
 <script src="config.local.js" onerror="console.info('config.local.js not found')"></script>
 <!-- Firebase -->
 <script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-  import { getAuth, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, deleteUser } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
   // ── PREENCHA AQUI APÓS CRIAR O PROJETO FIREBASE
   // IMPORTANT: Do not commit real keys. Load from config.local.js or environment
@@ -45,7 +45,7 @@
       const app = initializeApp(FIREBASE_CONFIG);
       const db  = getFirestore(app);
       const auth = getAuth(app);
-      globalThis._fb = { db, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc, auth, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged };
+      globalThis._fb = { db, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc, auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, deleteUser, initializeApp, deleteApp, getAuth, FIREBASE_CONFIG };
       globalThis._fbReady = true;
       console.info('Firebase conectado');
     } catch(e) {
@@ -1369,7 +1369,17 @@ async function doEsqueciSenha(){
   if(!user){mostrarErrLogin('E-mail não autorizado. Solicite cadastro ao EPP.');return;}
   if(!fbReady()){mostrarErrLogin('Firebase não configurado.');return;}
   try {
-    const {auth, sendPasswordResetEmail} = fb();
+    const {auth, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut} = fb();
+    // Se o usuário está no Firestore mas ainda não tem conta no Firebase Auth,
+    // cria a conta com senha temporária antes de enviar o reset.
+    try {
+      const tmpPass = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2).toUpperCase() + '!1';
+      await createUserWithEmailAndPassword(auth, email, tmpPass);
+      await signOut(auth); // desloga a conta recém-criada antes de enviar o reset
+    } catch(createErr){
+      // auth/email-already-in-use → conta já existe, tudo bem, segue para o reset
+      if(createErr.code !== 'auth/email-already-in-use') throw createErr;
+    }
     await sendPasswordResetEmail(auth, email);
     const e = document.getElementById('login-err');
     e.style.color='#86efac';
@@ -7005,10 +7015,24 @@ async function aprovarSolicitacao(email){
   USUARIOS.push({email, nome, perfil:'dono', iniciais, processos_vinculados:[]});
   if(!fbReady()){toast('Firebase não configurado.','red');return;}
   try {
-    const {db, doc, setDoc, auth, sendPasswordResetEmail} = fb();
+    const {db, doc, setDoc, auth, sendPasswordResetEmail, initializeApp, deleteApp, getAuth, createUserWithEmailAndPassword, FIREBASE_CONFIG} = fb();
     await setDoc(doc(db,'solicitacoes',email),{...sol, status:'aprovado'});
     solicitacoes = solicitacoes.map(s=>s.email===email?{...s,status:'aprovado'}:s);
     await fbSaveAll();
+    // Garante conta no Firebase Auth sem deslogar o admin:
+    // usa app secundária isolada para criar o usuário
+    try {
+      const tmpPass = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2).toUpperCase() + '!1';
+      const secApp  = initializeApp(FIREBASE_CONFIG, 'sec_create_' + Date.now());
+      const secAuth = getAuth(secApp);
+      try {
+        await createUserWithEmailAndPassword(secAuth, email, tmpPass);
+      } catch(createErr){
+        if(createErr.code !== 'auth/email-already-in-use') console.warn('createUser:', createErr.message);
+      } finally {
+        await deleteApp(secApp);
+      }
+    } catch(secErr){ console.warn('secApp:', secErr.message); }
     try { await sendPasswordResetEmail(auth, email); } catch(e2){ console.warn('sendPasswordResetEmail:', e2.message); }
     toast('Usuário aprovado! Link de acesso enviado para o e-mail.','green');
     renderAdmin();
