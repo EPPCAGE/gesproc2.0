@@ -6825,7 +6825,13 @@ async function sincronizarGSheets(){
 
   if(statusEl) statusEl.textContent = '⏳ Sincronizando...';
   try{
-    const resp = await fetch(url);
+    // Try direct fetch first, fallback to CORS proxy if blocked
+    let resp = await fetch(url).catch(() => null);
+    if(!resp){
+      // CORS blocked — use proxy
+      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+      resp = await fetch(proxyUrl);
+    }
     if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const csvText = await resp.text();
     const wb = XLSX.read(csvText, {type:'string', cellDates:true});
