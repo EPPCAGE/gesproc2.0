@@ -1399,12 +1399,23 @@ async function processarPrimeiroAcesso(){
   const userExistente = USUARIOS.find(u=>u.email===email);
 
   if(userExistente){
-    // Usuário já cadastrado → redefinir senha via link Firebase
+    // Usuário já cadastrado → redefinir senha via link Firebase.
+    // Se o usuário foi adicionado manualmente ao Firestore sem ter conta Auth,
+    // cria a conta com senha aleatória primeiro (sem risco de deslogar ninguém,
+    // pois estamos na tela de login antes de qualquer sessão ativa).
     if(!fbReady()){ showErr('Firebase não configurado.'); return; }
     try {
-      const {auth, sendPasswordResetEmail} = fb();
+      const {auth, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail} = fb();
+      try {
+        const tmpPass = gerarSenhaTemp() + gerarSenhaTemp(); // longo o suficiente, nunca usado
+        await createUserWithEmailAndPassword(auth, email, tmpPass);
+        await signOut(auth); // limpa sessão da conta recém-criada
+      } catch(createErr){
+        if(createErr.code !== 'auth/email-already-in-use') throw createErr;
+        // conta já existe → segue normalmente para o reset
+      }
       await sendPasswordResetEmail(auth, email);
-      showOk('Link de redefinição enviado para '+email+'. Verifique sua caixa de entrada.');
+      showOk('Link de redefinição enviado para '+email+'. Verifique sua caixa de entrada (e a pasta de spam).');
     } catch(err){ showErr('Erro ao enviar e-mail: '+err.message); }
     return;
   }
