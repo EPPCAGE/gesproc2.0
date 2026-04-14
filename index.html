@@ -23,7 +23,7 @@
 <script type="module">
   import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, deleteUser } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, deleteUser, updatePassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
   // ── PREENCHA AQUI APÓS CRIAR O PROJETO FIREBASE
   // IMPORTANT: Do not commit real keys. Load from config.local.js or environment
@@ -45,7 +45,7 @@
       const app = initializeApp(FIREBASE_CONFIG);
       const db  = getFirestore(app);
       const auth = getAuth(app);
-      globalThis._fb = { db, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc, auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, deleteUser, initializeApp, deleteApp, getAuth, FIREBASE_CONFIG };
+      globalThis._fb = { db, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc, auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, deleteUser, updatePassword, initializeApp, deleteApp, getAuth, FIREBASE_CONFIG };
       globalThis._fbReady = true;
       console.info('Firebase conectado');
     } catch(e) {
@@ -364,20 +364,38 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
     <input class="login-input" id="login-senha" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="login-btn" onclick="doLogin()">Entrar</button>
     <div style="text-align:center;margin-top:.75rem">
-      <button type="button" onclick="doEsqueciSenha()" style="font-size:12px;color:rgba(255,255,255,.4);text-decoration:none;transition:color .12s;background:none;border:none;cursor:pointer;font-family:var(--f)" onmouseover="this.style.color='rgba(255,255,255,.7)'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Primeiro acesso ou esqueci minha senha</button>
+      <button type="button" onclick="togglePrimeiroAcesso()" style="font-size:12px;color:rgba(255,255,255,.4);transition:color .12s;background:none;border:none;cursor:pointer;font-family:var(--f)" onmouseover="this.style.color='rgba(255,255,255,.7)'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Primeiro acesso / Esqueci minha senha</button>
     </div>
     <div class="login-err" id="login-err" style="display:none"></div>
-    <div style="text-align:center;margin-top:.75rem">
-      <button type="button" onclick="const rf=document.getElementById('reg-form');rf.style.display=rf.style.display==='none'?'block':'none'" style="font-size:12px;color:rgba(255,255,255,.4);text-decoration:none;transition:color .12s;background:none;border:none;cursor:pointer;font-family:var(--f)" onmouseover="this.style.color='rgba(255,255,255,.7)'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Não tem acesso? Solicitar acesso</button>
+    <div id="primeiro-acesso-form" style="display:none;margin-top:.9rem;border-top:1px solid rgba(255,255,255,.12);padding-top:.9rem">
+      <div style="font-size:11px;color:rgba(255,255,255,.45);text-align:center;margin-bottom:.8rem;line-height:1.5">
+        Primeiro acesso? Informe seu nome e e-mail.<br>
+        Já tem cadastro e esqueceu a senha? Informe só o e-mail.
+      </div>
+      <label class="login-label" for="pa-nome">Nome completo <span style="opacity:.45;font-size:10px">(apenas no 1º acesso)</span></label>
+      <input class="login-input" id="pa-nome" type="text" placeholder="Seu nome completo" style="margin-bottom:.5rem" onkeydown="if(event.key==='Enter')processarPrimeiroAcesso()">
+      <label class="login-label" for="pa-email" style="margin-top:.3rem">E-mail institucional</label>
+      <input class="login-input" id="pa-email" type="email" placeholder="usuario@sefaz.rs.gov.br" onkeydown="if(event.key==='Enter')processarPrimeiroAcesso()">
+      <button class="login-btn" style="margin-top:.7rem;background:rgba(255,255,255,.15)" onclick="processarPrimeiroAcesso()">Continuar →</button>
+      <div id="pa-msg" style="display:none;font-size:12px;text-align:center;margin-top:.5rem;padding:.4rem .6rem;border-radius:6px"></div>
     </div>
-    <div id="reg-form" style="display:none;margin-top:.9rem;border-top:1px solid rgba(255,255,255,.12);padding-top:.9rem">
-      <label class="login-label" for="reg-nome">Nome completo</label>
-      <input class="login-input" id="reg-nome" type="text" placeholder="Seu nome completo">
-      <label class="login-label" for="reg-email" style="margin-top:.7rem">E-mail institucional</label>
-      <input class="login-input" id="reg-email" type="email" placeholder="usuario@sefaz.rs.gov.br">
-      <button class="login-btn" style="margin-top:.7rem;background:rgba(255,255,255,.15)" onclick="solicitarAcesso()">Enviar solicitação</button>
-      <div id="reg-msg" style="display:none;font-size:12px;text-align:center;margin-top:.5rem;color:#A0F2C4"></div>
+  </div>
+</div>
+
+<!-- Modal: trocar senha no primeiro acesso -->
+<div id="trocar-senha-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:#1e1e2e;border-radius:14px;padding:2rem;width:100%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+    <div style="color:#fff;font-size:16px;font-weight:700;margin-bottom:.4rem">Defina sua senha</div>
+    <div style="color:rgba(255,255,255,.55);font-size:12px;margin-bottom:1.4rem;line-height:1.5">
+      Você está usando uma senha temporária.<br>
+      Escolha uma senha definitiva para continuar.
     </div>
+    <label class="login-label" for="ts-nova">Nova senha <span style="opacity:.5;font-size:10px">(mín. 6 caracteres)</span></label>
+    <input class="login-input" id="ts-nova" type="password" placeholder="••••••••" style="margin-bottom:.75rem" onkeydown="if(event.key==='Enter')salvarNovaSenha()">
+    <label class="login-label" for="ts-conf">Confirmar nova senha</label>
+    <input class="login-input" id="ts-conf" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')salvarNovaSenha()">
+    <button class="login-btn" style="margin-top:.9rem" onclick="salvarNovaSenha()">Definir senha →</button>
+    <div id="ts-msg" style="display:none;font-size:12px;text-align:center;margin-top:.6rem;color:#F2A0A0"></div>
   </div>
 </div>
 
@@ -1314,6 +1332,7 @@ function _aplicarUsuario(user){
   updCounts();
   aplicarPermissoes();
   go('fila',document.getElementById('nb-fila'));
+  if(user.trocar_senha) setTimeout(abrirModalTrocarSenha, 600);
 }
 const DOMINIOS_PERMITIDOS = ['sefaz.rs.gov.br','cage.rs.gov.br'];
 
@@ -1358,37 +1377,57 @@ async function doLogin(){
   }
 }
 
-async function doEsqueciSenha(){
-  const email = document.getElementById('login-email').value.trim().toLowerCase();
-  if(!email){mostrarErrLogin('Informe seu e-mail acima antes de continuar.');return;}
-  const dominio = email.split('@')[1]||'';
-  if(!DOMINIOS_PERMITIDOS.includes(dominio)){
-    mostrarErrLogin('Informe um e-mail institucional válido.');return;
-  }
-  const user = USUARIOS.find(u=>u.email===email);
-  if(!user){mostrarErrLogin('E-mail não autorizado. Solicite cadastro ao EPP.');return;}
-  if(!fbReady()){mostrarErrLogin('Firebase não configurado.');return;}
-  try {
-    const {auth, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut} = fb();
-    // Se o usuário está no Firestore mas ainda não tem conta no Firebase Auth,
-    // cria a conta com senha temporária antes de enviar o reset.
-    try {
-      const tmpPass = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2).toUpperCase() + '!1';
-      await createUserWithEmailAndPassword(auth, email, tmpPass);
-      await signOut(auth); // desloga a conta recém-criada antes de enviar o reset
-    } catch(createErr){
-      // auth/email-already-in-use → conta já existe, tudo bem, segue para o reset
-      if(createErr.code !== 'auth/email-already-in-use') throw createErr;
-    }
-    await sendPasswordResetEmail(auth, email);
-    const e = document.getElementById('login-err');
-    e.style.color='#86efac';
-    e.textContent='Link enviado para '+email+'. Verifique sua caixa de entrada.';
-    e.style.display='block';
-  } catch(err){
-    mostrarErrLogin('Erro ao enviar e-mail: '+err.message);
-  }
+function togglePrimeiroAcesso(){
+  const f = document.getElementById('primeiro-acesso-form');
+  if(!f) return;
+  const visible = f.style.display !== 'none';
+  f.style.display = visible ? 'none' : 'block';
+  if(!visible) document.getElementById('pa-email')?.focus();
 }
+
+async function processarPrimeiroAcesso(){
+  const nome  = (document.getElementById('pa-nome')?.value||'').trim();
+  const email = (document.getElementById('pa-email')?.value||'').trim().toLowerCase();
+  const msgEl = document.getElementById('pa-msg');
+  const showErr = m => { if(msgEl){ msgEl.style.background='rgba(242,160,160,.15)'; msgEl.style.color='#F2A0A0'; msgEl.textContent=m; msgEl.style.display='block'; } };
+  const showOk  = m => { if(msgEl){ msgEl.style.background='rgba(160,242,196,.15)'; msgEl.style.color='#A0F2C4'; msgEl.textContent=m; msgEl.style.display='block'; } };
+
+  if(!email){ showErr('Informe seu e-mail institucional.'); return; }
+  const dominio = email.split('@')[1]||'';
+  if(!DOMINIOS_PERMITIDOS.includes(dominio)){ showErr('Use um e-mail institucional válido ('+DOMINIOS_PERMITIDOS.join(' ou ')+').'); return; }
+
+  const userExistente = USUARIOS.find(u=>u.email===email);
+
+  if(userExistente){
+    // Usuário já cadastrado → redefinir senha via link Firebase
+    if(!fbReady()){ showErr('Firebase não configurado.'); return; }
+    try {
+      const {auth, sendPasswordResetEmail} = fb();
+      await sendPasswordResetEmail(auth, email);
+      showOk('Link de redefinição enviado para '+email+'. Verifique sua caixa de entrada.');
+    } catch(err){ showErr('Erro ao enviar e-mail: '+err.message); }
+    return;
+  }
+
+  // Novo usuário → criar solicitação de acesso
+  if(!nome){ showErr('Informe seu nome completo para solicitar o primeiro acesso.'); return; }
+  const jaSolicitou = solicitacoes.find(s=>s.email===email && s.status==='pendente');
+  if(jaSolicitou){ showOk('Já existe uma solicitação pendente para este e-mail. Aguarde a aprovação do EPP.'); return; }
+  if(!fbReady()){ showErr('Firebase não configurado.'); return; }
+  try {
+    const {db, doc, setDoc} = fb();
+    const sol = {email, nome, status:'pendente', solicitado_em: now()};
+    await setDoc(doc(db,'solicitacoes',email), sol);
+    solicitacoes.push(sol);
+    _aplicarPermissoesAdminBadge();
+    showOk('Solicitação enviada! O EPP receberá uma notificação e entrará em contato.');
+    if(document.getElementById('pa-nome')) document.getElementById('pa-nome').value='';
+    if(document.getElementById('pa-email')) document.getElementById('pa-email').value='';
+  } catch(e){ showErr('Erro ao enviar solicitação: '+e.message); }
+}
+
+// Mantido como alias para compatibilidade com referências antigas
+function doEsqueciSenha(){ togglePrimeiroAcesso(); }
 
 function mostrarErrLogin(msg){
   const e=document.getElementById('login-err');
@@ -1397,25 +1436,66 @@ function mostrarErrLogin(msg){
   e.style.display='block';
 }
 
-async function solicitarAcesso(){
-  const nome = (document.getElementById('reg-nome')?.value||'').trim();
-  const email = (document.getElementById('reg-email')?.value||'').trim().toLowerCase();
-  const msgEl = document.getElementById('reg-msg');
-  const showErr = m => { if(msgEl){msgEl.style.color='#F2A0A0';msgEl.textContent=m;msgEl.style.display='block';} };
-  if(!nome){showErr('Informe seu nome completo.');return;}
-  if(!email){showErr('Informe seu e-mail institucional.');return;}
-  const dominio = email.split('@')[1]||'';
-  if(!DOMINIOS_PERMITIDOS.includes(dominio)){showErr('Use um e-mail institucional válido ('+DOMINIOS_PERMITIDOS.join(' ou ')+').');return;}
-  if(USUARIOS.some(u=>u.email===email)){showErr('Este e-mail já possui acesso ao sistema.');return;}
-  if(!fbReady()){showErr('Firebase não configurado.');return;}
+function gerarSenhaTemp(){
+  const upper  = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower  = 'abcdefghjkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const all    = upper + lower + digits;
+  // Garante ao menos 1 maiúscula, 1 minúscula e 1 dígito + 5 extras
+  let p = upper[Math.floor(Math.random()*upper.length)]
+        + lower[Math.floor(Math.random()*lower.length)]
+        + digits[Math.floor(Math.random()*digits.length)];
+  for(let i=0;i<5;i++) p += all[Math.floor(Math.random()*all.length)];
+  return p.split('').sort(()=>Math.random()-.5).join('');
+}
+
+function _enviarSenhaAcesso(email, nome, senha){
+  if(ejsConfig.service && ejsConfig.template && ejsConfig.pubkey && typeof emailjs !== 'undefined'){
+    emailjs.send(ejsConfig.service, ejsConfig.template, {
+      to_name:  nome,
+      to_email: email,
+      from_name: 'EP·CAGE',
+      processo: 'EP·CAGE — Acesso liberado',
+      acao: 'Seu acesso ao sistema EP·CAGE foi aprovado.\n\nSua senha temporária: ' + senha + '\n\nAcesse o sistema e altere sua senha no primeiro login.',
+      prazo: 'Alterar a senha no primeiro acesso',
+      link: globalThis.CONFIG?.AI_FUNCTION_URL ? 'https://eppcage.github.io/siga2.0/' : 'https://eppcage.github.io/siga2.0/',
+    }).then(()=>console.info('Senha temporária enviada para', email))
+      .catch(err=>console.warn('EmailJS erro ao enviar senha:', err?.text||err?.message));
+  } else {
+    console.warn('_enviarSenhaAcesso: EmailJS não configurado — e-mail não enviado para', email);
+  }
+}
+
+function abrirModalTrocarSenha(){
+  const m = document.getElementById('trocar-senha-modal');
+  if(m){ m.style.display='flex'; document.getElementById('ts-nova')?.focus(); }
+}
+
+async function salvarNovaSenha(){
+  const nova  = (document.getElementById('ts-nova')?.value)||'';
+  const conf  = (document.getElementById('ts-conf')?.value)||'';
+  const msgEl = document.getElementById('ts-msg');
+  const showErr = m => { if(msgEl){ msgEl.style.color='#F2A0A0'; msgEl.textContent=m; msgEl.style.display='block'; } };
+  if(nova.length < 6){ showErr('A senha deve ter pelo menos 6 caracteres.'); return; }
+  if(nova !== conf){ showErr('As senhas não coincidem.'); return; }
+  if(!fbReady()){ showErr('Firebase não disponível.'); return; }
+  const {auth, updatePassword} = fb();
+  const firebaseUser = auth.currentUser;
+  if(!firebaseUser){ showErr('Sessão inválida. Faça login novamente.'); return; }
   try {
-    const {db, doc, setDoc} = fb();
-    await setDoc(doc(db,'solicitacoes',email),{email, nome, status:'pendente', solicitado_em: now()});
-    if(msgEl){msgEl.style.color='#A0F2C4';msgEl.textContent='Solicitação enviada! Aguarde a aprovação do EPP.';msgEl.style.display='block';}
-    document.getElementById('reg-nome').value='';
-    document.getElementById('reg-email').value='';
+    await updatePassword(firebaseUser, nova);
+    // Remove flag trocar_senha
+    if(usuarioLogado) usuarioLogado.trocar_senha = false;
+    fbSaveAll();
+    const m = document.getElementById('trocar-senha-modal');
+    if(m) m.style.display='none';
+    toast('Senha definida com sucesso! Bem-vindo(a) ao EP·CAGE.', 'var(--green)');
   } catch(e){
-    showErr('Erro ao enviar solicitação: '+e.message);
+    const msgs = {
+      'auth/requires-recent-login':'Sessão expirada. Faça logout e login novamente.',
+      'auth/weak-password':'Senha muito fraca. Use pelo menos 6 caracteres.',
+    };
+    showErr(msgs[e.code] || 'Erro ao alterar senha: '+e.message);
   }
 }
 
@@ -1473,13 +1553,13 @@ function stab(id,el){
 // ═══════════════════════════════════════════
 function now(){const d=new Date();return d.getDate().toString().padStart(2,'0')+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear();}
 function push(p,step,role,acao){p.hist.push({step,role,acao,data:now()});}
-function toast(msg,cor){
+function toast(msg,cor,ms){
   const t=document.createElement('div');
   t.className='toast';
   t.style.background=cor||'var(--green)';
   t.textContent=msg;
   document.body.appendChild(t);
-  setTimeout(()=>t.remove(),2800);
+  setTimeout(()=>t.remove(),ms||2800);
 }
 function pbBadge(p){return '<span class="badge '+({Baixa:'bg',Media:'ba',Alta:'br'}[p]||'bgr')+'">'+p+'</span>';}
 function ibBadge(v){return '<span class="badge '+({Baixo:'bg',Medio:'ba',Alto:'br',Critico:'br'}[v]||'bgr')+'"'+(v==='Critico'?' style="background:var(--red);color:#fff"':'')+'>'+v+'</span>';}
@@ -7009,36 +7089,54 @@ function renderAdmin(){
 async function aprovarSolicitacao(email){
   const sol = solicitacoes.find(s=>s.email===email);
   if(!sol) return;
-  const nome = sol.nome||'';
+  if(!fbReady()){toast('Firebase não configurado.','red');return;}
+
+  const nome    = sol.nome||'';
   const palavras = nome.trim().split(/\s+/).filter(Boolean);
   const iniciais = (palavras.length>=2 ? palavras[0][0]+palavras[palavras.length-1][0] : (palavras[0]||'?').slice(0,2)).toUpperCase();
-  USUARIOS.push({email, nome, perfil:'dono', iniciais, processos_vinculados:[]});
-  if(!fbReady()){toast('Firebase não configurado.','red');return;}
+  const senhaTemp = gerarSenhaTemp();
+
   try {
-    const {db, doc, setDoc, auth, sendPasswordResetEmail, initializeApp, deleteApp, getAuth, createUserWithEmailAndPassword, FIREBASE_CONFIG} = fb();
-    await setDoc(doc(db,'solicitacoes',email),{...sol, status:'aprovado'});
-    solicitacoes = solicitacoes.map(s=>s.email===email?{...s,status:'aprovado'}:s);
-    await fbSaveAll();
-    // Garante conta no Firebase Auth sem deslogar o admin:
-    // usa app secundária isolada para criar o usuário
+    const {db, doc, setDoc, initializeApp, deleteApp, getAuth, createUserWithEmailAndPassword, FIREBASE_CONFIG} = fb();
+
+    // 1. Criar conta no Firebase Auth via app secundária (não desloga o admin)
+    let contaCriada = false;
     try {
-      const tmpPass = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2).toUpperCase() + '!1';
-      const secApp  = initializeApp(FIREBASE_CONFIG, 'sec_create_' + Date.now());
+      const secApp  = initializeApp(FIREBASE_CONFIG, 'sec_' + Date.now());
       const secAuth = getAuth(secApp);
       try {
-        await createUserWithEmailAndPassword(secAuth, email, tmpPass);
+        await createUserWithEmailAndPassword(secAuth, email, senhaTemp);
+        contaCriada = true;
       } catch(createErr){
-        if(createErr.code !== 'auth/email-already-in-use') console.warn('createUser:', createErr.message);
+        if(createErr.code === 'auth/email-already-in-use'){
+          contaCriada = true; // conta já existe, senha definida pelo admin via EmailJS abaixo
+        } else {
+          console.warn('createUser:', createErr.message);
+        }
       } finally {
         await deleteApp(secApp);
       }
     } catch(secErr){ console.warn('secApp:', secErr.message); }
-    try { await sendPasswordResetEmail(auth, email); } catch(e2){ console.warn('sendPasswordResetEmail:', e2.message); }
-    toast('Usuário aprovado! Link de acesso enviado para o e-mail.','green');
+
+    // 2. Adicionar ao USUARIOS com flag trocar_senha
+    const novoUser = {email, nome, perfil:'dono', iniciais, processos_vinculados:[], trocar_senha:true};
+    USUARIOS.push(novoUser);
+
+    // 3. Persistir no Firestore
+    await setDoc(doc(db,'solicitacoes',email),{...sol, status:'aprovado', aprovado_em: now()});
+    solicitacoes = solicitacoes.map(s=>s.email===email?{...s,status:'aprovado'}:s);
+    await fbSaveAll();
+
+    // 4. Enviar senha temporária por e-mail
+    _enviarSenhaAcesso(email, nome, senhaTemp);
+
+    // 5. Mostrar feedback para o admin (inclui a senha como fallback caso EmailJS não esteja configurado)
+    toast(`✓ ${nome} aprovado(a)! Senha temporária: ${senhaTemp}${contaCriada ? ' (enviada por e-mail)' : ' — configure EmailJS para envio automático'}`, 'var(--green)', 8000);
     renderAdmin();
     aplicarPermissoes();
   } catch(e){
-    USUARIOS.pop();
+    const idx = USUARIOS.findIndex(u=>u.email===email);
+    if(idx!==-1) USUARIOS.splice(idx,1);
     toast('Erro ao aprovar: '+e.message,'red');
   }
 }
