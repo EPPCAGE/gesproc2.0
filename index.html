@@ -5751,26 +5751,49 @@ function rHist(p){
 }
 
 function rReun(p){
-  const TIPOS_REUN=[
-    {key:'reuniao_entendimento', label:'Reunião de entendimento', dados:p.ent?.reuniao_entendimento},
-    {key:'reuniao_valid_asis',   label:'Validação AS IS',         dados:p.ent?.analise?.reuniao_valid_asis},
-    {key:'reuniao_valid_tobe',   label:'Validação TO BE',         dados:p.mod?.reuniao_valid_tobe},
-    {key:'reuniao_complement',   label:'Complementação (dono)',   dados:p.form?.reuniao_complement},
-    {key:'reuniao_apresentacao', label:'Aprovação pelo Gestor',   dados:p.form?.reuniao_apresentacao},
-  ];
+  const REUN_TIPOS={
+    reuniao_entendimento:'Reunião de entendimento',
+    reuniao_valid_asis:'Validação AS IS',
+    reuniao_valid_tobe:'Validação TO BE',
+    reuniao_complement:'Complementação',
+    reuniao_apresentacao:'Aprovação pelo Gestor',
+    acompanhamento:'Acompanhamento',
+    outra:'Outra reunião',
+  };
+
+  // Reuniões registradas nesta aba (array unificado, qualquer tipo, múltiplas por tipo)
+  const reunioes=p.reunioes||[];
+
+  // Reuniões fixas herdadas de outras abas (somente leitura nesta aba)
+  const legacyFixas=[
+    {key:'reuniao_entendimento', dados:p.ent?.reuniao_entendimento},
+    {key:'reuniao_valid_asis',   dados:p.ent?.analise?.reuniao_valid_asis},
+    {key:'reuniao_valid_tobe',   dados:p.mod?.reuniao_valid_tobe},
+    {key:'reuniao_complement',   dados:p.form?.reuniao_complement},
+    {key:'reuniao_apresentacao', dados:p.form?.reuniao_apresentacao},
+  ].filter(t=>t.dados);
+
+  // Reuniões de acompanhamento (gerenciadas pelo módulo EP)
   const acomp=p.reunioes_acomp||[];
 
-  const regCard=(r,label)=>r?`
+  const cardReun=(r,label,editavel=false)=>`
     <div class="card" style="margin-bottom:.6rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
-        <div class="card-t" style="margin-bottom:0">${label}</div>
-        ${r.data?`<span style="font-size:11px;color:var(--ink3)">${r.data}</span>`:''}
+        <div class="card-t" style="margin-bottom:0">${esc(label)}</div>
+        <div style="display:flex;gap:.4rem;align-items:center">
+          ${r.data?`<span style="font-size:11px;color:var(--ink3)">${esc(r.data)}</span>`:''}
+          ${editavel?`<button type="button" class="btn" style="padding:2px 8px;font-size:11px" onclick="editarReuniao('${esc(r.id)}')">Editar</button><button type="button" class="btn" style="padding:2px 8px;font-size:11px;color:var(--red)" onclick="excluirReuniao('${esc(r.id)}')">Excluir</button>`:''}
+        </div>
       </div>
       ${r.participantes?`<div style="font-size:12px;color:var(--ink2);margin-bottom:.3rem">👥 ${esc(r.participantes)}</div>`:''}
       ${r.ata?`<div style="font-size:12px;color:var(--ink2);white-space:pre-wrap;margin-top:.4rem;padding:.5rem;background:var(--bg2);border-radius:5px">${esc(r.ata)}</div>`:''}
-    </div>`:'';
+    </div>`;
 
-  const fixas=TIPOS_REUN.map(t=>regCard(t.dados, t.label)).filter(Boolean).join('');
+  const reunioesHtml=reunioes.map(r=>cardReun(r,REUN_TIPOS[r.tipo]||r.tipo,true)).join('');
+
+  const legacyHtml=legacyFixas.length?`
+    <div style="font-weight:600;font-size:12px;color:var(--ink3);margin:.8rem 0 .4rem;text-transform:uppercase;letter-spacing:.04em">Registradas por outras abas</div>
+    ${legacyFixas.map(t=>cardReun(t.dados,REUN_TIPOS[t.key]||t.key,false)).join('')}`:'';
 
   const acompHtml=acomp.length?`
     <div style="font-weight:600;font-size:13px;margin:1rem 0 .6rem">Reuniões de acompanhamento</div>
@@ -5786,10 +5809,12 @@ function rReun(p){
         ${r.acoes?`<div style="font-size:12px;color:var(--ink2)"><strong>Ações:</strong> ${esc(r.acoes)}</div>`:''}
       </div>`).join('')}`:'';
 
-  // Nova reunião avulsa (EP only)
+  const allEmpty=!reunioes.length&&!legacyFixas.length&&!acomp.length;
+
   const novaReunBtn=isEP()?`
-    <div style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--bdr)">
-      <div style="font-weight:600;font-size:13px;margin-bottom:.8rem">+ Registrar nova reunião</div>
+    <div id="nr-form" style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--bdr)">
+      <div id="nr-form-title" style="font-weight:600;font-size:13px;margin-bottom:.8rem">+ Registrar nova reunião</div>
+      <input type="hidden" id="nr-edit-id">
       <div class="g2" style="margin-bottom:.5rem">
         <div class="fg"><label class="fl">Tipo</label>
           <select class="fi" id="nr-tipo">
@@ -5806,43 +5831,86 @@ function rReun(p){
       </div>
       <div class="fg" style="margin-bottom:.5rem"><label class="fl">Participantes</label><input class="fi" id="nr-part" placeholder="Nomes dos participantes"></div>
       <div class="fg" style="margin-bottom:.5rem"><label class="fl">Ata / encaminhamentos</label><textarea class="fi" id="nr-ata" style="min-height:80px" placeholder="Registre as decisões e encaminhamentos da reunião..."></textarea></div>
-      <div class="btn-row"><button type="button" class="btn btn-p" onclick="salvarReuniaoAvulsa()">＋ Registrar reunião</button></div>
+      <div class="btn-row">
+        <button type="button" class="btn" id="nr-btn-cancel" style="display:none" onclick="cancelarEditReuniao()">Cancelar</button>
+        <button type="button" class="btn btn-p" onclick="salvarReuniaoAvulsa()">＋ Registrar reunião</button>
+      </div>
     </div>`:'';
 
   document.getElementById('tab-reun').innerHTML=`<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
       <div class="card-t" style="margin-bottom:0">Reuniões do processo</div>
     </div>
-    ${fixas||acompHtml?fixas+acompHtml:`<div class="ib iba">Nenhuma reunião registrada ainda.</div>`}
+    ${allEmpty?`<div class="ib iba">Nenhuma reunião registrada ainda.</div>`:reunioesHtml+legacyHtml+acompHtml}
     ${novaReunBtn}
   </div>`;
 }
 
+function editarReuniao(id){
+  const p=curProc; if(!p) return;
+  const r=(p.reunioes||[]).find(x=>x.id===id);
+  if(!r) return;
+  const el=n=>document.getElementById(n);
+  el('nr-edit-id').value=id;
+  el('nr-tipo').value=r.tipo||'outra';
+  el('nr-data').value=r.data||'';
+  el('nr-part').value=r.participantes||'';
+  el('nr-ata').value=r.ata||'';
+  el('nr-form-title').textContent='Editar reunião';
+  el('nr-btn-cancel').style.display='';
+  el('nr-form').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function cancelarEditReuniao(){
+  const el=n=>document.getElementById(n);
+  el('nr-edit-id').value='';
+  el('nr-tipo').value='reuniao_entendimento';
+  el('nr-data').value='';
+  el('nr-part').value='';
+  el('nr-ata').value='';
+  el('nr-form-title').textContent='+ Registrar nova reunião';
+  el('nr-btn-cancel').style.display='none';
+}
+
+async function excluirReuniao(id){
+  const p=curProc; if(!p) return;
+  confirmar('Excluir esta reunião?',async()=>{
+    if(!p.reunioes) return;
+    const idx=p.reunioes.findIndex(x=>x.id===id);
+    if(idx>=0) p.reunioes.splice(idx,1);
+    await fbSaveAll();
+    toast('Reunião excluída','var(--amber)');
+    rReun(p);
+  });
+}
+
 async function salvarReuniaoAvulsa(){
   const p=curProc; if(!p) return;
+  const REUN_TIPOS={
+    reuniao_entendimento:'Reunião de entendimento',
+    reuniao_valid_asis:'Validação AS IS',
+    reuniao_valid_tobe:'Validação TO BE',
+    reuniao_complement:'Complementação',
+    reuniao_apresentacao:'Aprovação pelo Gestor',
+    acompanhamento:'Acompanhamento',
+    outra:'Outra reunião',
+  };
+  const editId=document.getElementById('nr-edit-id')?.value||'';
   const tipo=document.getElementById('nr-tipo')?.value||'outra';
   const data=document.getElementById('nr-data')?.value||'';
   const part=document.getElementById('nr-part')?.value||'';
   const ata=document.getElementById('nr-ata')?.value||'';
   if(!data){toast('Informe a data da reunião','var(--red)');return;}
-  const obj={data,participantes:part,ata};
-  if(tipo==='acompanhamento'||tipo==='outra'){
-    if(!p.reunioes_acomp) p.reunioes_acomp=[];
-    p.reunioes_acomp.push({...obj,conformidade:'',pauta:ata,desvios:'',acoes:'',registrada_em:now()});
+  if(!p.reunioes) p.reunioes=[];
+  if(editId){
+    const r=p.reunioes.find(x=>x.id===editId);
+    if(r){r.tipo=tipo;r.data=data;r.participantes=part;r.ata=ata;}
   } else {
-    // Salva no local correto baseado no tipo
-    const paths={
-      reuniao_entendimento:()=>{if(!p.ent){p.ent={};} p.ent.reuniao_entendimento=obj;},
-      reuniao_valid_asis:()=>{if(!p.ent.analise){p.ent.analise={};} p.ent.analise.reuniao_valid_asis=obj;},
-      reuniao_valid_tobe:()=>{if(!p.mod){p.mod={};} p.mod.reuniao_valid_tobe=obj;},
-      reuniao_complement:()=>{if(!p.form){p.form={};} p.form.reuniao_complement=obj;},
-      reuniao_apresentacao:()=>{if(!p.form){p.form={};} p.form.reuniao_apresentacao=obj;},
-    };
-    if(paths[tipo]) paths[tipo]();
+    p.reunioes.push({id:'rn_'+Date.now(),tipo,data,participantes:part,ata,registrada_em:now()});
+    push(p,'','EP','Reunião registrada: '+(REUN_TIPOS[tipo]||tipo)+' — '+data);
   }
-  push(p,'','EP','Reunião registrada: '+tipo.replaceAll('_',' ')+' — '+data);
   await fbSaveAll();
-  toast('Reunião registrada!','var(--teal)');
+  toast(editId?'Reunião atualizada!':'Reunião registrada!','var(--teal)');
   rReun(p);
 }
 
