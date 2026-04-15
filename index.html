@@ -8843,17 +8843,27 @@ function duplicarAtividade(id){
   abrirPlanoModal({...src, id:0, nome:src.nome+' (cópia)', status:'planejado', qt_realizada:0, evidencia:'', dt_criacao:'', dt_atualizacao:''});
 }
 
+function _fsClean(v){
+  if(v===null||v===undefined) return null;
+  if(Array.isArray(v)) return v.map(_fsClean);
+  if(typeof v==='object'&&!(v instanceof Date)){
+    const r={};
+    for(const k of Object.keys(v)){if(v[k]!==undefined) r[k]=_fsClean(v[k]);}
+    return r;
+  }
+  return v;
+}
 async function fbSaveAll(){
   if(!fbReady()) return;
   try {
     const {db, doc, writeBatch} = fb();
 
-    // Collect all set operations
+    // Collect all set operations (strip undefined — Firestore rejects it)
     const ops = [];
-    processos.forEach(p => ops.push({ref: doc(db,'processos',String(p.id)), data: p}));
-    kpis.forEach(k => ops.push({ref: doc(db,'kpis',String(k.id)), data: k}));
-    publicacoes.forEach(p => ops.push({ref: doc(db,'publicacoes',String(p.id)), data: p}));
-    plano.forEach(a => ops.push({ref: doc(db,'plano',String(a.id)), data: a}));
+    processos.forEach(p => ops.push({ref: doc(db,'processos',String(p.id)), data: _fsClean(p)}));
+    kpis.forEach(k => ops.push({ref: doc(db,'kpis',String(k.id)), data: _fsClean(k)}));
+    publicacoes.forEach(p => ops.push({ref: doc(db,'publicacoes',String(p.id)), data: _fsClean(p)}));
+    plano.forEach(a => ops.push({ref: doc(db,'plano',String(a.id)), data: _fsClean(a)}));
     ops.push({ref: doc(db,'config','arquitetura'), data: {data: JSON.stringify(ARQUITETURA)}});
     ops.push({ref: doc(db,'config','usuarios'),    data: {data: JSON.stringify(USUARIOS)}});
     ops.push({ref: doc(db,'config','mapeados'),    data: {data: JSON.stringify([...mapeadosManual])}});
