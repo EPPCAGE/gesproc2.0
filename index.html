@@ -24,6 +24,7 @@
   import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, deleteUser, updatePassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
   // ── PREENCHA AQUI APÓS CRIAR O PROJETO FIREBASE
   // IMPORTANT: Do not commit real keys. Load from config.local.js or environment
@@ -45,7 +46,8 @@
       const app = initializeApp(FIREBASE_CONFIG);
       const db  = getFirestore(app);
       const auth = getAuth(app);
-      globalThis._fb = { db, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc, auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, deleteUser, updatePassword, initializeApp, deleteApp, getAuth, FIREBASE_CONFIG };
+      const storage = getStorage(app);
+      globalThis._fb = { db, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc, auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, deleteUser, updatePassword, initializeApp, deleteApp, getAuth, storage, storageRef, uploadBytes, getDownloadURL, deleteObject, FIREBASE_CONFIG };
       globalThis._fbReady = true;
       console.info('Firebase conectado');
     } catch(e) {
@@ -2910,12 +2912,24 @@ const ACOES = {
         </div>`).join(''):'';
       const achadosHtml=achados.length?achados.map((a,i)=>`
         <div class="card" style="margin-bottom:.4rem;padding:.6rem .8rem;font-size:13px">
-          <div style="display:flex;justify-content:space-between">
-            <strong>NC${i+1}: ${a.titulo}</strong>
-            <span class="badge ${a.tipo==='Não conformidade'?'br':a.tipo==='Observação'?'ba':'bt'}">${a.tipo}</span>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <strong>NC${i+1}: ${esc(a.titulo)}</strong>
+            <span class="badge ${a.tipo==='Não conformidade'?'br':a.tipo==='Observação'?'ba':'bt'}" style="flex-shrink:0">${a.tipo}</span>
           </div>
-          <div style="color:var(--ink3);margin-top:.2rem">${a.descricao}</div>
-          ${a.evidencia?`<div style="font-size:11px;color:var(--ink4);margin-top:.2rem">Evidência: ${a.evidencia}</div>`:''}
+          <div style="color:var(--ink3);margin-top:.2rem">${esc(a.descricao||'')}</div>
+          ${a.evidencia?`<div style="font-size:11px;color:var(--ink4);margin-top:.2rem">Evidência: ${esc(a.evidencia)}</div>`:''}
+          ${(a.anexos||[]).length?`<div style="margin-top:.5rem;display:flex;flex-wrap:wrap;gap:4px">${(a.anexos||[]).map((x,j)=>`
+            <span style="display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--bdr);border-radius:6px;padding:2px 8px;font-size:11px">
+              <a href="${esc(x.url)}" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none">📎 ${esc(x.nome||'Anexo')}</a>
+              <button onclick="removerAnexoAchado(${i},${j})" style="background:none;border:none;cursor:pointer;color:var(--ink4);font-size:11px;padding:0 2px" title="Remover">✕</button>
+            </span>`).join('')}</div>`:''}
+          <div id="aud-anexo-form-${i}" style="margin-top:.5rem;display:none;gap:6px;flex-wrap:wrap;align-items:center">
+            <input class="fi" id="aud-link-nome-${i}" placeholder="Nome do documento" style="width:140px;font-size:11px;padding:3px 6px">
+            <input class="fi" id="aud-link-url-${i}" placeholder="https://..." style="flex:1;min-width:160px;font-size:11px;padding:3px 6px">
+            <button class="btn" style="font-size:11px;padding:2px 8px" onclick="adicionarLinkAchado(${i})">+ Link</button>
+            <label class="btn" style="font-size:11px;padding:2px 8px;cursor:pointer">↑ Arquivo<input type="file" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg" onchange="uploadArquivoAchado(${i},this)"></label>
+          </div>
+          <button class="btn" style="font-size:11px;padding:2px 8px;margin-top:.4rem;color:var(--teal);border-color:var(--teal)" onclick="toggleAnexoForm(${i})">📎 Anexar</button>
         </div>`).join(''):'';
       const acoesHtml=acoes.length?acoes.map((a,i)=>`
         <div class="card" style="margin-bottom:.4rem;padding:.6rem .8rem;font-size:13px">
@@ -4422,13 +4436,16 @@ function adicionarAchadoAuditoria(){
     descricao:document.getElementById('aud-a-desc')?.value||'',
     evidencia:document.getElementById('aud-a-evid')?.value||'',
     criterio:document.getElementById('aud-a-crit')?.value||'',
-    data:now()
+    data:now(),
+    anexos:[]
   };
   if(!a.titulo){toast('Informe o título','var(--red)');return;}
   p.auditoria.achados_list.push(a);
   push(p,'auditoria','EP','Achado registrado: '+a.titulo+' ('+a.tipo+')');
   fbAutoSave('salvar');toast('Achado registrado!','var(--teal)');
   rDetalhe();
+  const aud4Tab=document.getElementById('tab-acao')?.querySelector('.tab[onclick*="aud4"]');
+  if(aud4Tab) sstab('aud4',aud4Tab);
 }
 function adicionarAcaoAuditoria(){
   const p=curProc;if(!p)return;
@@ -4479,6 +4496,69 @@ async function excluirProcedimentoAuditoria(idx){
   rDetalhe();
   const aud3Tab=document.getElementById('tab-acao')?.querySelector('.tab[onclick*="aud3"]');
   if(aud3Tab) sstab('aud3',aud3Tab);
+  await fbSaveAll();
+}
+function toggleAnexoForm(idx){
+  const el=document.getElementById('aud-anexo-form-'+idx);
+  if(!el)return;
+  const open=el.style.display==='flex';
+  el.style.display=open?'none':'flex';
+}
+function adicionarLinkAchado(idx){
+  const p=curProc;if(!p)return;
+  const nome=(document.getElementById('aud-link-nome-'+idx)?.value||'').trim();
+  const url=(document.getElementById('aud-link-url-'+idx)?.value||'').trim();
+  if(!url){toast('Informe a URL do documento','var(--red)');return;}
+  if(!url.startsWith('http')){toast('URL inválida','var(--red)');return;}
+  const achado=p.auditoria?.achados_list?.[idx];
+  if(!achado)return;
+  if(!achado.anexos)achado.anexos=[];
+  achado.anexos.push({tipo:'link',nome:nome||url,url});
+  fbAutoSave('salvar');toast('Link adicionado!','var(--teal)');
+  rDetalhe();
+  const aud4Tab=document.getElementById('tab-acao')?.querySelector('.tab[onclick*="aud4"]');
+  if(aud4Tab) sstab('aud4',aud4Tab);
+}
+async function uploadArquivoAchado(idx,input){
+  const p=curProc;if(!p)return;
+  const file=input?.files?.[0];if(!file)return;
+  const achado=p.auditoria?.achados_list?.[idx];if(!achado)return;
+  if(!achado.anexos)achado.anexos=[];
+  const {storage,storageRef,uploadBytes,getDownloadURL}=globalThis._fb||{};
+  if(!storage){toast('Armazenamento não disponível','var(--red)');return;}
+  const path=`auditoria/${p.id||'sem-id'}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+  const ref=storageRef(storage,path);
+  try{
+    toast('Enviando arquivo…','var(--blue)');
+    await uploadBytes(ref,file);
+    const url=await getDownloadURL(ref);
+    achado.anexos.push({tipo:'arquivo',nome:file.name,url,path});
+    await fbSaveAll();
+    toast('Arquivo enviado!','var(--teal)');
+    rDetalhe();
+    const aud4Tab=document.getElementById('tab-acao')?.querySelector('.tab[onclick*="aud4"]');
+    if(aud4Tab) sstab('aud4',aud4Tab);
+  }catch(e){
+    console.error('upload erro',e);
+    toast('Erro ao enviar arquivo: '+e.message,'var(--red)');
+  }
+}
+async function removerAnexoAchado(achadoIdx,anexoIdx){
+  const p=curProc;if(!p)return;
+  if(!confirm('Remover este anexo?'))return;
+  const achado=p.auditoria?.achados_list?.[achadoIdx];if(!achado?.anexos)return;
+  const anexo=achado.anexos[anexoIdx];
+  if(anexo?.tipo==='arquivo'&&anexo.path){
+    const {storage,storageRef,deleteObject}=globalThis._fb||{};
+    if(storage&&anexo.path){
+      try{await deleteObject(storageRef(storage,anexo.path));}catch(e){console.warn('delete storage err',e);}
+    }
+  }
+  achado.anexos.splice(anexoIdx,1);
+  toast('Anexo removido','var(--amber)');
+  rDetalhe();
+  const aud4Tab=document.getElementById('tab-acao')?.querySelector('.tab[onclick*="aud4"]');
+  if(aud4Tab) sstab('aud4',aud4Tab);
   await fbSaveAll();
 }
 function salvarRelatorioAuditoria(concluir){
