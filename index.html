@@ -8676,6 +8676,20 @@ async function iaAssistente(){
 }
 
 // ── 4. ANALISAR INDICADORES ───────────────
+// Retorna true se o período é um dos 2 primeiros meses de um trimestre
+// (meses que no SISPLAN ficam com valor zero até o fechamento trimestral).
+function _ehMesNaoFechamento(periodo){
+  if(!periodo) return false;
+  const s = periodo.toString().toLowerCase();
+  // Meses de fechamento: março, junho, setembro, dezembro
+  const fechamento = /^(mar|jun|set|dez|março|junho|setembro|dezembro)/;
+  // Se começar com mês de fechamento → não é mês não-fechamento
+  if(fechamento.test(s.trim())) return false;
+  // Se contiver algum mês → é mês não-fechamento
+  const temMes = /jan|fev|abr|mai|jul|ago|out|nov|janeiro|fevereiro|abril|maio|julho|agosto|outubro|novembro/;
+  return temMes.test(s);
+}
+
 async function iaAnalisarIndicadores(){
   const area   = document.getElementById('ind-area-sel')?.value  || '';
   const ciclo  = document.getElementById('ind-ciclo-sel')?.value || '';
@@ -8689,11 +8703,18 @@ async function iaAnalisarIndicadores(){
   const el  = document.getElementById('ia-ind-result');
   if(btn) btn.disabled = true;
 
-  const payload = lista.map(k=>({
-    area: k.area, nome: k.nome,
-    meta: k.meta, realizado: k.realizado,
-    pct: k.pct_realizado, periodo: k.periodo,
-  }));
+  const payload = {
+    nota_sisplan: 'Indicadores com aguardando_fechamento=true estão nos 2 primeiros meses de um trimestre e possuem realizado=0 porque o SISPLAN registra resultados somente no último mês do trimestre (março, junho, setembro ou dezembro). Esses indicadores NÃO devem ser tratados como resultados ruins ou abaixo da meta.',
+    indicadores: lista.map(k=>{
+      const aguardando = (!k.realizado || k.realizado===0) && _ehMesNaoFechamento(k.periodo);
+      return {
+        area: k.area, nome: k.nome,
+        meta: k.meta, realizado: k.realizado,
+        pct: k.pct_realizado, periodo: k.periodo,
+        ...(aguardando ? {aguardando_fechamento: true} : {}),
+      };
+    }),
+  };
 
   const result = await chamarIA('analisar_indicadores', JSON.stringify(payload), el);
 
