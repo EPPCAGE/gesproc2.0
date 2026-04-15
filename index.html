@@ -1129,11 +1129,6 @@ const PERFIL_COR = {ep:'#1A5DC8',dono:'#0A7060',gestor:'#A85C00'};
 
 let USUARIOS = [
   {email:'ep@sefaz.rs.gov.br',nome:'Equipe EP',perfil:'ep',iniciais:'EP'},
-  {email:'felipe.tourinho@sefaz.rs.gov.br',nome:'Felipe Tourinho',perfil:'ep',iniciais:'FT'},
-  {email:'amilcar.rosa@sefaz.rs.gov.br',nome:'Amilcar da Rosa',perfil:'dono',iniciais:'AR',processos_vinculados:['s1','s2','s3']},
-  {email:'adjunto@sefaz.rs.gov.br',nome:'Adjunto CAGE',perfil:'gestor',iniciais:'AD'},
-  {email:'carlos.mendes@sefaz.rs.gov.br',nome:'Carlos Mendes',perfil:'dono',iniciais:'CM',processos_vinculados:['s4','s5','s6']},
-  {email:'fernanda.lima@sefaz.rs.gov.br',nome:'Fernanda Lima',perfil:'dono',iniciais:'FL',processos_vinculados:['s7','s8','s9']},
 ];
 let dominios = [{dominio:'sefaz.rs.gov.br',perfil:'ep'},{dominio:'cage.rs.gov.br',perfil:'ep'}];
 
@@ -1221,9 +1216,7 @@ function getEtapas(p){
 }
 const FASES = ['Entendimento','Modelagem','Formalizacao','Operacao','Auditoria'];
 const FASE_COR = {Entendimento:'bt',Modelagem:'bp',Formalizacao:'ba',Operacao:'bb',Auditoria:'br'};
-const EBADGE = {abertura:'bt',reuniao:'bt',questionario:'bt',esboco_asis:'bp',det_valid_asis:'bp',riscos:'bp',analise:'bp',melhorias:'bp',esboco_tobe:'bp',det_valid_tobe:'bp',desenho_final:'ba',pop:'ba',complement:'ba',apresentacao:'ba',publicacao:'ba',acompanha:'bb',auditoria:'br',
-  // retrocompat com IDs antigos
-  esboco:'bp',det_etapas:'bp',analise_asis:'bp',valid_dono:'bp',det_asis:'bp',valid_asis:'bp',det_tobe:'bp',valid_tobe:'bp'};
+const EBADGE = {abertura:'bt',reuniao:'bt',questionario:'bt',esboco_asis:'bp',det_valid_asis:'bp',riscos:'bp',analise:'bp',melhorias:'bp',esboco_tobe:'bp',det_valid_tobe:'bp',desenho_final:'ba',pop:'ba',complement:'ba',apresentacao:'ba',publicacao:'ba',acompanha:'bb',auditoria:'br'};
 
 function etIdx(id,p){return getEtapas(p||curProc).findIndex(e=>e.id===id);}
 function etFase(id){return ETAPAS.find(e=>e.id===id)?.fase||'';}
@@ -1885,7 +1878,7 @@ function rFila(){
   rCarrosselAvisos();
   const tarefas=getTarefasUsr();
   document.getElementById('fila-sub').textContent=usuarioLogado.nome+' — '+(tarefas.length?tarefas.length+' tarefa(s) pendente(s)':'nenhuma tarefa pendente');
-  const ACT={abertura:'Abrir processo e vincular à arquitetura',questionario:'Responder questionário de maturidade',reuniao:'Conduzir reunião de entendimento',analise:'Elaborar análise inteligente do AS IS',esboco_asis:'Elaborar esboço AS IS com BPMN',det_valid_asis:'Detalhar etapas e validar AS IS',riscos:'Identificar e avaliar riscos do processo',melhorias:'Revisar melhorias e mitigações identificadas',esboco_tobe:'Elaborar esboço TO BE com BPMN',det_valid_tobe:'Detalhar etapas e validar TO BE',desenho_final:'Finalizar desenho do processo',pop:'Construir POP no padrão CAGE',complement:'Complementar POP (FAQ, formulários)',apresentacao:'Apresentar ao gestor',publicacao:'Publicar no repositório oficial',acompanha:'Verificar conformidade na implementação',monitora:'Monitorar indicadores de desempenho',auditoria:'Conduzir auditoria do processo'};
+  const ACT={abertura:'Abrir processo e vincular à arquitetura',questionario:'Responder questionário de maturidade',reuniao:'Conduzir reunião de entendimento',analise:'Elaborar análise inteligente do AS IS',esboco_asis:'Elaborar esboço AS IS com BPMN',det_valid_asis:'Detalhar etapas e validar AS IS',riscos:'Identificar e avaliar riscos do processo',melhorias:'Revisar melhorias e mitigações identificadas',esboco_tobe:'Elaborar esboço TO BE com BPMN',det_valid_tobe:'Detalhar etapas e validar TO BE',desenho_final:'Finalizar desenho do processo',pop:'Construir POP no padrão CAGE',complement:'Complementar POP (FAQ, formulários)',apresentacao:'Apresentar ao gestor',publicacao:'Publicar no repositório oficial',acompanha:'Verificar conformidade na implementação',auditoria:'Conduzir auditoria do processo'};
   const el=document.getElementById('fila-content');
   if(!tarefas.length){el.innerHTML='<div style="text-align:center;padding:3rem"><div style="font-size:36px;margin-bottom:10px">✓</div><div style="font-size:15px;font-weight:600;color:var(--ink)">Você está em dia!</div><div style="font-size:12px;color:var(--ink3);margin-top:4px">Nenhuma tarefa pendente no momento.</div></div>';return;}
   const crit=tarefas.filter(t=>t.prio==='Critica');
@@ -2611,7 +2604,7 @@ function confirmarDevolucao(etRet){
   }
 }
 
-// ─── FEEDBACK DO DONO (valid_dono) ───────────────────────────────────────────
+// ─── FEEDBACK DO DONO (etapa melhorias) ───────────────────────────────────────────
 function dfbRow(tipo,texto,emoji){
   const idx=globalThis._dfbItems.length;
   globalThis._dfbItems.push({tipo,texto});
@@ -4641,7 +4634,7 @@ async function iaGerarQuestoesAuditoria(){
     toast(`${lista.length} questões geradas pela IA!`,'var(--teal)');
     rDetalhe();
   }catch(e){
-    if(targetEl)targetEl.innerHTML=`<div class="ai-result"><div class="ai-result-lbl">⚠ Erro ao processar resposta da IA</div>${e.message}</div>`;
+  if(targetEl)targetEl.innerHTML=`<div class="ai-result"><div class="ai-result-lbl">⚠ Erro ao processar resposta da IA</div>${esc(e.message)}</div>`;
   }
 }
 function preencherApontamento(idx){
@@ -5208,7 +5201,7 @@ async function atualizarMermaid(){
     const {svg} = await mermaid.render(uid, _mermaidCode);
     el.innerHTML = svg;
   } catch(err){
-    el.innerHTML = `<pre style="font-size:10px;color:var(--red);white-space:pre-wrap;word-break:break-all">${_mermaidCode}</pre>`;
+    el.innerHTML = `<pre style="font-size:10px;color:var(--red);white-space:pre-wrap;word-break:break-all">${esc(_mermaidCode)}</pre>`;
   }
 }
 
@@ -5565,7 +5558,7 @@ function gerarPopPdf(){
   if(!el)return;
   const inner=el.querySelector('.pop-pdf-bar')?el.innerHTML.replace(/<div class="pop-pdf-bar"[\s\S]*?<\/div>/,''):el.innerHTML;
   if(!inner.trim())return;
-  const nome=curProc?.nome||'POP';
+  const nome=esc(curProc?.nome||'POP');
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${nome}</title>
   <style>
@@ -5590,7 +5583,7 @@ function rMon(p){
   document.getElementById('tab-mon').innerHTML=inds.length?`<div class="g3" style="gap:10px">${inds.map(d=>kpiCard(d)).join('')}</div>${audHTML}`:`<div class="ib ibb">Nenhum indicador importado. <button class="btn btn-p" style="font-size:12px;padding:4px 10px;margin-left:8px" onclick="go('indicadores',document.getElementById('nb-ind'))">Ir para indicadores →</button></div>${audHTML}`;
 }
 function rHist(p){
-  document.getElementById('tab-hist').innerHTML=`<div class="card"><div class="card-t">Histórico completo</div><div class="tl">${[...p.hist].reverse().map((h,i)=>`<div class="tl-i"><div class="tl-d ${i===0?'da':'dn'}">${i===0?'●':'✓'}</div><div><div class="tl-t">${h.acao}</div><div class="tl-m">${h.role} · ${h.data}</div></div></div>`).join('')}</div></div>`;
+  document.getElementById('tab-hist').innerHTML=`<div class="card"><div class="card-t">Histórico completo</div><div class="tl">${[...p.hist].reverse().map((h,i)=>`<div class="tl-i"><div class="tl-d ${i===0?'da':'dn'}">${i===0?'●':'✓'}</div><div><div class="tl-t">${esc(h.acao)}</div><div class="tl-m">${esc(h.role)} · ${esc(h.data)}</div></div></div>`).join('')}</div></div>`;
 }
 
 function rReun(p){
