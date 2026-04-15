@@ -3228,8 +3228,7 @@ function salvarRetroativo(etId){
         const prev=ativ_detalhes[i]||{};
         const t=document.getElementById(`pop-at-tipo-${i}`)?.value;
         const r=document.getElementById(`pop-at-resp-${i}`)?.value;
-        const pr=document.getElementById(`pop-at-prox-${i}`)?.value;
-        ativ_detalhes[i]={tipo:t||prev.tipo||'Atividade',desc:descEl.value||prev.desc||'',resp:r||prev.resp||'',prox:pr||prev.prox||''};
+        ativ_detalhes[i]={tipo:t||prev.tipo||'Atividade',desc:descEl.value||prev.desc||'',resp:r||prev.resp||''};
       });
       const prev=p.form.pop||{};
       p.form.pop={
@@ -3635,7 +3634,6 @@ function salvarPOP(){
       tipo:document.getElementById(`pop-at-tipo-${i}`)?.value||prev.tipo||'Atividade',
       desc:descEl.value||prev.desc||'',
       resp:document.getElementById(`pop-at-resp-${i}`)?.value||prev.resp||'',
-      prox:document.getElementById(`pop-at-prox-${i}`)?.value||prev.prox||'',
     };
   });
   p.form.pop={
@@ -4595,7 +4593,6 @@ function visPopPreview(){
       tipo:document.getElementById(`pop-at-tipo-${i}`)?.value||pr.tipo||'Atividade',
       desc:descEl.value||pr.desc||'',
       resp:document.getElementById(`pop-at-resp-${i}`)?.value||pr.resp||'',
-      prox:document.getElementById(`pop-at-prox-${i}`)?.value||pr.prox||'',
     };
   });
   prev.ativ_detalhes=ativ_detalhes;
@@ -4613,26 +4610,19 @@ function popAtivCards(p){
   const det=p.form?.pop?.ativ_detalhes||{};
   if(!etapas.length) return '<div class="ib iba">Nenhuma etapa cadastrada na modelagem. Complete a etapa "Detalhamento de etapas" primeiro.</div>';
   const TIPOS=['Atividade','Decisão','Observação','Evento'];
-  // Flatten etapas: simple steps as-is, Decisão items also shown as one card
-  const flat=[];
-  etapas.forEach(e=>{
-    const t=e.tipo||'Atividade';
-    if(t==='Decisao'||t==='Decisão'){
-      flat.push({nome:e.nome,tipo:'Decisão',desc:e.desc||'',resp:e.executor||''});
-    } else {
-      flat.push({nome:e.nome,tipo:t,desc:e.desc||'',resp:e.executor||''});
-    }
-  });
+  const normTipo=t=>{if(t==='Decisao'||t==='Decisão')return 'Decisão';if(t==='Comentario'||t==='Observação')return 'Observação';return t||'Atividade';};
+  const normModo=m=>{if(m==='Automatica')return 'Automática';if(m==='Semi-automatica')return 'Semi-automática';return m||'Manual';};
+  const flat=etapas.map(e=>({nome:e.nome,tipo:normTipo(e.tipo),modo:normModo(e.modo),desc:e.desc||'',resp:e.executor||''}));
   return flat.map((e,i)=>{
     const d=det[i]||{};
-    const tipo=d.tipo||e.tipo||'Atividade';
+    const tipo=normTipo(d.tipo)||e.tipo||'Atividade';
     const desc=(d.desc!==undefined&&d.desc!=='')?d.desc:(e.desc||e.nome||'');
     const resp=(d.resp!==undefined&&d.resp!=='')?d.resp:(e.resp||'');
-    const prox=d.prox||'';
     return `<div style="border:1px solid var(--bdr);border-left:3px solid var(--blue);border-radius:var(--r);padding:.7rem .9rem;margin-bottom:.6rem;background:var(--surf)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:.5rem">
         <span style="font-size:10px;font-weight:700;color:var(--ink3);background:var(--bg2);border-radius:4px;padding:1px 7px;flex-shrink:0">${i+1}</span>
         <strong style="font-size:13px;color:var(--ink)">${esc(e.nome||'(sem nome)')}</strong>
+        <span style="font-size:10px;color:var(--ink3);background:var(--bg2);border-radius:4px;padding:1px 6px;margin-left:auto">${e.modo}</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
         <div class="fg"><label class="fl" style="font-size:10px">Tipo</label>
@@ -4643,8 +4633,6 @@ function popAtivCards(p){
           <input class="fi" id="pop-at-resp-${i}" value="${esc(resp)}" style="font-size:12px"></div>
         <div class="fg" style="grid-column:span 2"><label class="fl" style="font-size:10px">Descrição</label>
           <textarea class="fi" id="pop-at-desc-${i}" style="min-height:44px;font-size:12px">${esc(desc)}</textarea></div>
-        <div class="fg" style="grid-column:span 2"><label class="fl" style="font-size:10px">Etapa seguinte</label>
-          <input class="fi" id="pop-at-prox-${i}" value="${esc(prox)}" style="font-size:12px" placeholder="Nome da próxima etapa ou FIM"></div>
       </div>
     </div>`;
   }).join('');
@@ -5286,19 +5274,21 @@ function rForm(p){
       ${(()=>{
         const etapas=curProc?.mod?.etapas_proc||[];
         const det=pd.ativ_detalhes||{};
+        const normTipo=t=>{if(t==='Decisao'||t==='Decisão')return 'Decisão';if(t==='Comentario'||t==='Observação')return 'Observação';return t||'Atividade';};
+        const normModo=m=>{if(m==='Automatica')return 'Automática';if(m==='Semi-automatica')return 'Semi-automática';return m||'Manual';};
         const linhas=etapas.map((e,i)=>{
           const d=det[i]||{};
           const desc=(d.desc!==undefined&&d.desc!=='')?d.desc:(e.desc||'');
           const resp=(d.resp!==undefined&&d.resp!=='')?d.resp:(e.executor||'');
-          const tipo=d.tipo||e.tipo||'Atividade';
-          const prox=d.prox||'';
+          const tipo=normTipo(d.tipo||e.tipo);
+          const modo=normModo(e.modo);
           return `<tr style="border-bottom:1px solid var(--bdr)">
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3);white-space:nowrap">${i+1}</td>
             <td style="padding:5px 8px;font-size:12px;font-weight:600">${esc(e.nome||'')}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(tipo)}</td>
+            <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(modo)}</td>
             <td style="padding:5px 8px;font-size:12px">${esc(desc)}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(resp)}</td>
-            <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(prox)}</td>
           </tr>`;
         }).join('');
         if(!linhas)return pd.ativ?`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">2.0 Atividades</div><div style="font-size:12.5px;white-space:pre-wrap">${pd.ativ}</div></div>`:'';
@@ -5308,9 +5298,9 @@ function rForm(p){
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">#</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Etapa</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Tipo</th>
+              <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Modo</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Descrição</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Responsável</th>
-              <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Próxima etapa</th>
             </tr></thead>
             <tbody>${linhas}</tbody>
           </table></div>`;
@@ -5319,7 +5309,31 @@ function rForm(p){
       ${pd.ind?`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">4.0 Indicadores</div><div style="font-size:12.5px;white-space:pre-wrap">${pd.ind}</div></div>`:''}
       ${p.form.apresent?`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">5.0 Aprovações</div><div style="font-size:12.5px">${p.form.apresent}</div></div>`:''}
     </div>
+  </div>
+  <div class="pop-pdf-bar" style="margin-top:1rem;text-align:right">
+    <button class="btn btn-a" onclick="gerarPopPdf()">⬇ Gerar POP em PDF</button>
   </div>`;
+}
+function gerarPopPdf(){
+  const el=document.getElementById('tab-form');
+  if(!el)return;
+  const inner=el.querySelector('.pop-pdf-bar')?el.innerHTML.replace(/<div class="pop-pdf-bar"[\s\S]*?<\/div>/,''):el.innerHTML;
+  if(!inner.trim())return;
+  const nome=curProc?.nome||'POP';
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${nome}</title>
+  <style>
+    :root{--blue:#1e6bfa;--ink:#1a1a2e;--ink2:#4a4a6a;--ink3:#8888aa;--bg2:#f4f5f8;--surf:#fff;--bdr:#e0e0f0;--r:6px;--rl:8px;--fh:'Segoe UI',Arial,sans-serif}
+    *{box-sizing:border-box}
+    body{font-family:Arial,sans-serif;background:#fff;margin:0;padding:20px;color:#1a1a2e}
+    table{width:100%;border-collapse:collapse;margin-bottom:10px}
+    th,td{border:1px solid #ddd;padding:5px 8px;text-align:left}
+    th{background:#f4f5f8;font-size:10px}
+    @media print{body{padding:10px}.pop-pdf-bar{display:none!important}}
+  </style>
+  </head><body>${inner}</body></html>`);
+  w.document.close();
+  setTimeout(()=>w.print(),400);
 }
 function rMon(p){
   const inds=kpis.filter(d=>d.pid===p.id);
