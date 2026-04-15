@@ -2374,6 +2374,8 @@ function popupConclusaoDono(msg){
 }
 function avDono(etAtu,role,acao,prazoEl){
   registrarRespondidoPor(etAtu);
+  // Limpa devolução pendente ao dono quando ele resubmete
+  if(curProc?.ent?.devolucao_pendente?.etapa===etAtu) delete curProc.ent.devolucao_pendente;
   av(etAtu,role,acao,prazoEl);
   setTimeout(()=>popupConclusaoDono('Obrigado! Sua validação foi registrada e o EP foi notificado para continuar o processo.'),200);
 }
@@ -2396,6 +2398,74 @@ function jaFoiRespondido(etapa){
 function reprovarDono(voltaEt,role,acao){
   reprovar(voltaEt,role,acao);
   setTimeout(()=>popupConclusaoDono('Ajuste solicitado com sucesso! O EP foi notificado e revisará o material antes de encaminhar novamente.'),200);
+}
+
+// ── Devolver tarefa ao dono (EP → dono) ──
+function getDevolverEtapa(p){
+  const etapas=getEtapas(p);
+  const idx=etapas.findIndex(e=>e.id===p.etapa);
+  if(idx<=0)return null;
+  for(let i=idx-1;i>=0;i--){
+    if(etapas[i].resp==='dono') return etapas[i].id;
+  }
+  return null;
+}
+function devolverAoDono(){
+  const p=curProc;
+  const etRet=getDevolverEtapa(p);
+  if(!etRet){toast('Nenhuma etapa anterior do dono encontrada.','var(--amber)');return;}
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center';
+  ov.id='devolver-ov';
+  ov.innerHTML=`<div style="background:var(--surf);border-radius:14px;padding:2rem 1.8rem;max-width:480px;width:92%;box-shadow:0 12px 40px rgba(0,0,0,.25)">
+    <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:.4rem">↩ Devolver ao dono</div>
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:1rem">A tarefa voltará para <strong>${etLb(etRet)}</strong>. O preenchimento anterior será mantido — o dono só precisará ajustar o que você indicar.</div>
+    <div class="fg" style="margin-bottom:.9rem">
+      <label class="fl">O que você quer que o dono faça?</label>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:.5rem .7rem;border:1.5px solid var(--bdr);border-radius:var(--r);cursor:pointer;font-size:13px">
+          <input type="radio" name="devolver-tipo" value="complementar" checked> Complementar
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:.5rem .7rem;border:1.5px solid var(--bdr);border-radius:var(--r);cursor:pointer;font-size:13px">
+          <input type="radio" name="devolver-tipo" value="refazer"> Nova elaboração
+        </label>
+      </div>
+    </div>
+    <div class="fg" style="margin-bottom:1.2rem">
+      <label class="fl">Instrução para o dono <span style="color:var(--red)">*</span></label>
+      <textarea class="fi" id="devolver-motivo" rows="3" placeholder="Descreva o que precisa ser complementado ou corrigido..."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="document.getElementById('devolver-ov').remove()">Cancelar</button>
+      <button class="btn" style="background:#fef3c7;color:#92400e;border-color:#f59e0b" onclick="confirmarDevolucao('${etRet}')">Confirmar →</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+function confirmarDevolucao(etRet){
+  const motivo=document.getElementById('devolver-motivo')?.value?.trim();
+  if(!motivo){toast('Informe a instrução para o dono.','var(--red)');return;}
+  const tipo=document.querySelector('input[name="devolver-tipo"]:checked')?.value||'complementar';
+  const p=curProc;
+  const tipoLabel=tipo==='refazer'?'Nova elaboração':'Complementação';
+  push(p, p.etapa, 'EP', tipoLabel+' solicitado — '+motivo);
+  // Limpa apenas o registro de "respondido" da etapa de retorno para que o dono possa reenviar
+  if(p.ent?.respondido_por_etapa?.[etRet]) delete p.ent.respondido_por_etapa[etRet];
+  // Armazena instrução para exibir ao dono quando abrir a tarefa
+  if(!p.ent)p.ent={};
+  p.ent.devolucao_pendente={etapa:etRet,tipo,motivo,por:usuarioLogado?.nome||'EP',dt:now()};
+  p.etapa=etRet;
+  push(p, etRet, 'Sistema', 'Aguardando '+tipoLabel.toLowerCase()+' pelo dono');
+  document.getElementById('devolver-ov')?.remove();
+  rDetalhe();updCounts();
+  fbAutoSave('devolverAoDono');
+  const email=getDonoEmail(p);
+  if(email){
+    enviarNotif(email, p.dono, tipoLabel+' solicitado em "'+etLb(etRet)+'": '+motivo, p.nome, '', usuarioLogado?.nome||'EP');
+    toast(tipoLabel+' solicitado. Dono notificado.','var(--teal)');
+  } else {
+    toast(tipoLabel+' solicitado ao dono.','var(--teal)');
+  }
 }
 
 // ─── FEEDBACK DO DONO (valid_dono) ───────────────────────────────────────────
@@ -3321,8 +3391,25 @@ function _rAcaoHandleDono(el, ac, p){
     const jr=jaFoiRespondido(p.etapa);
     if(jr){ el.innerHTML=_rAcaoTarefaRespondidaHTML(jr); return; }
   }
+  // Banner de devolução pendente (mostrado ao dono quando EP devolveu a tarefa)
+  let devolucaoBanner='';
+  const dv=p.ent?.devolucao_pendente;
+  if(minhaTarefa && dv && dv.etapa===p.etapa){
+    const tipoLabel=dv.tipo==='refazer'?'Nova elaboração solicitada':'Complementação solicitada';
+    const corBg=dv.tipo==='refazer'?'#fef2f2':'#fffbeb';
+    const corBrd=dv.tipo==='refazer'?'#fca5a5':'#fcd34d';
+    const corTxt=dv.tipo==='refazer'?'#991b1b':'#92400e';
+    devolucaoBanner=`<div style="background:${corBg};border:1.5px solid ${corBrd};border-radius:var(--r);padding:.8rem 1rem;margin-bottom:1rem;display:flex;gap:.7rem;align-items:flex-start">
+      <span style="font-size:1.3rem">${dv.tipo==='refazer'?'🔄':'📝'}</span>
+      <div>
+        <div style="font-weight:700;font-size:13px;color:${corTxt};margin-bottom:3px">${tipoLabel} pelo EP</div>
+        <div style="font-size:12.5px;color:var(--ink2)">${esc(dv.motivo)}</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:4px">Solicitado por ${esc(dv.por)} em ${dv.dt}</div>
+      </div>
+    </div>`;
+  }
   el.innerHTML=minhaTarefa
-    ?`<div class="ib ibt" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem"><span>O EP encaminhou esta tarefa para você. Complete quando estiver pronto.</span>${prazoBanner}</div>${buildAcaoCardHTML(ac,p,'')}`
+    ?`<div class="ib ibt" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem"><span>O EP encaminhou esta tarefa para você. Complete quando estiver pronto.</span>${prazoBanner}</div>${devolucaoBanner}${buildAcaoCardHTML(ac,p,'')}`
     :`<div class="card"><div class="ib iba" style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem"><span>Esta etapa — <strong>${ac.titulo}</strong> — aguarda ação de <strong>${p.dono||'dono'}</strong>.</span>${prazoBanner}</div><div style="font-size:13px;color:var(--ink2)">${ac.sub}</div></div>`;
   _rAcaoInitBpmn(p, minhaTarefa);
 }
@@ -3334,6 +3421,17 @@ function rAcao(p){
   if(role==='dono'){ _rAcaoHandleDono(el,ac,p); return; }
   const roleNote=role===ac.rk?'':`<div class="ib iba" style="margin-top:.7rem">Esta etapa aguarda: <strong>${ac.role}</strong>. Troque o perfil para interagir.</div>`;
   el.innerHTML=buildAcaoCardHTML(ac,p,roleNote);
+  // Barra de devolução ao dono (apenas EP, quando há etapa anterior do dono)
+  if(isEP()){
+    const etRet=getDevolverEtapa(p);
+    if(etRet){
+      const bar=document.createElement('div');
+      bar.style.cssText='margin-top:.8rem;padding:.6rem 1rem;border:1px dashed var(--bdr);border-radius:var(--r);display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg2)';
+      bar.innerHTML=`<span style="font-size:12px;color:var(--ink3)">Precisa que o dono refaça <strong>${etLb(etRet)}</strong>?</span>
+        <button class="btn" style="font-size:12px;padding:4px 10px;color:#92400e;border-color:#f59e0b;background:#fef3c7" onclick="devolverAoDono()">↩ Devolver ao dono</button>`;
+      el.appendChild(bar);
+    }
+  }
   _rAcaoInitBpmn(p, false);
 }
 
