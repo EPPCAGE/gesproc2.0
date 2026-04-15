@@ -1,19 +1,20 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 
-// Permite qualquer origem — segurança real está nos secrets do Azure no servidor
-const corsMiddleware = require("cors")({ origin: true, methods: ["POST", "OPTIONS"], allowedHeaders: ["Content-Type"] });
-
 const AZURE_KEY      = defineSecret("AZURE_OPENAI_KEY");
 const AZURE_ENDPOINT = defineSecret("AZURE_OPENAI_ENDPOINT");
 const AZURE_DEPLOY   = defineSecret("AZURE_OPENAI_DEPLOYMENT");
 
 exports.ai = onRequest(
   { secrets: [AZURE_KEY, AZURE_ENDPOINT, AZURE_DEPLOY] },
-  (req, res) => {
-    corsMiddleware(req, res, async () => {
-      if (req.method === "OPTIONS") { res.status(204).send(""); return; }
-      if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
+  async (req, res) => {
+    // CORS — permite qualquer origem (segurança real está nos secrets do Azure)
+    res.set("Access-Control-Allow-Origin", req.headers.origin || "*");
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") { res.status(204).send(""); return; }
+    if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
 
       const { mode, payload } = req.body || {};
       if (!mode || !payload) {
@@ -87,6 +88,5 @@ exports.ai = onRequest(
         console.error("Function error:", e);
         res.status(500).json({ error: "Erro interno ao processar a requisição." });
       }
-    });
   }
 );
