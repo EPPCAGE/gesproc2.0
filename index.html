@@ -336,6 +336,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   .prc{grid-template-columns:1fr}
   .prc-r{flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:5px}
   .ri-item{grid-template-columns:1fr auto auto auto;font-size:11px}
+  .arq-filtros-avancados{display:none!important}
 }
 @keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 .page.on .prc{animation:fu .16s ease both}
@@ -609,7 +610,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
       <button class="btn" style="font-size:11px;padding:4px 10px" onclick="limparFiltrosArq()">Limpar filtros</button>
       <span id="arq-result-cnt" style="font-size:11px;color:var(--ink3)"></span>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div class="arq-filtros-avancados" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span class="fbar-l">Macroprocesso</span>
       <select class="fi" id="arq-f-macro" onchange="rArq()" style="max-width:220px"><option value="">Todos</option></select>
       <span class="fbar-l">Área</span>
