@@ -1,19 +1,27 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
-const ALLOWED_ORIGINS = new Set([
+
+const ALLOWED_EXACT = new Set([
   "https://eppcage.github.io",
   "https://sigaepp.web.app",
-  "http://localhost:3000",
-  "http://localhost:5000",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:5000",
+  "https://sigaepp.firebaseapp.com",
 ]);
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true; // curl / same-origin server calls
+  if (ALLOWED_EXACT.has(origin)) return true;
+  // localhost / 127.0.0.1 em qualquer porta (desenvolvimento)
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  // GitHub Codespaces port-forwarding
+  if (/^https:\/\/[^.]+\.app\.github\.dev$/.test(origin)) return true;
+  if (/^https:\/\/[^.]+\.github\.dev$/.test(origin)) return true;
+  return false;
+}
+
 const corsMiddleware = require("cors")({
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. curl, same-origin server calls)
-    if (!origin) return callback(null, true);
-    if (ALLOWED_ORIGINS.has(origin)) return callback(null, true);
-    callback(new Error("CORS: origin not allowed"));
+    if (isAllowedOrigin(origin)) return callback(null, true);
+    callback(new Error("CORS: origin not allowed — " + origin));
   },
   methods: ["POST", "OPTIONS"],
   allowedHeaders: ["Content-Type"]
