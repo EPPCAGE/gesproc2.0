@@ -3221,14 +3221,15 @@ function salvarRetroativo(etId){
     pop:()=>{
       p.form=p.form||{};
       const etapas=p.mod?.etapas_proc||[];
-      const ativ_detalhes={};
+      const ativ_detalhes=Object.assign({},p.form.pop?.ativ_detalhes||{});
       etapas.forEach((_,i)=>{
+        const descEl=document.getElementById(`pop-at-desc-${i}`);
+        if(!descEl)return; // aba Atividades não renderizada, preserva valor anterior
+        const prev=ativ_detalhes[i]||{};
         const t=document.getElementById(`pop-at-tipo-${i}`)?.value;
-        const d=document.getElementById(`pop-at-desc-${i}`)?.value;
         const r=document.getElementById(`pop-at-resp-${i}`)?.value;
         const pr=document.getElementById(`pop-at-prox-${i}`)?.value;
-        const prev=p.form.pop?.ativ_detalhes?.[i]||{};
-        ativ_detalhes[i]={tipo:t||prev.tipo||'Atividade',desc:d||prev.desc||'',resp:r||prev.resp||'',prox:pr||prev.prox||''};
+        ativ_detalhes[i]={tipo:t||prev.tipo||'Atividade',desc:descEl.value||prev.desc||'',resp:r||prev.resp||'',prox:pr||prev.prox||''};
       });
       const prev=p.form.pop||{};
       p.form.pop={
@@ -3625,13 +3626,16 @@ function salvarPOP(){
   const p=curProc;
   if(!p.form)p.form={pop_ok:false,pop:null,apresent:'',bpmnXml:null};
   const etapas=p.mod?.etapas_proc||[];
-  const ativ_detalhes={};
+  const ativ_detalhes=Object.assign({},p.form.pop?.ativ_detalhes||{});
   etapas.forEach((_,i)=>{
+    const descEl=document.getElementById(`pop-at-desc-${i}`);
+    if(!descEl)return; // aba Atividades não renderizada, preserva valor anterior
+    const prev=ativ_detalhes[i]||{};
     ativ_detalhes[i]={
-      tipo:document.getElementById(`pop-at-tipo-${i}`)?.value||'Atividade',
-      desc:document.getElementById(`pop-at-desc-${i}`)?.value||'',
-      resp:document.getElementById(`pop-at-resp-${i}`)?.value||'',
-      prox:document.getElementById(`pop-at-prox-${i}`)?.value||'',
+      tipo:document.getElementById(`pop-at-tipo-${i}`)?.value||prev.tipo||'Atividade',
+      desc:descEl.value||prev.desc||'',
+      resp:document.getElementById(`pop-at-resp-${i}`)?.value||prev.resp||'',
+      prox:document.getElementById(`pop-at-prox-${i}`)?.value||prev.prox||'',
     };
   });
   p.form.pop={
@@ -4600,8 +4604,8 @@ function popAtivCards(p){
   return flat.map((e,i)=>{
     const d=det[i]||{};
     const tipo=d.tipo||e.tipo||'Atividade';
-    const desc=d.desc===undefined?(e.desc||e.nome||''):d.desc;
-    const resp=d.resp===undefined?(e.resp||''):d.resp;
+    const desc=(d.desc!==undefined&&d.desc!=='')?d.desc:(e.desc||e.nome||'');
+    const resp=(d.resp!==undefined&&d.resp!=='')?d.resp:(e.resp||'');
     const prox=d.prox||'';
     return `<div style="border:1px solid var(--bdr);border-left:3px solid var(--blue);border-radius:var(--r);padding:.7rem .9rem;margin-bottom:.6rem;background:var(--surf)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:.5rem">
