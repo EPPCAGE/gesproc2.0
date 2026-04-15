@@ -2376,6 +2376,9 @@ function avDono(etAtu,role,acao,prazoEl){
   registrarRespondidoPor(etAtu);
   // Limpa devolução pendente ao dono quando ele resubmete
   if(curProc?.ent?.devolucao_pendente?.etapa===etAtu) delete curProc.ent.devolucao_pendente;
+  // Sinaliza ao EP que há uma entrega do dono aguardando revisão antes de prosseguir
+  if(!curProc.ent) curProc.ent={};
+  curProc.ent.revisao_ep_pendente={etapa_dono:etAtu,dt:now()};
   av(etAtu,role,acao,prazoEl);
   setTimeout(()=>popupConclusaoDono('Obrigado! Sua validação foi registrada e o EP foi notificado para continuar o processo.'),200);
 }
@@ -2398,6 +2401,87 @@ function jaFoiRespondido(etapa){
 function reprovarDono(voltaEt,role,acao){
   reprovar(voltaEt,role,acao);
   setTimeout(()=>popupConclusaoDono('Ajuste solicitado com sucesso! O EP foi notificado e revisará o material antes de encaminhar novamente.'),200);
+}
+
+// ── Salva os dados do formulário do dono sem avançar etapa (usado pelo EP ao editar) ──
+function _salvarDadosDono(){
+  const p=curProc;
+  const etDono=p?.ent?.revisao_ep_pendente?.etapa_dono;
+  if(!etDono||!p) return;
+  if(!p.ent) p.ent={};
+  if(etDono==='questionario'){
+    const resp=p.ent.quest_resp||{};
+    const vals=Object.values(resp);
+    if(vals.length>0){
+      const media=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1);
+      p.ent.mat=_calcNivelMaturidade(Number.parseFloat(media));
+    }
+    p.ent.quest_nota=document.getElementById('quest-nota')?.value??p.ent.quest_nota??'';
+  } else if(etDono==='complement'){
+    if(!p.form) p.form={};
+    p.form.faq=document.getElementById('afaq')?.value??p.form.faq??'';
+    p.form.excecoes=document.getElementById('a-excecoes')?.value??p.form.excecoes??'';
+    p.form.contatos=document.getElementById('a-contatos')?.value??p.form.contatos??'';
+    p.form.forms=document.getElementById('aforms')?.value??p.form.forms??'';
+    const obs=document.getElementById('aobs')?.value||'';
+    if(obs) p.form.obs_complement=obs;
+  }
+  // det_valid_asis / det_valid_tobe: etapas_proc já salvas por handlers inline; apenas flush
+}
+function salvarEdicaoEPDono(){
+  const p=curProc;
+  const etDono=p?.ent?.revisao_ep_pendente?.etapa_dono;
+  if(!etDono) return;
+  _salvarDadosDono();
+  push(p, etDono, 'EP', 'EP editou a resposta do dono nesta etapa');
+  fbAutoSave('epEditouDono');
+  toast('Edições salvas com sucesso.','var(--blue)');
+  rDetalhe();
+}
+
+// ── Revisão da entrega do dono (tela intermediária para o EP) ──
+function _rAcaoRevisaoDono(el, p){
+  const etDono=p.ent.revisao_ep_pendente.etapa_dono;
+  const acDono=ACOES[etDono];
+  if(!acDono){el.innerHTML='<div class="ib ibsl">Dados da etapa não encontrados.</div>';return;}
+  const formHtml=acDono.form?acDono.form(p):'';
+  el.innerHTML=`
+    <div style="background:var(--blue-l);border:1.5px solid var(--blue-b);border-radius:var(--r);padding:.8rem 1rem;margin-bottom:1rem;display:flex;gap:.7rem;align-items:flex-start">
+      <span style="font-size:1.4rem">✏️</span>
+      <div>
+        <div style="font-weight:700;font-size:13px;color:var(--blue);margin-bottom:3px">Revisar entrega do dono — ${esc(acDono.titulo)}</div>
+        <div style="font-size:12.5px;color:var(--ink2)"><strong>${esc(p.dono||'Dono')}</strong> concluiu esta etapa. Revise, edite se necessário e decida como prosseguir.</div>
+      </div>
+    </div>
+    <style>.ep-dono-form-wrap .btn-row{display:none!important}</style>
+    <div class="ep-dono-form-wrap">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.7rem;flex-wrap:wrap;gap:8px">
+          <div><div class="card-t" style="margin-bottom:2px">${esc(acDono.titulo)}</div>
+          <div style="font-size:12px;color:var(--ink3)">${esc(acDono.sub||'')}</div></div>
+          <span class="badge bsl">${esc(acDono.role||'Dono')}</span>
+        </div>
+        ${formHtml}
+      </div>
+    </div>
+    <div style="margin-top:1rem;padding:.7rem 1rem;background:var(--bg2);border:1px dashed var(--bdr);border-radius:var(--r);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--ink3)">Edições feitas acima serão mantidas no processo.</span>
+      <button class="btn" style="font-size:12px;padding:5px 14px;color:var(--blue);border-color:var(--blue-b);background:var(--blue-l)" onclick="salvarEdicaoEPDono()">💾 Salvar edições do EP</button>
+    </div>
+    <div style="display:flex;gap:.6rem;margin-top:.6rem;flex-wrap:wrap">
+      <button class="btn btn-p" style="flex:1;min-width:160px;padding:.65rem;font-size:13px" onclick="prosseguirFluxo()">✓ Prosseguir com o fluxo</button>
+      <button class="btn" style="flex:1;min-width:160px;padding:.65rem;font-size:13px;color:#92400e;border-color:#f59e0b;background:#fef3c7" onclick="devolverAoDono()">↩ Devolver para ajustes</button>
+    </div>`;
+  _rAcaoInitBpmn(p, true);
+}
+function prosseguirFluxo(){
+  const p=curProc;
+  if(!p?.ent?.revisao_ep_pendente) return;
+  _salvarDadosDono(); // salva silenciosamente quaisquer edições pendentes
+  delete p.ent.revisao_ep_pendente;
+  fbAutoSave('prosseguirFluxo');
+  rDetalhe();
+  updCounts();
 }
 
 // ── Devolver tarefa ao dono (EP → dono) ──
@@ -2451,6 +2535,8 @@ function confirmarDevolucao(etRet){
   push(p, p.etapa, 'EP', tipoLabel+' solicitado — '+motivo);
   // Limpa apenas o registro de "respondido" da etapa de retorno para que o dono possa reenviar
   if(p.ent?.respondido_por_etapa?.[etRet]) delete p.ent.respondido_por_etapa[etRet];
+  // Limpa revisão pendente (EP decidiu devolver em vez de prosseguir)
+  if(p.ent?.revisao_ep_pendente) delete p.ent.revisao_ep_pendente;
   // Armazena instrução para exibir ao dono quando abrir a tarefa
   if(!p.ent)p.ent={};
   p.ent.devolucao_pendente={etapa:etRet,tipo,motivo,por:usuarioLogado?.nome||'EP',dt:now()};
@@ -3419,6 +3505,11 @@ function rAcao(p){
   const ac=ACOES[p.etapa];
   if(!ac){el.innerHTML='<div class="ib ibsl">Etapa não configurada.</div>';return;}
   if(role==='dono'){ _rAcaoHandleDono(el,ac,p); return; }
+  // Se EP tem revisão de entrega do dono pendente, mostrar tela de revisão antes do fluxo normal
+  if(isEP() && p.ent?.revisao_ep_pendente){
+    _rAcaoRevisaoDono(el, p);
+    return;
+  }
   const roleNote=role===ac.rk?'':`<div class="ib iba" style="margin-top:.7rem">Esta etapa aguarda: <strong>${ac.role}</strong>. Troque o perfil para interagir.</div>`;
   el.innerHTML=buildAcaoCardHTML(ac,p,roleNote);
   // Barra de devolução ao dono (apenas EP, quando há etapa anterior do dono)
