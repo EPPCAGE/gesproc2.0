@@ -2204,8 +2204,8 @@ function rDetalhe(){
   document.getElementById('det-prog').innerHTML=_etapasEfetivas.map((e,i)=>{
     const past=i<idx,cur=i===idx;
     const stageCls=past?'dn':cur?'da':'';
-    const clickable=epUser&&!cur;
-    const tip=past?`Ver etapa: ${e.lb}`:`Visualizar: ${e.lb}`;
+    const clickable=epUser;
+    const tip=past?`Editar: ${e.lb}`:cur?`Editar etapa atual: ${e.lb}`:`Editar: ${e.lb}`;
     const clickAttrs=clickable?`onclick="navegarRetro('${e.id}')" style="cursor:pointer" title="${tip}"`:'';
     return `<div class="prog-s ${stageCls}" ${clickAttrs}>
       <div class="prog-d ${stageCls}">${past?'✓':(i+1)}</div>
@@ -3435,10 +3435,11 @@ function rAcaoRetro(){
   const p=curProc,etId=epRetroEtapa;
   const ac=ACOES[etId];
   if(!ac)return;
+  const isCurrent=etId===p.etapa;
   document.getElementById('tab-acao').innerHTML=`
     <div class="ib iba" style="margin-bottom:1rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span style="font-size:13px">👁 <strong>Visualizando:</strong> ${ac.titulo}</span>
-      <button type="button" class="btn" style="font-size:11px;padding:3px 8px;margin-left:auto" onclick="fecharRetro()">← Voltar à etapa atual</button>
+      <span style="font-size:13px">✎ <strong>Editando:</strong> ${ac.titulo}</span>
+      ${isCurrent?'':`<button type="button" class="btn" style="font-size:11px;padding:3px 8px;margin-left:auto" onclick="fecharRetro()">← Voltar à etapa atual</button>`}
     </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.7rem;flex-wrap:wrap;gap:8px">
@@ -3449,8 +3450,8 @@ function rAcaoRetro(){
       ${ac.form(p)}
     </div>
     <div class="btn-row" style="margin-top:1rem;padding:.8rem;background:var(--bg2);border:1px solid var(--bdr);border-radius:8px">
-      <span style="font-size:12px;color:var(--ink3)">Modo revisão — processo permanece na etapa atual</span>
-      <button type="button" class="btn btn-p" onclick="salvarRetroativo('${etId}')">Salvar revisão</button>
+      <span style="font-size:12px;color:var(--ink3)">Salva os dados sem avançar o fluxo</span>
+      <button type="button" class="btn btn-p" onclick="salvarRetroativo('${etId}')">💾 Salvar dados</button>
     </div>`;
   document.querySelectorAll('#tab-acao .card .btn-row').forEach(r=>r.style.display='none');
   if(etId==='esboco_asis'||etId==='det_valid_asis'||etId==='desenho_final') setTimeout(()=>initBpmnMod('asis',p),120);
