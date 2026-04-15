@@ -8342,10 +8342,15 @@ document.getElementById('login-screen').style.display='flex';
 
 // URL da Firebase Function (preencher após deploy)
 // NOTE: Load from config.local.js or localStorage for local development
-const AI_FUNCTION_URL = (globalThis.CONFIG?.AI_FUNCTION_URL || '__AI_FUNCTION_URL__');
+const AI_FUNCTION_URL = (globalThis.CONFIG?.AI_FUNCTION_URL || 'https://ai-kvhsbvnxhq-uc.a.run.app');
 
 async function chamarIA(mode, payload, targetEl){
   const url = localStorage.getItem('epcage_ai_url') || AI_FUNCTION_URL;
+  if(!url || url === '__AI_FUNCTION_URL__'){
+    const msg = 'URL da função IA não configurada. Acesse Notificações → Configuração da IA e informe a URL do Firebase Function.';
+    if(targetEl) targetEl.innerHTML = `<div class="ai-result"><div class="ai-result-lbl">⚠ IA não configurada</div>${esc(msg)}</div>`;
+    return null;
+  }
   if(targetEl) targetEl.innerHTML = '<div class="ai-loading"><div class="spin"></div>IA analisando...</div>';
   try {
     const resp = await fetch(url, {
@@ -8357,7 +8362,11 @@ async function chamarIA(mode, payload, targetEl){
       const err = await resp.json().catch(()=>({error:'Erro desconhecido'}));
       throw new Error(err.error || 'Erro '+resp.status);
     }
-    const data = await resp.json();
+    const text = await resp.text();
+    if(text.trimStart().startsWith('<')){
+      throw new Error('URL incorreta: o servidor retornou uma página HTML em vez de JSON. Verifique a URL da Firebase Function em Notificações → Configuração da IA.');
+    }
+    const data = JSON.parse(text);
     return data.result || '';
   } catch(e){
     if(targetEl) targetEl.innerHTML = `<div class="ai-result"><div class="ai-result-lbl">⚠ Erro</div>${esc(e.message)}</div>`;
