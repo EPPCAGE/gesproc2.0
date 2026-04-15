@@ -2427,7 +2427,7 @@ function devolverAoDono(){
           <input type="radio" name="devolver-tipo" value="complementar" checked> Complementar
         </label>
         <label style="flex:1;display:flex;align-items:center;gap:6px;padding:.5rem .7rem;border:1.5px solid var(--bdr);border-radius:var(--r);cursor:pointer;font-size:13px">
-          <input type="radio" name="devolver-tipo" value="refazer"> Refazer do zero
+          <input type="radio" name="devolver-tipo" value="refazer"> Nova elaboração
         </label>
       </div>
     </div>
@@ -2447,7 +2447,7 @@ function confirmarDevolucao(etRet){
   if(!motivo){toast('Informe a instrução para o dono.','var(--red)');return;}
   const tipo=document.querySelector('input[name="devolver-tipo"]:checked')?.value||'complementar';
   const p=curProc;
-  const tipoLabel=tipo==='refazer'?'Refazimento':'Complementação';
+  const tipoLabel=tipo==='refazer'?'Nova elaboração':'Complementação';
   push(p, p.etapa, 'EP', tipoLabel+' solicitado — '+motivo);
   // Limpa apenas o registro de "respondido" da etapa de retorno para que o dono possa reenviar
   if(p.ent?.respondido_por_etapa?.[etRet]) delete p.ent.respondido_por_etapa[etRet];
@@ -3395,7 +3395,7 @@ function _rAcaoHandleDono(el, ac, p){
   let devolucaoBanner='';
   const dv=p.ent?.devolucao_pendente;
   if(minhaTarefa && dv && dv.etapa===p.etapa){
-    const tipoLabel=dv.tipo==='refazer'?'Refazimento solicitado':'Complementação solicitada';
+    const tipoLabel=dv.tipo==='refazer'?'Nova elaboração solicitada':'Complementação solicitada';
     const corBg=dv.tipo==='refazer'?'#fef2f2':'#fffbeb';
     const corBrd=dv.tipo==='refazer'?'#fca5a5':'#fcd34d';
     const corTxt=dv.tipo==='refazer'?'#991b1b':'#92400e';
