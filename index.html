@@ -1273,6 +1273,8 @@ let processos = [];
 let nextProcId = 1;
 
 let kpis = [];
+let _lastIndAnalise = '';
+let _lastIndLista   = [];
 
 let publicacoes = [];
 let _pubIdC = 1;
@@ -9060,28 +9062,133 @@ async function iaAnalisarIndicadores(){
   const el  = document.getElementById('ia-ind-result');
   if(btn) btn.disabled = true;
 
+  // Filtra antes de enviar: remove indicadores sem dados (realizado nulo, vazio ou zero)
+  // Indicadores aguardando fechamento do trimestre também são excluídos — a IA não deve vê-los
+  const listaValida = lista.filter(k => {
+    const aguardando = (!k.realizado || Number(k.realizado) === 0) && _ehMesNaoFechamento(k.periodo);
+    if(aguardando) return false;
+    const r = Number(k.realizado);
+    return k.realizado !== null && k.realizado !== undefined && k.realizado !== '' && r !== 0;
+  });
+
+  if(!listaValida.length){
+    if(el) el.innerHTML = `<div class="ai-result"><div class="ai-result-lbl">✦ Análise IA dos indicadores</div><div style="line-height:1.7">Nenhum indicador com dados disponíveis para análise neste período.</div></div>`;
+    if(btn) btn.disabled = false;
+    return;
+  }
+
   const payload = {
-    nota_sisplan: 'Indicadores com aguardando_fechamento=true estão nos 2 primeiros meses de um trimestre e possuem realizado=0 porque o SISPLAN registra resultados somente no último mês do trimestre (março, junho, setembro ou dezembro). Esses indicadores NÃO devem ser tratados como resultados ruins ou abaixo da meta.',
-    indicadores: lista.map(k=>{
-      const aguardando = (!k.realizado || k.realizado===0) && _ehMesNaoFechamento(k.periodo);
-      return {
-        area: k.area, nome: k.nome,
-        meta: k.meta, realizado: k.realizado,
-        pct: k.pct_realizado, periodo: k.periodo,
-        ...(aguardando ? {aguardando_fechamento: true} : {}),
-      };
-    }),
+    indicadores: listaValida.map(k=>({
+      area: k.area, nome: k.nome,
+      meta: k.meta, realizado: k.realizado,
+      pct: k.pct_realizado, periodo: k.periodo,
+    })),
   };
 
+  _lastIndLista = lista;
   const result = await chamarIA('analisar_indicadores', JSON.stringify(payload), el);
 
   if(result){
+    _lastIndAnalise = result;
+    const pdfBtn = document.getElementById('ia-ind-pdf-btn');
+    if(pdfBtn) pdfBtn.style.display = '';
     el.innerHTML = `<div class="ai-result">
       <div class="ai-result-lbl">✦ Análise IA dos indicadores</div>
       <div style="line-height:1.7">${esc(result)}</div>
     </div>`;
   }
   if(btn) btn.disabled = false;
+}
+
+function gerarRelatorioIndPdf(){
+  if(!_lastIndAnalise){ toast('Execute a análise de IA primeiro.','var(--amber)'); return; }
+
+  const area  = document.getElementById('ind-area-sel')?.value  || '';
+  const ciclo = document.getElementById('ind-ciclo-sel')?.value || '';
+  const dtHoje = new Date().toLocaleDateString('pt-BR');
+
+  // Apenas indicadores com dados válidos (mesma lógica do prompt)
+  const lista = _lastIndLista.filter(k => {
+    const aguardando = (!k.realizado || k.realizado===0) && _ehMesNaoFechamento(k.periodo);
+    return !aguardando && k.realizado !== null && k.realizado !== undefined && k.realizado !== '' && Number(k.realizado) !== 0;
+  });
+
+  if(!lista.length){ toast('Nenhum indicador com dados para o relatório.','var(--amber)'); return; }
+
+  const rows = lista.map(k => {
+    const pol     = k.polaridade || 'Maior é melhor';
+    const und     = k.unidade ? ' ' + k.unidade : '';
+    const hasMeta = Number(k.meta) > 0;
+    let pct = null, statusLabel = '', statusColor = '#555';
+    if(hasMeta){
+      pct = pol === 'Menor é melhor'
+        ? (Number(k.realizado) > 0 ? Math.round((Number(k.meta)/Number(k.realizado))*100) : 0)
+        : Math.round((Number(k.realizado)/Number(k.meta))*100);
+      if(pct >= 100){ statusLabel = '✓ Meta atingida'; statusColor = '#16a34a'; }
+      else if(pct >= 80){ statusLabel = '~ Próximo da meta'; statusColor = '#d97706'; }
+      else { statusLabel = '✗ Abaixo da meta'; statusColor = '#dc2626'; }
+    }
+    const rowBg = hasMeta && pct !== null && pct < 80 ? 'background:#fff5f5' : '';
+    return `<tr style="${rowBg}">
+      <td>${k.codigo ? '<strong>'+esc(k.codigo)+'</strong> — ' : ''}${esc(k.nome)}</td>
+      <td>${esc(k.area||'—')}</td>
+      <td>${esc(k.periodo||'—')}</td>
+      <td style="text-align:center">${hasMeta ? k.meta+und : '—'}</td>
+      <td style="text-align:center">${k.realizado}${und}</td>
+      <td style="text-align:center;font-weight:700;color:${statusColor}">${pct !== null ? pct+'%' : '—'}</td>
+      <td style="text-align:center;font-size:11px;font-weight:600;color:${statusColor}">${statusLabel || (hasMeta ? '' : 'Sem meta')}</td>
+    </tr>`;
+  }).join('');
+
+  const filtros = [area ? 'Área: '+area : '', ciclo ? 'Ciclo: '+ciclo : ''].filter(Boolean).join(' · ') || 'Todos os indicadores';
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório de Indicadores</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a2e;background:#fff;padding:24px 32px}
+  .hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1e6bfa;padding-bottom:12px;margin-bottom:18px}
+  .hdr-l .org{font-size:10px;font-weight:700;color:#1e6bfa;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px}
+  .hdr-l .tit{font-size:19px;font-weight:700;color:#1a1a2e;line-height:1.2}
+  .hdr-l .sub{font-size:11px;color:#6b7280;margin-top:4px}
+  .hdr-r{text-align:right;font-size:11px;color:#6b7280;line-height:1.8}
+  .sec{font-size:10px;font-weight:700;color:#1e6bfa;letter-spacing:.8px;text-transform:uppercase;margin:14px 0 6px}
+  .ia-box{background:#f0f4ff;border-left:3px solid #1e6bfa;border-radius:5px;padding:10px 14px;font-size:12px;line-height:1.7;color:#1a1a2e}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  thead th{background:#1e6bfa;color:#fff;padding:6px 8px;text-align:left;font-weight:600}
+  tbody tr:nth-child(even){background:#f8faff}
+  tbody td{padding:5px 8px;border-bottom:1px solid #e5e7eb;vertical-align:middle}
+  .ftr{margin-top:14px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;display:flex;justify-content:space-between}
+  @media print{body{padding:12px 18px}@page{margin:1cm;size:A4 landscape}}
+</style></head><body>
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="org">EP·CAGE · Escritório de Processos</div>
+    <div class="tit">Relatório Executivo de Indicadores</div>
+    <div class="sub">${esc(filtros)}</div>
+  </div>
+  <div class="hdr-r">
+    <div><strong>Data:</strong> ${dtHoje}</div>
+    <div><strong>Indicadores analisados:</strong> ${lista.length}</div>
+  </div>
+</div>
+<div class="sec">✦ Análise da Inteligência Artificial</div>
+<div class="ia-box">${esc(_lastIndAnalise).replace(/\n/g,'<br>')}</div>
+<div class="sec">Indicadores com dados no período</div>
+<table>
+  <thead><tr>
+    <th>Indicador</th><th>Área</th><th>Período</th>
+    <th style="text-align:center">Meta</th><th style="text-align:center">Realizado</th>
+    <th style="text-align:center">Desempenho</th><th style="text-align:center">Status</th>
+  </tr></thead>
+  <tbody>${rows}</tbody>
+</table>
+<div class="ftr">
+  <span>Gerado pelo sistema SIGA 2.0 — EP·CAGE/Sefaz-RS</span>
+  <span>${dtHoje}</span>
+</div>
+<script>setTimeout(()=>window.print(),400);<\/script>
+</body></html>`);
+  w.document.close();
 }
 
 // ── INJECT IA BUTTONS INTO PAGES ─────────
@@ -9138,6 +9245,7 @@ function injectIaIndicadores(){
   panel.innerHTML = `<div class="ai-panel-t">✦ Análise inteligente dos indicadores</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button id="ia-ind-btn" class="ai-btn" onclick="iaAnalisarIndicadores()">Analisar indicadores visíveis com IA</button>
+      <button id="ia-ind-pdf-btn" class="btn btn-a" onclick="gerarRelatorioIndPdf()" style="display:none;font-size:12px;padding:5px 12px">⬇ Relatório PDF</button>
       <span style="font-size:11px;color:var(--ink3)">Analisa os indicadores do filtro atual e gera um comentário executivo.</span>
     </div>
     <div id="ia-ind-result"></div>`;
