@@ -354,6 +354,16 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
 .ai-loading .spin{width:16px;height:16px;border:2px solid var(--purple-b);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 .ai-panel{background:var(--surf);border:1px solid var(--purple-b);border-radius:var(--rl);padding:1rem 1.1rem;margin-top:.8rem}
 .ai-panel-t{font-family:var(--fh);font-size:13px;font-weight:600;color:var(--purple);margin-bottom:.6rem;display:flex;align-items:center;gap:6px}
+/* ── Utilitários ───────────────────────────────────────────────── */
+.u-card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:.85rem 1rem;box-shadow:var(--sh)}
+.u-card-l{border-left:3px solid var(--blue)}
+.u-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.u-col{display:flex;flex-direction:column;gap:8px}
+.u-muted{font-size:12px;color:var(--ink3)}
+.u-micro{font-size:11px;color:var(--ink3)}
+.u-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--ink3)}
+.u-bold{font-weight:600}
+.u-sep{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
 </style>
 </head>
 <body>
@@ -1150,6 +1160,10 @@ Não responda este e-mail.</pre>
 // ═══════════════════════════════════════════
 const PERFIL_LABELS = {ep:'EPP',dono:'Executor de Processo',gestor:'Gestor / Adjunto'};
 const PERFIL_COR = {ep:'#1A5DC8',dono:'#0A7060',gestor:'#A85C00'};
+// Enums frozen — usar em vez de strings literais em código novo
+const PERFIL = Object.freeze({EP:'ep', DONO:'dono', GESTOR:'gestor'});
+const STATUS_ENTREGA = Object.freeze({EM_DIA:'em_dia', COM_ATRASO:'com_atraso', SEM_PRAZO:'sem_prazo'});
+const STATUS_PLANO = Object.freeze({PENDENTE:'pendente', EM_ANDAMENTO:'em_andamento', CONCLUIDO:'concluido', CANCELADO:'cancelado', PAUSADO:'pausado'});
 
 let USUARIOS = [
   {email:'ep@sefaz.rs.gov.br',nome:'Equipe EP',perfil:'ep',iniciais:'EP'},
@@ -1319,6 +1333,24 @@ let criticosManual = new Set(JSON.parse(localStorage.getItem('criticosManual')||
 let fluxosCache = {};
 let bpmnModelers = {};
 let bpmnDirty = {};
+
+// Namespace de estado — espelha os globais para acesso organizado
+// Uso: APP.curProc, APP.kpis, etc. O código existente continua usando as variáveis diretamente (sem quebra)
+const APP = {
+  get processos()     { return processos; },    set processos(v)     { processos = v; },
+  get curProc()       { return curProc; },       set curProc(v)       { curProc = v; },
+  get kpis()          { return kpis; },          set kpis(v)          { kpis = v; },
+  get plano()         { return plano; },         set plano(v)         { plano = v; },
+  get notifs()        { return notifs; },        set notifs(v)        { notifs = v; },
+  get usuarioLogado() { return usuarioLogado; }, set usuarioLogado(v) { usuarioLogado = v; },
+  get solicitacoes()  { return solicitacoes; },  set solicitacoes(v)  { solicitacoes = v; },
+  get ARQUITETURA()   { return ARQUITETURA; },   set ARQUITETURA(v)   { ARQUITETURA = v; },
+  get USUARIOS()      { return USUARIOS; },      set USUARIOS(v)      { USUARIOS = v; },
+  get publicacoes()   { return publicacoes; },   set publicacoes(v)   { publicacoes = v; },
+  get AVISOS()        { return AVISOS; },        set AVISOS(v)        { AVISOS = v; },
+  get ejsConfig()     { return ejsConfig; },     set ejsConfig(v)     { ejsConfig = v; },
+  get filtFaseAtual() { return filtFaseAtual; }, set filtFaseAtual(v) { filtFaseAtual = v; },
+};
 
 const BPMN_DEFAULT = `<?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" targetNamespace="http://ep.cage">
@@ -3324,6 +3356,26 @@ const ACOES = {
       </div>`;
     }},
 };
+
+// ─── Funções nomeadas para os formulários do ACOES ──────────────────────────
+// Permite referenciar _formXxx(p) em vez de ACOES.xxx.form(p) em código novo
+function _formAbertura(p)    { return ACOES.abertura.form(p); }
+function _formQuestionario(p){ return ACOES.questionario.form(p); }
+function _formReuniao(p)     { return ACOES.reuniao.form(p); }
+function _formRiscos(p)      { return ACOES.riscos.form(p); }
+function _formAnalise(p)     { return ACOES.analise.form(p); }
+function _formEsbocoAsis(p)  { return ACOES.esboco_asis.form(p); }
+function _formDetValidAsis(p){ return ACOES.det_valid_asis.form(p); }
+function _formEsbocoTobe(p)  { return ACOES.esboco_tobe.form(p); }
+function _formDetValidTobe(p){ return ACOES.det_valid_tobe.form(p); }
+function _formMelhorias(p)   { return ACOES.melhorias.form(p); }
+function _formDesenhoFinal(p){ return ACOES.desenho_final.form(p); }
+function _formPop(p)         { return ACOES.pop.form(p); }
+function _formComplement(p)  { return ACOES.complement.form(p); }
+function _formApresentacao(p){ return ACOES.apresentacao.form(p); }
+function _formPublicacao(p)  { return ACOES.publicacao.form(p); }
+function _formAcompanha(p)   { return ACOES.acompanha.form(p); }
+function _formAuditoria(p)   { return ACOES.auditoria.form(p); }
 
 function navegarRetro(etId){
   epRetroEtapa=etId;
@@ -5792,7 +5844,7 @@ function bpmnExport(which){
   m.saveXML({format:true}).then(({xml})=>{
     const b=new Blob([xml],{type:'text/xml'});const a=document.createElement('a');
     a.href=URL.createObjectURL(b);a.download=curProc.nome.replace(/\s+/g,'_').slice(0,30)+'_'+which+'.bpmn';a.click();
-  });
+  }).catch(err=>console.warn('bpmnExport error:',err.message||err));
 }
 function bpmnImport(which){
   const ta=document.getElementById('bpmn-'+which+'-xml');
