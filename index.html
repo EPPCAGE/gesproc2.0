@@ -336,6 +336,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   .prc{grid-template-columns:1fr}
   .prc-r{flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:5px}
   .ri-item{grid-template-columns:1fr auto auto auto;font-size:11px}
+  .arq-filtros-avancados{display:none!important}
 }
 @keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 .page.on .prc{animation:fu .16s ease both}
@@ -609,7 +610,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
       <button class="btn" style="font-size:11px;padding:4px 10px" onclick="limparFiltrosArq()">Limpar filtros</button>
       <span id="arq-result-cnt" style="font-size:11px;color:var(--ink3)"></span>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div class="arq-filtros-avancados" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span class="fbar-l">Macroprocesso</span>
       <select class="fi" id="arq-f-macro" onchange="rArq()" style="max-width:220px"><option value="">Todos</option></select>
       <span class="fbar-l">Área</span>
@@ -1128,11 +1129,6 @@ const PERFIL_COR = {ep:'#1A5DC8',dono:'#0A7060',gestor:'#A85C00'};
 
 let USUARIOS = [
   {email:'ep@sefaz.rs.gov.br',nome:'Equipe EP',perfil:'ep',iniciais:'EP'},
-  {email:'felipe.tourinho@sefaz.rs.gov.br',nome:'Felipe Tourinho',perfil:'ep',iniciais:'FT'},
-  {email:'amilcar.rosa@sefaz.rs.gov.br',nome:'Amilcar da Rosa',perfil:'dono',iniciais:'AR',processos_vinculados:['s1','s2','s3']},
-  {email:'adjunto@sefaz.rs.gov.br',nome:'Adjunto CAGE',perfil:'gestor',iniciais:'AD'},
-  {email:'carlos.mendes@sefaz.rs.gov.br',nome:'Carlos Mendes',perfil:'dono',iniciais:'CM',processos_vinculados:['s4','s5','s6']},
-  {email:'fernanda.lima@sefaz.rs.gov.br',nome:'Fernanda Lima',perfil:'dono',iniciais:'FL',processos_vinculados:['s7','s8','s9']},
 ];
 let dominios = [{dominio:'sefaz.rs.gov.br',perfil:'ep'},{dominio:'cage.rs.gov.br',perfil:'ep'}];
 
@@ -1220,9 +1216,7 @@ function getEtapas(p){
 }
 const FASES = ['Entendimento','Modelagem','Formalizacao','Operacao','Auditoria'];
 const FASE_COR = {Entendimento:'bt',Modelagem:'bp',Formalizacao:'ba',Operacao:'bb',Auditoria:'br'};
-const EBADGE = {abertura:'bt',reuniao:'bt',questionario:'bt',esboco_asis:'bp',det_valid_asis:'bp',riscos:'bp',analise:'bp',melhorias:'bp',esboco_tobe:'bp',det_valid_tobe:'bp',desenho_final:'ba',pop:'ba',complement:'ba',apresentacao:'ba',publicacao:'ba',acompanha:'bb',auditoria:'br',
-  // retrocompat com IDs antigos
-  esboco:'bp',det_etapas:'bp',analise_asis:'bp',valid_dono:'bp',det_asis:'bp',valid_asis:'bp',det_tobe:'bp',valid_tobe:'bp'};
+const EBADGE = {abertura:'bt',reuniao:'bt',questionario:'bt',esboco_asis:'bp',det_valid_asis:'bp',riscos:'bp',analise:'bp',melhorias:'bp',esboco_tobe:'bp',det_valid_tobe:'bp',desenho_final:'ba',pop:'ba',complement:'ba',apresentacao:'ba',publicacao:'ba',acompanha:'bb',auditoria:'br'};
 
 function etIdx(id,p){return getEtapas(p||curProc).findIndex(e=>e.id===id);}
 function etFase(id){return ETAPAS.find(e=>e.id===id)?.fase||'';}
@@ -1884,7 +1878,7 @@ function rFila(){
   rCarrosselAvisos();
   const tarefas=getTarefasUsr();
   document.getElementById('fila-sub').textContent=usuarioLogado.nome+' — '+(tarefas.length?tarefas.length+' tarefa(s) pendente(s)':'nenhuma tarefa pendente');
-  const ACT={abertura:'Abrir processo e vincular à arquitetura',questionario:'Responder questionário de maturidade',reuniao:'Conduzir reunião de entendimento',analise:'Elaborar análise inteligente do AS IS',esboco_asis:'Elaborar esboço AS IS com BPMN',det_valid_asis:'Detalhar etapas e validar AS IS',riscos:'Identificar e avaliar riscos do processo',melhorias:'Revisar melhorias e mitigações identificadas',esboco_tobe:'Elaborar esboço TO BE com BPMN',det_valid_tobe:'Detalhar etapas e validar TO BE',desenho_final:'Finalizar desenho do processo',pop:'Construir POP no padrão CAGE',complement:'Complementar POP (FAQ, formulários)',apresentacao:'Apresentar ao gestor',publicacao:'Publicar no repositório oficial',acompanha:'Verificar conformidade na implementação',monitora:'Monitorar indicadores de desempenho',auditoria:'Conduzir auditoria do processo'};
+  const ACT={abertura:'Abrir processo e vincular à arquitetura',questionario:'Responder questionário de maturidade',reuniao:'Conduzir reunião de entendimento',analise:'Elaborar análise inteligente do AS IS',esboco_asis:'Elaborar esboço AS IS com BPMN',det_valid_asis:'Detalhar etapas e validar AS IS',riscos:'Identificar e avaliar riscos do processo',melhorias:'Revisar melhorias e mitigações identificadas',esboco_tobe:'Elaborar esboço TO BE com BPMN',det_valid_tobe:'Detalhar etapas e validar TO BE',desenho_final:'Finalizar desenho do processo',pop:'Construir POP no padrão CAGE',complement:'Complementar POP (FAQ, formulários)',apresentacao:'Apresentar ao gestor',publicacao:'Publicar no repositório oficial',acompanha:'Verificar conformidade na implementação',auditoria:'Conduzir auditoria do processo'};
   const el=document.getElementById('fila-content');
   if(!tarefas.length){el.innerHTML='<div style="text-align:center;padding:3rem"><div style="font-size:36px;margin-bottom:10px">✓</div><div style="font-size:15px;font-weight:600;color:var(--ink)">Você está em dia!</div><div style="font-size:12px;color:var(--ink3);margin-top:4px">Nenhuma tarefa pendente no momento.</div></div>';return;}
   const crit=tarefas.filter(t=>t.prio==='Critica');
@@ -2610,7 +2604,7 @@ function confirmarDevolucao(etRet){
   }
 }
 
-// ─── FEEDBACK DO DONO (valid_dono) ───────────────────────────────────────────
+// ─── FEEDBACK DO DONO (etapa melhorias) ───────────────────────────────────────────
 function dfbRow(tipo,texto,emoji){
   const idx=globalThis._dfbItems.length;
   globalThis._dfbItems.push({tipo,texto});
@@ -4640,7 +4634,7 @@ async function iaGerarQuestoesAuditoria(){
     toast(`${lista.length} questões geradas pela IA!`,'var(--teal)');
     rDetalhe();
   }catch(e){
-    if(targetEl)targetEl.innerHTML=`<div class="ai-result"><div class="ai-result-lbl">⚠ Erro ao processar resposta da IA</div>${e.message}</div>`;
+  if(targetEl)targetEl.innerHTML=`<div class="ai-result"><div class="ai-result-lbl">⚠ Erro ao processar resposta da IA</div>${esc(e.message)}</div>`;
   }
 }
 function preencherApontamento(idx){
@@ -5207,7 +5201,7 @@ async function atualizarMermaid(){
     const {svg} = await mermaid.render(uid, _mermaidCode);
     el.innerHTML = svg;
   } catch(err){
-    el.innerHTML = `<pre style="font-size:10px;color:var(--red);white-space:pre-wrap;word-break:break-all">${_mermaidCode}</pre>`;
+    el.innerHTML = `<pre style="font-size:10px;color:var(--red);white-space:pre-wrap;word-break:break-all">${esc(_mermaidCode)}</pre>`;
   }
 }
 
@@ -5564,7 +5558,7 @@ function gerarPopPdf(){
   if(!el)return;
   const inner=el.querySelector('.pop-pdf-bar')?el.innerHTML.replace(/<div class="pop-pdf-bar"[\s\S]*?<\/div>/,''):el.innerHTML;
   if(!inner.trim())return;
-  const nome=curProc?.nome||'POP';
+  const nome=esc(curProc?.nome||'POP');
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${nome}</title>
   <style>
@@ -5589,7 +5583,7 @@ function rMon(p){
   document.getElementById('tab-mon').innerHTML=inds.length?`<div class="g3" style="gap:10px">${inds.map(d=>kpiCard(d)).join('')}</div>${audHTML}`:`<div class="ib ibb">Nenhum indicador importado. <button class="btn btn-p" style="font-size:12px;padding:4px 10px;margin-left:8px" onclick="go('indicadores',document.getElementById('nb-ind'))">Ir para indicadores →</button></div>${audHTML}`;
 }
 function rHist(p){
-  document.getElementById('tab-hist').innerHTML=`<div class="card"><div class="card-t">Histórico completo</div><div class="tl">${[...p.hist].reverse().map((h,i)=>`<div class="tl-i"><div class="tl-d ${i===0?'da':'dn'}">${i===0?'●':'✓'}</div><div><div class="tl-t">${h.acao}</div><div class="tl-m">${h.role} · ${h.data}</div></div></div>`).join('')}</div></div>`;
+  document.getElementById('tab-hist').innerHTML=`<div class="card"><div class="card-t">Histórico completo</div><div class="tl">${[...p.hist].reverse().map((h,i)=>`<div class="tl-i"><div class="tl-d ${i===0?'da':'dn'}">${i===0?'●':'✓'}</div><div><div class="tl-t">${esc(h.acao)}</div><div class="tl-m">${esc(h.role)} · ${esc(h.data)}</div></div></div>`).join('')}</div></div>`;
 }
 
 function rReun(p){
@@ -8100,6 +8094,12 @@ function planoDashAnual(lista){
   const planej  = lista.filter(a=>planoStatusEfetivo(a)==='planejado').length;
   const pct = Math.round(concl/total*100);
   const cor = pct>=75?'#14b8a6':pct>=40?'#f59e0b':'#ef4444';
+  // Métricas de pontualidade
+  const conclLista = lista.filter(a=>planoStatusEfetivo(a)==='concluida'&&a.entrega_status);
+  const emDia      = conclLista.filter(a=>a.entrega_status==='em_dia').length;
+  const comAtraso  = conclLista.filter(a=>a.entrega_status==='com_atraso').length;
+  const pctPontualidade = conclLista.length ? Math.round(emDia/conclLista.length*100) : null;
+  const corPont = pctPontualidade>=80?'#14b8a6':pctPontualidade>=50?'#f59e0b':'#ef4444';
   const dc = (v,l,c,bg)=>`<div style="flex:1;min-width:90px;background:${bg};border:1px solid ${c};border-radius:var(--r);padding:.7rem 1rem"><div style="font-size:22px;font-weight:700;color:${c};line-height:1">${v}</div><div style="font-size:11px;color:var(--ink3);margin-top:2px">${l}</div></div>`;
   el.innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap;width:100%">
     ${dc(total,'Total atividades','var(--blue)','rgba(59,130,246,.07)')}
@@ -8114,6 +8114,14 @@ function planoDashAnual(lista){
         <div style="width:${pct}%;height:100%;background:${cor};border-radius:3px;transition:width .4s"></div>
       </div>
     </div>
+    ${conclLista.length?`<div style="flex:1;min-width:160px;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:.7rem 1rem">
+      <div style="font-size:22px;font-weight:700;color:${corPont};line-height:1">${pctPontualidade}%</div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:2px">Pontualidade nas entregas</div>
+      <div style="font-size:11px;margin-top:5px;display:flex;gap:8px;flex-wrap:wrap">
+        <span style="color:#0f766e">✅ ${emDia} em dia</span>
+        <span style="color:#dc2626">⚠ ${comAtraso} com atraso</span>
+      </div>
+    </div>`:''}
   </div>`;
 }
 
@@ -8201,6 +8209,11 @@ function planoCardHTML(at){
     </div>`:''}
     ${at.obs?`<div style="margin-top:6px;font-size:11px;color:var(--ink2);background:var(--bg2);border-radius:4px;padding:4px 8px;border-left:2px solid var(--bdr2)">📝 ${esc(at.obs)}</div>`:''}
     ${at.evidencia&&st==='concluida'?`<div style="margin-top:5px;font-size:11px;color:#14b8a6;background:rgba(20,184,166,.07);border-radius:4px;padding:4px 8px">✅ ${esc(at.evidencia)}</div>`:''}
+    ${st==='concluida'&&at.entrega_status?`<div style="margin-top:5px;display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;
+      background:${at.entrega_status==='em_dia'?'rgba(20,184,166,.12)':at.entrega_status==='com_atraso'?'rgba(239,68,68,.1)':'var(--bg2)'};
+      color:${at.entrega_status==='em_dia'?'#0f766e':at.entrega_status==='com_atraso'?'#dc2626':'var(--ink3)'}">
+      ${at.entrega_status==='em_dia'?'✅ Entregue em dia':at.entrega_status==='com_atraso'?`⚠ Entregue com ${at.dias_atraso}d de atraso`:'📅 Entregue sem prazo'}
+    </div>`:''}
   </div>`;
 }
 
@@ -8362,7 +8375,32 @@ function salvarAtividade(){
     evidencia:    document.getElementById('pm-evid')?.value.trim()||'',
     dt_criacao:   antigo?.dt_criacao||new Date().toISOString().split('T')[0],
     dt_atualizacao: new Date().toISOString().split('T')[0],
+    // Preserva histórico de entrega (calculado abaixo se estiver concluindo agora)
+    dt_conclusao:   antigo?.dt_conclusao||'',
+    entrega_status: antigo?.entrega_status||'',
+    dias_atraso:    antigo?.dias_atraso??null,
   };
+  // Detectar conclusão: status mudou para concluida agora
+  const eraConcluidaAntes = antigo?.status==='concluida' || (antigo?.qt_prevista>0 && (antigo?.qt_realizada||0)>=antigo?.qt_prevista);
+  const ficouConcluida = at.status==='concluida' || (at.qt_prevista>0 && at.qt_realizada>=at.qt_prevista);
+  if(ficouConcluida && !eraConcluidaAntes){
+    const hoje = new Date().toISOString().split('T')[0];
+    at.dt_conclusao = hoje;
+    if(at.prazo){
+      const diffMs = new Date(hoje) - new Date(at.prazo);
+      const dias   = Math.ceil(diffMs / 86400000); // positivo = atraso, negativo = adiantado
+      at.dias_atraso    = Math.max(0, dias);
+      at.entrega_status = dias <= 0 ? 'em_dia' : 'com_atraso';
+    } else {
+      at.entrega_status = 'sem_prazo';
+      at.dias_atraso    = 0;
+    }
+  } else if(!ficouConcluida){
+    // Reaberta: limpa os selos
+    at.dt_conclusao   = '';
+    at.entrega_status = '';
+    at.dias_atraso    = null;
+  }
   if(id){ const i=plano.findIndex(a=>a.id===id); if(i>=0) plano[i]=at; else plano.push(at); }
   else plano.push(at);
   fecharPlanoModal();
