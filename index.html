@@ -8342,7 +8342,7 @@ document.getElementById('login-screen').style.display='flex';
 
 // URL da Firebase Function (preencher após deploy)
 // NOTE: Load from config.local.js or localStorage for local development
-const AI_FUNCTION_URL = (globalThis.CONFIG?.AI_FUNCTION_URL || '__AI_FUNCTION_URL__');
+const AI_FUNCTION_URL = (globalThis.CONFIG?.AI_FUNCTION_URL || 'https://ai-kvhsbvnxhq-uc.a.run.app');
 
 async function chamarIA(mode, payload, targetEl){
   const url = localStorage.getItem('epcage_ai_url') || AI_FUNCTION_URL;
