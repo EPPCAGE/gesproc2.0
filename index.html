@@ -9888,20 +9888,22 @@ async function processarArquivoPOP(input){
     const result=await mammoth.extractRawText({arrayBuffer});
     const texto=result.value.trim().slice(0,12000);
     const prompt=`Analise o POP abaixo e retorne APENAS um JSON válido (sem markdown) com a estrutura:
-{"nome":"...","area":"...","objetivo":"...","atores":["..."],"etapas":[{"nome":"...","tipo":"Atividade|Decisao|Evento","executor":"nome do ator responsável por esta etapa"}]}
+{"nome":"...","area":"...","objetivo":"...","atores":["..."],"etapas":[{"nome":"...","tipo":"Atividade|Decisao|Evento","executor":"..."}]}
 
 REGRAS para classificar cada elemento do fluxo:
 - "Atividade": tarefas, execuções, verificações, comunicações, registros (a maioria)
-- "Decisao": gateways, bifurcações, condicionais — frases que começam com "Verificar se", "Caso", "Se sim/não", "Aprovado?", perguntas com "?"
-- "Evento": início do processo, fim/encerramento, espera por prazo ou evento externo
+- "Decisao": gateways, bifurcações, condicionais — frases numeradas como "2.3.1", "Qual é o risco?", "O processo está no escopo?", "Caso sim/não"
+- "Evento": início do processo, fim/encerramento ("Processo devolvido", "fim do processo")
 
-REGRAS para o campo "executor":
-- Identifique QUAL ator/papel do documento executa ESPECIFICAMENTE aquela etapa
-- Use exatamente o nome do papel/cargo como aparece no documento (ex: "Analista de RH", "Gestor", "Servidor")
-- Se uma etapa tiver múltiplos responsáveis, separe por vírgula
-- Se não for possível identificar, use string vazia ""
+REGRAS CRÍTICAS para o campo "executor" (ator por etapa):
+- Neste tipo de documento, o ator aparece como uma LINHA ISOLADA antes de um grupo de atividades (ex: "Auxiliar Administrativo", "Servidor", "Analista", "Auditor")
+- Esse ator se aplica a TODAS as atividades listadas abaixo dele, até que apareça outro nome de ator isolado
+- Quando uma seção diz "Se o analista analisou: ..." → executor é "Analista"; "Se o auditor analisou: ..." → executor é "Auditor"
+- Quando o texto cita explicitamente "O Auditor então deverá:" ou "Auditor" em negrito/isolado → o executor muda para "Auditor"
+- Use o nome do papel exatamente como aparece no documento (ex: "Auxiliar Administrativo", "Analista", "Auditor", "Servidor")
+- Se genuinamente não for possível identificar, use ""
 
-Inclua TODOS os elementos do fluxo, inclusive os gateways/condicionais.
+Inclua TODOS os elementos do fluxo, inclusive os gateways/condicionais e eventos de fim.
 
 POP:\n${texto}`;
     const rawText = await chamarIA('extrair_pop', prompt, loadEl);
