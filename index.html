@@ -501,7 +501,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
       </div>
     </div>
     <div id="ep-toggle-wrap" style="display:none">
-      <div onclick="togglePerfilEP()" title="Modo simulação: alternar para Executor de Processo" style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:3px 0;opacity:.55;transition:opacity .15s" onmouseenter="this.style.opacity='.9'" onmouseleave="this.style.opacity=document.getElementById('ep-toggle-track').classList.contains('on')?'.9':'.55'">
+      <div role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePerfilEP();}" onclick="togglePerfilEP()" title="Modo simulação: alternar para Executor de Processo" style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:3px 0;opacity:.55;transition:opacity .15s" onmouseenter="this.style.opacity='.9'" onmouseleave="this.style.opacity=document.getElementById('ep-toggle-track').classList.contains('on')?'.9':'.55'">
         <svg viewBox="0 0 16 16" fill="none" style="width:13px;height:13px;flex-shrink:0;color:var(--ink3)"><path d="M10.5 1.5a3 3 0 110 6 3 3 0 010-6zM7.72 6.28A4.5 4.5 0 1014.5 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M1 10.5h7M4.5 8v5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         <span style="font-size:10.5px;color:var(--ink3);flex:1;line-height:1">Modo simulação</span>
         <div id="ep-toggle-track" style="width:28px;height:15px;border-radius:8px;background:var(--bdr2);position:relative;transition:background .2s;flex-shrink:0">
@@ -1042,12 +1042,12 @@ Não responda este e-mail.</pre>
       </div>
       <div class="fg"><label class="fl" for="pub-tags">Tags (separadas por vírgula)</label><input class="fi" id="pub-tags" placeholder="Ex: bpmn, mapeamento, tutorial"></div>
       <div class="fg">
-        <label class="fl">Capa / Thumbnail</label>
+        <label class="fl" for="pub-thumb">Capa / Thumbnail</label>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input class="fi" id="pub-thumb" placeholder="URL da imagem (opcional)" style="flex:1;min-width:180px" oninput="(function(v){const p=document.getElementById('pub-thumb-preview'),i=document.getElementById('pub-thumb-img');if(v){i.src=v;p.style.display='block';}else{p.style.display='none';}})(this.value)">
           <label class="btn" style="font-size:11px;padding:3px 10px;cursor:pointer;flex-shrink:0">↑ Upload<input type="file" id="pub-thumb-file" accept="image/*" style="display:none" onchange="uploadThumbPub(this)"></label>
         </div>
-        <div id="pub-thumb-preview" style="margin-top:6px;display:none"><img id="pub-thumb-img" src="" alt="Pré-visualização da imagem de capa" style="height:80px;border-radius:6px;border:1px solid var(--bdr);object-fit:cover"></div>
+        <div id="pub-thumb-preview" style="margin-top:6px;display:none"><img id="pub-thumb-img" src="" alt="Pré-visualização de capa" style="height:80px;border-radius:6px;border:1px solid var(--bdr);object-fit:cover"></div>
       </div>
       <div class="btn-row">
         <button type="button" class="btn btn-r" id="pub-del-btn" style="margin-right:auto;display:none" onclick="deletarPub()">Remover</button>
@@ -1447,7 +1447,7 @@ function togglePerfilEP(){
   // Re-renderiza a view atual
   const pAtivo=document.querySelector('.page.on');
   if(pAtivo){
-    const id=pAtivo.id.replace('page-','');
+    const id=pAtivo.id.replaceAll('page-','');
     const nb=document.getElementById('nb-'+id);
     go(id,nb||null);
   }
@@ -1492,7 +1492,7 @@ async function doLogin(){
     }
   } else {
     // Fallback sem Firebase (modo local)
-    try{localStorage.setItem('siga_user',user.email);}catch(_e){console.warn('localStorage unavailable',_e);}
+    lsSet('siga_user', user.email);
     _aplicarUsuario(user);
   }
 }
@@ -1636,7 +1636,7 @@ async function doLogout(){
     await signOut(auth).catch(()=>{});
   }
   usuarioLogado=null;
-  try{localStorage.removeItem('siga_user');}catch(_e){console.warn('localStorage unavailable',_e);}
+  lsRemove('siga_user');
   const epToggle=document.getElementById('ep-toggle-wrap');if(epToggle)epToggle.style.display='none';
   document.getElementById('login-screen').style.display='flex';
 }
@@ -1737,7 +1737,7 @@ function salvarEmailJS(){
   ejsConfig.service = document.getElementById('ejs-service').value.trim();
   ejsConfig.template = document.getElementById('ejs-template').value.trim();
   ejsConfig.pubkey = document.getElementById('ejs-pubkey').value.trim();
-  try { localStorage.setItem('epcage_ejs', JSON.stringify(ejsConfig)); } catch(_e){ console.warn('localStorage unavailable', _e); }
+  lsSet('epcage_ejs', JSON.stringify(ejsConfig));
   const status = document.getElementById('emailjs-status');
   if(ejsConfig.service && ejsConfig.template && ejsConfig.pubkey){
     if(typeof emailjs === 'undefined'){
@@ -2183,7 +2183,7 @@ function excluirMapeamento(id){
 function abrirProc(id){
   curProc=processos.find(p=>p.id===id);
   // Keep etapasIdC ahead of any existing etapa IDs in this process
-  const nums=(curProc?.mod?.etapas_proc||[]).map(e=>Number.parseInt(String(e.id||'').replace('ep',''))||0);
+  const nums=(curProc?.mod?.etapas_proc||[]).map(e=>Number.parseInt(String(e.id||'').replaceAll('ep',''))||0);
   if(nums.length) etapasIdC=Math.max(etapasIdC,...nums)+1;
   rDetalhe();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -2857,7 +2857,7 @@ const ACOES = {
         ${QUESTOES.map(q=>`
           <div class="quest-item">
             <div class="quest-dim">${q.dim}</div>
-            <div class="quest-txt">${q.id.toUpperCase().replace('Q','')}. ${q.txt}</div>
+            <div class="quest-txt">${q.id.toUpperCase().replaceAll('Q','')}. ${q.txt}</div>
             <div class="likert">
               ${LIKERT.map((l,i)=>`<button type="button" class="lk-btn ${resp[q.id]===i+1?'on':''}" onclick="setLikert('${q.id}',${i+1},this)">${i+1}. ${l}</button>`).join('')}
             </div>
@@ -3457,139 +3457,144 @@ function rAcaoRetro(){
   if(etId==='esboco_asis'||etId==='det_valid_asis'||etId==='desenho_final') setTimeout(()=>initBpmnMod('asis',p),120);
   if(etId==='esboco_tobe'||etId==='det_valid_tobe') setTimeout(()=>initBpmnMod('tobe',p),120);
 }
+
+// ── salvarRetroativo: handlers por etapa (extraídos para manutenibilidade) ──
+function _rsAbertura(p){
+  p.ent.dt_inicio=document.getElementById('a-ini')?.value||p.ent.dt_inicio;
+  p.ent.dt_prev=document.getElementById('a-prev')?.value||p.ent.dt_prev;
+  p.ent.equipe=document.getElementById('a-equipe')?.value||p.ent.equipe;
+  p.objetivo=document.getElementById('a-obj')?.value||p.objetivo;
+}
+function _rsReuniao(p){
+  p.ent.fornecedores=document.getElementById('r-fornec')?.value||p.ent.fornecedores;
+  p.ent.clientes=document.getElementById('r-clientes')?.value||p.ent.clientes;
+  p.ent.entradas=document.getElementById('r-entradas')?.value||p.ent.entradas;
+  p.ent.atividades_principais=document.getElementById('r-atividades')?.value||p.ent.atividades_principais;
+  p.ent.saidas=document.getElementById('r-saidas')?.value||p.ent.saidas;
+  p.ent.atores=document.getElementById('r-atores')?.value||p.ent.atores;
+  if(!p.ent.vol)p.ent.vol={};
+  p.ent.vol.exec=document.getElementById('r-exec')?.value||p.ent.vol.exec;
+  const tc=Number.parseFloat(document.getElementById('r-tciclo')?.value);
+  const tr=Number.parseFloat(document.getElementById('r-treal')?.value);
+  if(!Number.isNaN(tc)){p.ent.t_ciclo=tc;} if(!Number.isNaN(tr)){p.ent.t_real=tr;}
+  if(p.ent.t_ciclo!=null&&p.ent.t_real!=null){p.ent.t_gaveta=+(p.ent.t_real-p.ent.t_ciclo).toFixed(1);}
+  const prob=(document.getElementById('a-prob')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  if(prob.length){p.ent.prob=prob;}
+}
+function _rsEsbocaAsis(p){
+  if(!p.mod)p.mod={};
+  const txt=document.getElementById('e-asis')?.value;
+  if(txt!=null) p.mod.asIs=txt;
+}
+function _rsEsbocaTobe(p){
+  if(!p.mod)p.mod={};
+  const txt=document.getElementById('e-tobe')?.value;
+  if(txt!=null) p.mod.toBe=txt;
+}
+function _rsDetValidAsis(p){
+  const obs=document.getElementById('aobs')?.value||'';
+  if(obs){if(!p.ent.analise){p.ent.analise={};} p.ent.analise.obs_valid_asis=obs;}
+}
+function _rsDetValidTobe(p){
+  if(!p.mod)p.mod={};
+  const dt=document.getElementById('vtb-dt')?.value||'';
+  const part=document.getElementById('vtb-part')?.value||'';
+  const ata=document.getElementById('vtb-ata')?.value||'';
+  const obs=document.getElementById('vtb-obs')?.value||'';
+  if(dt||part||ata){p.mod.reuniao_valid_tobe={data:dt,participantes:part,ata};}
+  if(obs){if(!p.mod.obs_valid_tobe){p.mod.obs_valid_tobe='';} p.mod.obs_valid_tobe=obs;}
+}
+function _rsApresentacao(p){
+  if(!p.form)p.form={};
+  const dt=document.getElementById('adt')?.value||'';
+  const part=document.getElementById('apart')?.value||'';
+  const ata=document.getElementById('apr-ata')?.value||'';
+  if(dt||part||ata){p.form.reuniao_apresentacao={data:dt,participantes:part,ata};}
+  const obs=document.getElementById('aobs')?.value||'';
+  if(obs) p.form.obs_apresentacao=obs;
+}
+function _rsQuestionario(p){
+  const resp=p.ent.quest_resp||{};
+  const vals=Object.values(resp);
+  const total=vals.reduce((a,b)=>a+b,0);
+  const media=vals.length>0?(total/vals.length).toFixed(1):0;
+  p.ent.mat=media<=1.5?1:media<=2.5?2:media<=3.5?3:media<=4.5?4:5;
+}
+function _rsAnalise(p){
+  p.ent.analise=document.getElementById('a-anal')?.value||p.ent.analise;
+}
+function _rsDesenhoFinal(p){
+  p.form=p.form||{};
+  p.form.link_final=document.getElementById('a-link')?.value||p.form.link_final||'';
+  p.form.ferramenta=document.getElementById('a-ferr')?.value||p.form.ferramenta||'';
+  p.form.obs_final=document.getElementById('a-obs')?.value??p.form.obs_final??'';
+}
+function _rsComplement(p){
+  p.form=p.form||{};
+  p.form.faq=document.getElementById('afaq')?.value??p.form.faq??'';
+  p.form.excecoes=document.getElementById('a-excecoes')?.value??p.form.excecoes??'';
+  p.form.contatos=document.getElementById('a-contatos')?.value??p.form.contatos??'';
+  p.form.forms=document.getElementById('aforms')?.value??p.form.forms??'';
+  const obs=document.getElementById('aobs')?.value||'';
+  if(obs) p.form.obs_complement=obs;
+  const dt=document.getElementById('comp-dt')?.value||'';
+  const part=document.getElementById('comp-part')?.value||'';
+  const ata=document.getElementById('comp-ata')?.value||'';
+  if(dt||part||ata) p.form.reuniao_complement={data:dt,participantes:part,ata};
+}
+function _rsPOP(p){
+  p.form=p.form||{};
+  const etapas=p.mod?.etapas_proc||[];
+  const ativ_detalhes=Object.assign({},p.form.pop?.ativ_detalhes||{});
+  etapas.forEach((_,i)=>{
+    const descEl=document.getElementById(`pop-at-desc-${i}`);
+    if(!descEl)return;
+    const prev=ativ_detalhes[i]||{};
+    const t=document.getElementById(`pop-at-tipo-${i}`)?.value;
+    const r=document.getElementById(`pop-at-resp-${i}`)?.value;
+    ativ_detalhes[i]={tipo:t||prev.tipo||'Atividade',desc:descEl.value||prev.desc||'',resp:r||prev.resp||''};
+  });
+  const prev=p.form.pop||{};
+  p.form.pop={
+    area:document.getElementById('pp-area')?.value||prev.area||'',
+    ger:document.getElementById('pp-ger')?.value||prev.ger||'',
+    mac:document.getElementById('pp-mac')?.value||prev.mac||'',
+    obj:document.getElementById('pp-obj')?.value||prev.obj||'',
+    def:document.getElementById('pp-def')?.value||prev.def||'',
+    ent:document.getElementById('pp-ent')?.value||prev.ent||'',
+    sai:document.getElementById('pp-sai')?.value||prev.sai||'',
+    docs:document.getElementById('pp-docs')?.value||prev.docs||'',
+    ativ_detalhes,
+  };
+}
+function _rsPublicacao(p){
+  p.form=p.form||{};
+  p.form.pub_link=document.getElementById('pub-link')?.value||p.form.pub_link;
+  p.form.pub_local=document.getElementById('pub-local')?.value||p.form.pub_local;
+}
+function _rsMelhorias(p){
+  if(!p.ent.analise) p.ent.analise={};
+  const fb={};
+  (globalThis._dfbItems||[]).forEach(({tipo,texto})=>{
+    const val=globalThis._dfb?.[tipo]?.[texto];
+    if(val){if(!fb[tipo]){fb[tipo]={};} fb[tipo][texto]=val;}
+  });
+  const existing=p.ent.analise.feedback_dono||{};
+  Object.keys(fb).forEach(t=>{existing[t]={...existing[t],...fb[t]};});
+  p.ent.analise.feedback_dono=existing;
+}
+const _RS_MAP={
+  abertura:_rsAbertura, reuniao:_rsReuniao, riscos:()=>{},
+  esboco_asis:_rsEsbocaAsis, esboco_tobe:_rsEsbocaTobe,
+  det_valid_asis:_rsDetValidAsis, det_valid_tobe:_rsDetValidTobe,
+  apresentacao:_rsApresentacao, questionario:_rsQuestionario,
+  analise:_rsAnalise, desenho_final:_rsDesenhoFinal,
+  complement:_rsComplement, pop:_rsPOP, publicacao:_rsPublicacao,
+  melhorias:_rsMelhorias,
+};
 function salvarRetroativo(etId){
   const p=curProc;
-  const saves={
-    abertura:()=>{
-      p.ent.dt_inicio=document.getElementById('a-ini')?.value||p.ent.dt_inicio;
-      p.ent.dt_prev=document.getElementById('a-prev')?.value||p.ent.dt_prev;
-      p.ent.equipe=document.getElementById('a-equipe')?.value||p.ent.equipe;
-      p.objetivo=document.getElementById('a-obj')?.value||p.objetivo;
-    },
-    reuniao:()=>{
-      p.ent.fornecedores=document.getElementById('r-fornec')?.value||p.ent.fornecedores;
-      p.ent.clientes=document.getElementById('r-clientes')?.value||p.ent.clientes;
-      p.ent.entradas=document.getElementById('r-entradas')?.value||p.ent.entradas;
-      p.ent.atividades_principais=document.getElementById('r-atividades')?.value||p.ent.atividades_principais;
-      p.ent.saidas=document.getElementById('r-saidas')?.value||p.ent.saidas;
-      p.ent.atores=document.getElementById('r-atores')?.value||p.ent.atores;
-      if(!p.ent.vol)p.ent.vol={};
-      p.ent.vol.exec=document.getElementById('r-exec')?.value||p.ent.vol.exec;
-      const tc=Number.parseFloat(document.getElementById('r-tciclo')?.value);const tr=Number.parseFloat(document.getElementById('r-treal')?.value);
-      if(!Number.isNaN(tc)){p.ent.t_ciclo=tc;}if(!Number.isNaN(tr)){p.ent.t_real=tr;}
-      if(p.ent.t_ciclo!=null&&p.ent.t_real!=null){p.ent.t_gaveta=+(p.ent.t_real-p.ent.t_ciclo).toFixed(1);}
-      const prob=(document.getElementById('a-prob')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
-      if(prob.length){p.ent.prob=prob;}
-    },
-    riscos:()=>{/* riscos already stored live via addRisco/remR */},
-    esboco_asis:()=>{
-      if(!p.mod)p.mod={};
-      const txt=document.getElementById('e-asis')?.value;
-      if(txt!=null) p.mod.asIs=txt;
-      // BPMN é salvo pelo próprio botão "Salvar" da toolbar do editor
-    },
-    esboco_tobe:()=>{
-      if(!p.mod)p.mod={};
-      const txt=document.getElementById('e-tobe')?.value;
-      if(txt!=null) p.mod.toBe=txt;
-    },
-    det_valid_asis:()=>{
-      // Campos de detalhe de etapas são salvos live via detalharEtapa()
-      // Apenas captura observações textuais se presentes
-      const obs=document.getElementById('aobs')?.value||'';
-      if(obs){if(!p.ent.analise){p.ent.analise={};} p.ent.analise.obs_valid_asis=obs;}
-    },
-    det_valid_tobe:()=>{
-      if(!p.mod)p.mod={};
-      const dt=document.getElementById('vtb-dt')?.value||'';
-      const part=document.getElementById('vtb-part')?.value||'';
-      const ata=document.getElementById('vtb-ata')?.value||'';
-      const obs=document.getElementById('vtb-obs')?.value||'';
-      if(dt||part||ata){p.mod.reuniao_valid_tobe={data:dt,participantes:part,ata};}
-      if(obs){if(!p.mod.obs_valid_tobe){p.mod.obs_valid_tobe='';} p.mod.obs_valid_tobe=obs;}
-    },
-    apresentacao:()=>{
-      if(!p.form)p.form={};
-      const dt=document.getElementById('adt')?.value||'';
-      const part=document.getElementById('apart')?.value||'';
-      const ata=document.getElementById('apr-ata')?.value||'';
-      if(dt||part||ata){p.form.reuniao_apresentacao={data:dt,participantes:part,ata};}
-      const obs=document.getElementById('aobs')?.value||'';
-      if(obs) p.form.obs_apresentacao=obs;
-    },
-    questionario:()=>{
-      const resp=p.ent.quest_resp||{};
-      const vals=Object.values(resp);
-      const total=vals.reduce((a,b)=>a+b,0);
-      const media=vals.length>0?(total/vals.length).toFixed(1):0;
-      p.ent.mat=media<=1.5?1:media<=2.5?2:media<=3.5?3:media<=4.5?4:5;
-    },
-    analise:()=>{
-      p.ent.analise=document.getElementById('a-anal')?.value||p.ent.analise;
-    },
-    desenho_final:()=>{
-      p.form=p.form||{};
-      p.form.link_final=document.getElementById('a-link')?.value||p.form.link_final||'';
-      p.form.ferramenta=document.getElementById('a-ferr')?.value||p.form.ferramenta||'';
-      p.form.obs_final=document.getElementById('a-obs')?.value??p.form.obs_final??'';
-    },
-    complement:()=>{
-      p.form=p.form||{};
-      p.form.faq=document.getElementById('afaq')?.value??p.form.faq??'';
-      p.form.excecoes=document.getElementById('a-excecoes')?.value??p.form.excecoes??'';
-      p.form.contatos=document.getElementById('a-contatos')?.value??p.form.contatos??'';
-      p.form.forms=document.getElementById('aforms')?.value??p.form.forms??'';
-      const obs=document.getElementById('aobs')?.value||'';
-      if(obs) p.form.obs_complement=obs;
-      const dt=document.getElementById('comp-dt')?.value||'';
-      const part=document.getElementById('comp-part')?.value||'';
-      const ata=document.getElementById('comp-ata')?.value||'';
-      if(dt||part||ata) p.form.reuniao_complement={data:dt,participantes:part,ata};
-    },
-    pop:()=>{
-      p.form=p.form||{};
-      const etapas=p.mod?.etapas_proc||[];
-      const ativ_detalhes=Object.assign({},p.form.pop?.ativ_detalhes||{});
-      etapas.forEach((_,i)=>{
-        const descEl=document.getElementById(`pop-at-desc-${i}`);
-        if(!descEl)return; // aba Atividades não renderizada, preserva valor anterior
-        const prev=ativ_detalhes[i]||{};
-        const t=document.getElementById(`pop-at-tipo-${i}`)?.value;
-        const r=document.getElementById(`pop-at-resp-${i}`)?.value;
-        ativ_detalhes[i]={tipo:t||prev.tipo||'Atividade',desc:descEl.value||prev.desc||'',resp:r||prev.resp||''};
-      });
-      const prev=p.form.pop||{};
-      p.form.pop={
-        area:document.getElementById('pp-area')?.value||prev.area||'',
-        ger:document.getElementById('pp-ger')?.value||prev.ger||'',
-        mac:document.getElementById('pp-mac')?.value||prev.mac||'',
-        obj:document.getElementById('pp-obj')?.value||prev.obj||'',
-        def:document.getElementById('pp-def')?.value||prev.def||'',
-        ent:document.getElementById('pp-ent')?.value||prev.ent||'',
-        sai:document.getElementById('pp-sai')?.value||prev.sai||'',
-        docs:document.getElementById('pp-docs')?.value||prev.docs||'',
-        ativ_detalhes,
-      };
-    },
-    publicacao:()=>{
-      p.form=p.form||{};
-      p.form.pub_link=document.getElementById('pub-link')?.value||p.form.pub_link;
-      p.form.pub_local=document.getElementById('pub-local')?.value||p.form.pub_local;
-    },
-    melhorias:()=>{
-      if(!p.ent.analise) p.ent.analise={};
-      const fb={};
-      (globalThis._dfbItems||[]).forEach(({tipo,texto})=>{
-        const val=globalThis._dfb?.[tipo]?.[texto];
-        if(val){if(!fb[tipo]){fb[tipo]={};} fb[tipo][texto]=val;}
-      });
-      // Preserva feedback existente e mescla com o atual
-      const existing=p.ent.analise.feedback_dono||{};
-      Object.keys(fb).forEach(t=>{existing[t]={...existing[t],...fb[t]};});
-      p.ent.analise.feedback_dono=existing;
-    },
-  };
-  if(saves[etId]){saves[etId]();}
+  if(_RS_MAP[etId]) _RS_MAP[etId](p);
   push(p,etId,'EP','Dados revisados retroativamente pelo EP');
   epRetroEtapa=null;
   toast('Revisão salva.','var(--blue)');
@@ -4138,6 +4143,93 @@ async function gerarFAQIA(){
   finally{ if(btn){btn.disabled=false;} if(st){st.textContent='';} }
 }
 
+// ── gerarPOPPPT: construtores de strings extraídos para manutenibilidade ──
+function _pptCtxStr(p, dimText, probsText, riscosText, solucoesFinal, gargalosFinal, gapsFinal, oportunidadesFinal, faqText, indsText){
+  return `PROCESSO: ${p.nome}
+MACROPROCESSO: ${p.macro || '—'}
+ÁREA: ${p.area || '—'}
+GESTOR/DONO: ${p.dono || '—'}
+OBJETIVO: ${p.objetivo || '—'}
+PRODUTO DO MAPEAMENTO: ${p.produto || '—'}
+PRIORIDADE: ${p.prio || '—'}
+VOLUME (execuções/período): ${p.ent?.vol?.exec || '—'}
+TEMPO DE CICLO MÉDIO: ${p.ent?.t_ciclo == null ? p.ent?.vol?.tempo || '—' : p.ent.t_ciclo + ' h'}
+TEMPO REAL (LEAD TIME): ${p.ent?.t_real == null ? '—' : p.ent.t_real + ' h'}
+TEMPO DE GAVETA: ${p.ent?.t_gaveta == null ? '—' : p.ent.t_gaveta + ' h'}
+SAZONALIDADE: ${p.ent?.vol?.sazon || '—'}
+MATURIDADE GERAL: ${p.ent?.mat || 0}/5
+MATURIDADE POR EIXO: ${dimText || '—'}
+SIPOC — Fornecedores: ${p.ent?.fornecedores || '—'}
+SIPOC — Entradas: ${p.ent?.entradas || '—'}
+SIPOC — Saídas: ${p.ent?.saidas || '—'}
+SIPOC — Clientes: ${p.ent?.clientes || '—'}
+SIPOC — Atores: ${p.ent?.atores || '—'}
+PROBLEMAS RELATADOS:
+${probsText || 'Nenhum registrado'}
+RISCOS IDENTIFICADOS:
+${riscosText || 'Nenhum registrado'}
+SOLUÇÕES DE PROBLEMAS CONFIRMADAS PELA EQUIPE (usar no slide de soluções):
+${solucoesFinal.length ? solucoesFinal.map((s,i)=>`${i+1}. ${s}`).join('\n') : 'Nenhuma confirmada'}
+SITUAÇÃO AS IS: ${p.mod?.asIs || '—'}
+SITUAÇÃO TO BE: ${p.mod?.toBe || '—'}
+GARGALOS CONFIRMADOS: ${gargalosFinal.join('; ') || '—'}
+GAPS CONFIRMADOS: ${gapsFinal.join('; ') || '—'}
+OPORTUNIDADES CONFIRMADAS: ${oportunidadesFinal.join('; ') || '—'}
+FAQ:
+${faqText || 'Não preenchido'}
+INDICADORES VINCULADOS:
+${indsText || 'Nenhum indicador cadastrado'}`;
+}
+function _pptPromptStr(ctx){
+  return `Você é especialista em BPM gerando um POP em PowerPoint para publicação oficial.
+
+Com base nos dados abaixo, gere o conteúdo para uma apresentação com EXATAMENTE 11 slides na ordem indicada.
+Escreva em português formal e executivo. Retorne APENAS o JSON, sem markdown.
+
+{
+  "slides": [
+    {"id":"apresentacao","titulo":"Apresentação do Processo","tipo":"dados",
+      "dados":[{"label":"Macroprocesso","valor":"..."},{"label":"Processo / Subprocesso","valor":"..."},{"label":"Área responsável","valor":"..."},{"label":"Gestor do processo","valor":"..."},{"label":"Prioridade","valor":"..."},{"label":"Produto do mapeamento","valor":"..."}]},
+
+    {"id":"sipoc_volumetria","titulo":"SIPOC, Volumetria e Maturidade","tipo":"sipoc",
+      "sipoc":{"S":"fornecedores reais","I":"entradas reais","P":"nome do processo","O":"saídas reais","C":"clientes reais"},
+      "volumetria":[{"label":"Execuções / período","valor":"..."},{"label":"Tempo de ciclo médio","valor":"..."},{"label":"Lead time (tempo real)","valor":"..."},{"label":"Tempo de gaveta","valor":"..."}],
+      "maturidade":[{"eixo":"Alinhamento estratégico","nota":"X/5"},{"eixo":"Estrutura e padronização","nota":"X/5"},{"eixo":"Papéis e responsabilidades","nota":"X/5"},{"eixo":"Execução e controle","nota":"X/5"},{"eixo":"Automação e tecnologia","nota":"X/5"},{"eixo":"Monitoramento e melhoria","nota":"X/5"}]},
+
+    {"id":"objetivo_problemas","titulo":"Objetivo do Mapeamento e Problemas Relatados","tipo":"objetivo",
+      "objetivo":"parágrafo conciso explicando o objetivo do trabalho de mapeamento e contexto institucional...",
+      "problemas":["problema 1 real","problema 2 real","..."]},
+
+    {"id":"asis","titulo":"Desenho AS IS — Situação Atual","tipo":"bpmn_asis",
+      "resumo":"descrição objetiva da situação atual do processo caso o diagrama não esteja disponível..."},
+
+    {"id":"riscos","titulo":"Riscos Identificados","tipo":"bullets",
+      "bullets":["Risco 1 — probabilidade / impacto","Risco 2 — ..."]},
+
+    {"id":"solucoes","titulo":"Propostas de Soluções","tipo":"solucoes",
+      "itens":[{"problema":"problema ou risco identificado","solucao":"sugestão de mitigação ou solução proposta"}]},
+
+    {"id":"tobe","titulo":"Desenho TO BE — Situação Proposta","tipo":"bpmn_tobe",
+      "resumo":"descrição objetiva da situação proposta caso o diagrama não esteja disponível..."},
+
+    {"id":"comparativo","titulo":"Comparativo AS IS → TO BE","tipo":"bullets",
+      "bullets":["Mudança 1: o que era X, passa a ser Y","Mudança 2: ..."]},
+
+    {"id":"faq","titulo":"Perguntas Frequentes — FAQ","tipo":"faq",
+      "itens":[{"pergunta":"P: pergunta frequente?","resposta":"R: resposta objetiva."}]},
+
+    {"id":"indicadores","titulo":"Indicadores Vinculados ao Processo","tipo":"indicadores",
+      "itens":[{"label":"nome do indicador","valor":"periodicidade — meta se houver"}]},
+
+    {"id":"encerramento","titulo":"Encerramento","tipo":"encerramento",
+      "mensagem":"mensagem executiva de encerramento, reforçando o valor do processo documentado..."}
+  ]
+}
+
+DADOS DO PROCESSO:
+${ctx}`;
+}
+
 async function gerarPOPPPT() {
   const p = curProc;
   if (!p) { toast('Nenhum processo selecionado.','var(--amber)'); return; }
@@ -4192,88 +4284,8 @@ async function gerarPOPPPT() {
     const indsText = indsProc.slice(0, 8).map(k => `${k.enunciado || k.indicador}${k.ciclo ? ' (' + k.ciclo + ')' : ''}${k.meta ? ' — meta: ' + k.meta : ''}`).join('\n');
     const faqText = p.form?.faq || '';
 
-    const ctx = `PROCESSO: ${p.nome}
-MACROPROCESSO: ${p.macro || '—'}
-ÁREA: ${p.area || '—'}
-GESTOR/DONO: ${p.dono || '—'}
-OBJETIVO: ${p.objetivo || '—'}
-PRODUTO DO MAPEAMENTO: ${p.produto || '—'}
-PRIORIDADE: ${p.prio || '—'}
-VOLUME (execuções/período): ${p.ent?.vol?.exec || '—'}
-TEMPO DE CICLO MÉDIO: ${p.ent?.t_ciclo == null ? p.ent?.vol?.tempo || '—' : p.ent.t_ciclo + ' h'}
-TEMPO REAL (LEAD TIME): ${p.ent?.t_real == null ? '—' : p.ent.t_real + ' h'}
-TEMPO DE GAVETA: ${p.ent?.t_gaveta == null ? '—' : p.ent.t_gaveta + ' h'}
-SAZONALIDADE: ${p.ent?.vol?.sazon || '—'}
-MATURIDADE GERAL: ${p.ent?.mat || 0}/5
-MATURIDADE POR EIXO: ${dimText || '—'}
-SIPOC — Fornecedores: ${p.ent?.fornecedores || '—'}
-SIPOC — Entradas: ${p.ent?.entradas || '—'}
-SIPOC — Saídas: ${p.ent?.saidas || '—'}
-SIPOC — Clientes: ${p.ent?.clientes || '—'}
-SIPOC — Atores: ${p.ent?.atores || '—'}
-PROBLEMAS RELATADOS:
-${probsText || 'Nenhum registrado'}
-RISCOS IDENTIFICADOS:
-${riscosText || 'Nenhum registrado'}
-SOLUÇÕES DE PROBLEMAS CONFIRMADAS PELA EQUIPE (usar no slide de soluções):
-${solucoesFinal.length ? solucoesFinal.map((s,i)=>`${i+1}. ${s}`).join('\n') : 'Nenhuma confirmada'}
-SITUAÇÃO AS IS: ${p.mod?.asIs || '—'}
-SITUAÇÃO TO BE: ${p.mod?.toBe || '—'}
-GARGALOS CONFIRMADOS: ${gargalosFinal.join('; ') || '—'}
-GAPS CONFIRMADOS: ${gapsFinal.join('; ') || '—'}
-OPORTUNIDADES CONFIRMADAS: ${oportunidadesFinal.join('; ') || '—'}
-FAQ:
-${faqText || 'Não preenchido'}
-INDICADORES VINCULADOS:
-${indsText || 'Nenhum indicador cadastrado'}`;
-
-    const prompt = `Você é especialista em BPM gerando um POP em PowerPoint para publicação oficial.
-
-Com base nos dados abaixo, gere o conteúdo para uma apresentação com EXATAMENTE 11 slides na ordem indicada.
-Escreva em português formal e executivo. Retorne APENAS o JSON, sem markdown.
-
-{
-  "slides": [
-    {"id":"apresentacao","titulo":"Apresentação do Processo","tipo":"dados",
-      "dados":[{"label":"Macroprocesso","valor":"..."},{"label":"Processo / Subprocesso","valor":"..."},{"label":"Área responsável","valor":"..."},{"label":"Gestor do processo","valor":"..."},{"label":"Prioridade","valor":"..."},{"label":"Produto do mapeamento","valor":"..."}]},
-
-    {"id":"sipoc_volumetria","titulo":"SIPOC, Volumetria e Maturidade","tipo":"sipoc",
-      "sipoc":{"S":"fornecedores reais","I":"entradas reais","P":"nome do processo","O":"saídas reais","C":"clientes reais"},
-      "volumetria":[{"label":"Execuções / período","valor":"..."},{"label":"Tempo de ciclo médio","valor":"..."},{"label":"Lead time (tempo real)","valor":"..."},{"label":"Tempo de gaveta","valor":"..."}],
-      "maturidade":[{"eixo":"Alinhamento estratégico","nota":"X/5"},{"eixo":"Estrutura e padronização","nota":"X/5"},{"eixo":"Papéis e responsabilidades","nota":"X/5"},{"eixo":"Execução e controle","nota":"X/5"},{"eixo":"Automação e tecnologia","nota":"X/5"},{"eixo":"Monitoramento e melhoria","nota":"X/5"}]},
-
-    {"id":"objetivo_problemas","titulo":"Objetivo do Mapeamento e Problemas Relatados","tipo":"objetivo",
-      "objetivo":"parágrafo conciso explicando o objetivo do trabalho de mapeamento e contexto institucional...",
-      "problemas":["problema 1 real","problema 2 real","..."]},
-
-    {"id":"asis","titulo":"Desenho AS IS — Situação Atual","tipo":"bpmn_asis",
-      "resumo":"descrição objetiva da situação atual do processo caso o diagrama não esteja disponível..."},
-
-    {"id":"riscos","titulo":"Riscos Identificados","tipo":"bullets",
-      "bullets":["Risco 1 — probabilidade / impacto","Risco 2 — ..."]},
-
-    {"id":"solucoes","titulo":"Propostas de Soluções","tipo":"solucoes",
-      "itens":[{"problema":"problema ou risco identificado","solucao":"sugestão de mitigação ou solução proposta"}]},
-
-    {"id":"tobe","titulo":"Desenho TO BE — Situação Proposta","tipo":"bpmn_tobe",
-      "resumo":"descrição objetiva da situação proposta caso o diagrama não esteja disponível..."},
-
-    {"id":"comparativo","titulo":"Comparativo AS IS → TO BE","tipo":"bullets",
-      "bullets":["Mudança 1: o que era X, passa a ser Y","Mudança 2: ..."]},
-
-    {"id":"faq","titulo":"Perguntas Frequentes — FAQ","tipo":"faq",
-      "itens":[{"pergunta":"P: pergunta frequente?","resposta":"R: resposta objetiva."}]},
-
-    {"id":"indicadores","titulo":"Indicadores Vinculados ao Processo","tipo":"indicadores",
-      "itens":[{"label":"nome do indicador","valor":"periodicidade — meta se houver"}]},
-
-    {"id":"encerramento","titulo":"Encerramento","tipo":"encerramento",
-      "mensagem":"mensagem executiva de encerramento, reforçando o valor do processo documentado..."}
-  ]
-}
-
-DADOS DO PROCESSO:
-${ctx}`;
+    const ctx = _pptCtxStr(p, dimText, probsText, riscosText, solucoesFinal, gargalosFinal, gapsFinal, oportunidadesFinal, faqText, indsText);
+    const prompt = _pptPromptStr(ctx);
 
     if (st) st.innerHTML = '<div class="ai-loading"><div class="spin"></div>IA elaborando conteúdo do POP...</div>';
     const raw = await chamarIA('gerar_ppt', prompt, st);
@@ -4667,7 +4679,7 @@ async function salvarQuestaoAuditoria(){
   const idxStr=document.getElementById('aud-q-idx')?.value||'';
   if(!texto){toast('Informe a questão','var(--red)');return;}
   if(idxStr!==''){
-    const idx=parseInt(idxStr);
+    const idx=Number.parseInt(idxStr);
     p.auditoria.questoes[idx]={...p.auditoria.questoes[idx],questao:texto,criterio,responsavel};
     toast('Questão atualizada!','var(--teal)');
   } else {
@@ -4948,7 +4960,7 @@ function visPopPreview(){
   const prev=p.form.pop;
   ['pp-area','pp-ger','pp-mac','pp-obj','pp-def','pp-ent','pp-sai','pp-docs'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el){const key=id.replace('pp-','');prev[key]=el.value;}
+    if(el){const key=id.replaceAll('pp-','');prev[key]=el.value;}
   });
   const etapas=p.mod?.etapas_proc||[];
   const ativ_detalhes=Object.assign({},prev.ativ_detalhes||{});
@@ -7174,7 +7186,7 @@ function fmtPeriodo(v){
 // dot as thousands separator). Also strips % suffix and handles already-numeric values.
 function parseNumBR(v){
   if(typeof v === 'number') return v;
-  let s = v.toString().trim().replace('%','').trim();
+  let s = v.toString().trim().replaceAll('%','').trim();
   if(!s) return 0;
   const hasDot   = s.includes('.');
   const hasComma = s.includes(',');
@@ -7293,7 +7305,7 @@ function rInd(){
   if(gsheetsSec){ gsheetsSec.style.display = isEP() ? 'flex' : 'none'; }
   const gsUrlInput = document.getElementById('ind-gsheets-url');
   if(gsUrlInput && !gsUrlInput.value){
-    try{ gsUrlInput.value = localStorage.getItem('epcage_gsheets_url') || ''; }catch(_e){}
+    gsUrlInput.value = lsGet('epcage_gsheets_url');
   }
 
   // Destroy previous charts
@@ -7419,13 +7431,13 @@ function periodoToNum(s){
   const MONTHS = {jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
   const y = (str.match(/\d{4}/)||['0'])[0];
   for(const [abbr,num] of Object.entries(MONTHS)){
-    if(str.includes(abbr)) return parseInt(y)*100 + num;
+    if(str.includes(abbr)) return Number.parseInt(y)*100 + num;
   }
   const tMatch = str.match(/t(\d)/);
-  if(tMatch) return parseInt(y)*100 + (parseInt(tMatch[1])-1)*3 + 1;
+  if(tMatch) return Number.parseInt(y)*100 + (Number.parseInt(tMatch[1])-1)*3 + 1;
   const semMatch = str.match(/(\d)[ºo\s]*sem/);
-  if(semMatch) return parseInt(y)*100 + (parseInt(semMatch[1])===1 ? 1 : 7);
-  if(parseInt(y)) return parseInt(y)*100;
+  if(semMatch) return Number.parseInt(y)*100 + (Number.parseInt(semMatch[1])===1 ? 1 : 7);
+  if(Number.parseInt(y)) return Number.parseInt(y)*100;
   return 0;
 }
 function kpiGroupByKey(list){
@@ -7827,7 +7839,7 @@ async function limparKpisImportados(){
 
 function salvarGSheetsUrl(){
   const url = (document.getElementById('ind-gsheets-url')?.value||'').trim();
-  try{ localStorage.setItem('epcage_gsheets_url', url); }catch(_e){ console.warn('localStorage unavailable', _e); }
+  lsSet('epcage_gsheets_url', url);
 }
 
 async function sincronizarGSheets(){
@@ -8896,7 +8908,7 @@ async function fbLoad(){
       processos.sort((a,b) => a.id - b.id);
       nextProcId = Math.max(...processos.map(p=>p.id), 0) + 1;
       // Sync etapasIdC so new etapa IDs never collide with existing ones
-      const allEtapaNums = processos.flatMap(p=>(p.mod?.etapas_proc||[]).map(e=>Number.parseInt(String(e.id||'').replace('ep',''))||0));
+      const allEtapaNums = processos.flatMap(p=>(p.mod?.etapas_proc||[]).map(e=>Number.parseInt(String(e.id||'').replaceAll('ep','''))||0));
       if(allEtapaNums.length) etapasIdC = Math.max(...allEtapaNums) + 1;
     }
 
@@ -9258,7 +9270,7 @@ document.getElementById('login-screen').style.display='flex';
   // Fall back to localStorage for EmailJS if Firebase didn't have it
   if(!ejsConfig.pubkey){
     try {
-      const saved = localStorage.getItem('epcage_ejs');
+      const saved = lsGet('epcage_ejs');
       if(saved){
         const cfg = JSON.parse(saved);
         ejsConfig.service  = cfg.service  || '';
@@ -9294,7 +9306,7 @@ document.getElementById('login-screen').style.display='flex';
   } else {
     // Fallback modo local
     try {
-      const savedEmail = localStorage.getItem('siga_user');
+      const savedEmail = lsGet('siga_user');
       if(savedEmail){
         const user = USUARIOS.find(u=>u.email===savedEmail);
         if(user) _aplicarUsuario(user);
@@ -9805,7 +9817,7 @@ function injectAiConfigField(){
 function salvarAiUrl(){
   const url = document.getElementById('ai-fn-url')?.value.trim();
   if(!url){ toast('Informe a URL.','var(--amber)'); return; }
-  try { localStorage.setItem('epcage_ai_url', url); } catch(_e){ console.warn('localStorage unavailable', _e); }
+  lsSet('epcage_ai_url', url);
   // Patch the constant at runtime
   globalThis._aiUrl = url;
   toast('URL da IA salva');
@@ -9814,10 +9826,8 @@ function salvarAiUrl(){
 
 // Restore AI URL from localStorage on boot
 (function(){
-  try {
-    const saved = localStorage.getItem('epcage_ai_url');
-    if(saved) globalThis._aiUrl = saved;
-  } catch(_e){ console.warn('localStorage unavailable', _e); }
+  const saved = lsGet('epcage_ai_url');
+  if(saved) globalThis._aiUrl = saved;
 })();
 
 // ═══════════════════════════════════════════
