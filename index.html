@@ -3614,6 +3614,21 @@ function _rsMelhorias(p){
   Object.keys(fb).forEach(t=>{existing[t]={...existing[t],...fb[t]};});
   p.ent.analise.feedback_dono=existing;
 }
+function _rsAcompanha(p){
+  const data=document.getElementById('ac-data')?.value;
+  if(!data) return;
+  if(!p.reunioes_acomp) p.reunioes_acomp=[];
+  p.reunioes_acomp.push({
+    data,
+    conformidade: document.getElementById('ac-conf')?.value||'Conforme',
+    pauta:        document.getElementById('ac-pauta')?.value||'',
+    desvios:      document.getElementById('ac-desv')?.value||'',
+    acoes:        document.getElementById('ac-acoes')?.value||'',
+    participantes:document.getElementById('ac-partic')?.value||'',
+    proxima:      document.getElementById('ac-proxima')?.value||'',
+    registrada_em:now()
+  });
+}
 const _RS_MAP={
   abertura:_rsAbertura, reuniao:_rsReuniao, riscos:()=>{},
   esboco_asis:_rsEsbocaAsis, esboco_tobe:_rsEsbocaTobe,
@@ -3621,7 +3636,7 @@ const _RS_MAP={
   apresentacao:_rsApresentacao, questionario:_rsQuestionario,
   analise:_rsAnalise, desenho_final:_rsDesenhoFinal,
   complement:_rsComplement, pop:_rsPOP, publicacao:_rsPublicacao,
-  melhorias:_rsMelhorias,
+  melhorias:_rsMelhorias, acompanha:_rsAcompanha,
 };
 function salvarRetroativo(etId){
   const p=curProc;
