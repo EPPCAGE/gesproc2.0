@@ -5547,21 +5547,26 @@ function _bpmnNodeType(tag, GW_TAGS, TASK_TAGS){
     modo:     tag==='servicetask'||tag==='scripttask'?'Automatica':'Manual', desc:''};
   return null;
 }
+function _bpmnFindAll(xml, localNames){
+  const set=new Set(localNames.map(n=>n.toLowerCase()));
+  return Array.from(xml.getElementsByTagName('*')).filter(e=>set.has(e.localName.toLowerCase()));
+}
 function _bpmnBuildLaneMap(xml){
   const laneMap={};
-  xml.querySelectorAll('lane').forEach(lane=>{
+  _bpmnFindAll(xml,['lane']).forEach(lane=>{
     const nome=lane.getAttribute('name')||'';
-    if(nome) lane.querySelectorAll('flowNodeRef').forEach(ref=>{laneMap[ref.textContent.trim()]=nome;});
+    if(nome) Array.from(lane.getElementsByTagName('*')).filter(e=>e.localName.toLowerCase()==='flownoderef').forEach(ref=>{laneMap[ref.textContent.trim()]=nome;});
   });
   return laneMap;
 }
 function _bpmnBuildNodeInfo(xml, GW_TAGS, TASK_TAGS, laneMap){
   const nodeInfo={};
-  xml.querySelectorAll([
+  const tags=[
     'startEvent','endEvent','intermediateThrowEvent','intermediateCatchEvent',
     'task','userTask','serviceTask','sendTask','receiveTask','manualTask','scriptTask',
     'exclusiveGateway','inclusiveGateway','parallelGateway','complexGateway'
-  ].join(',')).forEach(e=>{
+  ];
+  _bpmnFindAll(xml, tags).forEach(e=>{
     const tag=e.localName.toLowerCase();
     const typeInfo = _bpmnNodeType(tag, GW_TAGS, TASK_TAGS);
     if(!typeInfo) return;
@@ -5571,7 +5576,7 @@ function _bpmnBuildNodeInfo(xml, GW_TAGS, TASK_TAGS, laneMap){
 }
 function _bpmnBuildOutgoing(xml){
   const outgoing={};
-  xml.querySelectorAll('sequenceFlow').forEach(sf=>{
+  _bpmnFindAll(xml,['sequenceFlow']).forEach(sf=>{
     const src=sf.getAttribute('sourceRef'), tgt=sf.getAttribute('targetRef');
     if(src&&tgt){ if(!outgoing[src]){ outgoing[src]=[]; } outgoing[src].push(tgt); }
   });
@@ -5579,7 +5584,7 @@ function _bpmnBuildOutgoing(xml){
 }
 function _bpmnBfsOrder(xml, outgoing, nodeInfo){
   const startIds=[];
-  xml.querySelectorAll('startEvent').forEach(e=>startIds.push(e.id));
+  _bpmnFindAll(xml,['startEvent']).forEach(e=>startIds.push(e.id));
   const visited=new Set();
   const ordered=[];
   const queue=[...startIds];
