@@ -5826,7 +5826,7 @@ function rForm(p){
 function gerarPopPdf(){
   const el=document.getElementById('tab-form');
   if(!el)return;
-  const inner=el.querySelector('.pop-pdf-bar')?el.innerHTML.replace(new RegExp('<div class="pop-pdf-bar"[\\s\\S]*?</div>'),''):el.innerHTML;
+  const inner=el.querySelector('.pop-pdf-bar')?el.innerHTML.replace(/<div class="pop-pdf-bar"[\s\S]*?<[/]div>/,''):el.innerHTML;
   if(!inner.trim())return;
   const nome=esc(curProc?.nome||'POP');
   const w=window.open('','_blank');
