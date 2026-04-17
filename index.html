@@ -699,7 +699,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
       <label class="btn" style="cursor:pointer">↑ Importar planilha
         <input type="file" id="ind-xlsx-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarIndicadores(this)">
       </label>
-      <button type="button" class="btn btn-r" onclick="limparKpisImportados()" title="Remove apenas os indicadores importados via planilha">🗑 Limpar importados</button>
+      <button type="button" class="btn btn-r" onclick="limparKpisImportados()" title="Remove indicadores importados/sincronizados — mantém manuais e os que foram editados manualmente">🗑 Limpar importados</button>
       <button type="button" class="btn btn-p" onclick="abrirNovoKpi()">+ Novo indicador</button>
     </div>
   </div>
@@ -7621,11 +7621,22 @@ async function importarIndicadores(input){
       const cAnalise  = col(['análise','analise','análisis']);
       const cPctReal  = col(['% realizado','pct realizado']);
 
-      // Build polarity lookup from already-edited entries (manual edits survive re-import)
-      const polEditado = {};
-      kpis.filter(k => k.origem === 'gsheets_editado' || k.origem === 'manual').forEach(k => {
+      // Build protection set — skip indicators already edited manually (importado_editado)
+      const editadosImport = new Set(
+        kpis.filter(k => k.origem === 'importado_editado')
+            .map(k => (k.codigo||k.nome||'').trim() + '|' + (k.periodo||'').trim())
+      );
+      // Build full config map from edited rows so new periods inherit manual changes
+      const cfgEditadoImport = {};
+      kpis.filter(k => k.origem === 'importado_editado' || k.origem === 'manual').forEach(k => {
         const gk = (k.codigo||k.nome||'').trim();
-        if(gk && k.polaridade) polEditado[gk] = k.polaridade;
+        if(!gk || cfgEditadoImport[gk]) return;
+        cfgEditadoImport[gk] = {
+          area: k.area, nome: k.nome, desc: k.desc,
+          periodicidade: k.periodicidade, ciclo: k.ciclo, ppe: k.ppe,
+          polaridade: k.polaridade, meta: k.meta, unidade: k.unidade,
+          pid: k.pid != null ? k.pid : null,
+        };
       });
 
       let added = 0;
@@ -7643,18 +7654,27 @@ async function importarIndicadores(input){
         const real    = parseNumBR(cReal    ? row[cReal]    : 0);
         const analise = (cAnalise  ? row[cAnalise]  : '').toString().trim();
         const pctReal = parseNumBR(cPctReal ? row[cPctReal] : 0) || (meta > 0 ? Math.round((real/meta)*100) : 0);
-        const groupKey = (nome||enunc||'').trim();
         const polSheet = cPol ? (row[cPol]||'').toString().trim() : '';
-        const polaridade = polEditado[groupKey]
-          || (polSheet === 'Menor é melhor' ? 'Menor é melhor' : 'Maior é melhor');
-
+        const groupKey = (nome||enunc||'').trim();
+        const chaveImp = groupKey + '|' + periodo.trim();
         if(!area && !nome && !enunc) return; // skip empty rows
-
+        if(editadosImport.has(chaveImp)) return; // skip manually edited periods
+        const cfg = cfgEditadoImport[groupKey] || {};
+        const polaridade = cfg.polaridade
+          || (polSheet === 'Menor é melhor' ? 'Menor é melhor' : 'Maior é melhor');
         kpis.push({
           id: _kpiIdC++,
-          area, codigo:nome, nome: enunc||nome, desc,
-          periodicidade: period, periodo, ciclo,
-          ppe, indice, meta, realizado: real,
+          area:          cfg.area          || area,
+          codigo:        nome,
+          nome:          cfg.nome          || enunc||nome,
+          desc:          cfg.desc          || desc,
+          periodicidade: cfg.periodicidade || period,
+          ciclo:         cfg.ciclo         || ciclo,
+          ppe:           cfg.ppe           || ppe,
+          unidade:       cfg.unidade       || '',
+          meta:          cfg.meta != null  ? cfg.meta : meta,
+          pid:           cfg.pid != null   ? cfg.pid  : null,
+          periodo, indice, realizado: real,
           analise, pct_realizado: pctReal,
           polaridade, origem: 'importado',
         });
@@ -8145,8 +8165,9 @@ function salvarNovoKpi(){
       const idx = kpis.findIndex(x => x.id === p.id);
       if(idx < 0) return;
       Object.assign(kpis[idx], generalCfg);
-      // Promote gsheets→gsheets_editado so the next sync won't overwrite this manual edit
+      // Promote gsheets→gsheets_editado and importado→importado_editado so next sync/import won't overwrite
       if(kpis[idx].origem === 'gsheets'){ kpis[idx].origem = 'gsheets_editado'; }
+      if(kpis[idx].origem === 'importado'){ kpis[idx].origem = 'importado_editado'; }
       // Apply any period-specific edits made while navigating
       const edits = (globalThis._kpiPeriodEdits||{})[p.id];
       if(edits){
@@ -8181,8 +8202,10 @@ function salvarNovoKpi(){
     const idx = kpis.findIndex(k=>k.id===editIdNum);
     if(idx >= 0){
       const orig = kpis[idx];
-      // Promote gsheets→gsheets_editado so the next sync won't overwrite this manual edit
-      const novaOrigem = orig.origem === 'gsheets' ? 'gsheets_editado' : orig.origem;
+      // Promote gsheets→gsheets_editado and importado→importado_editado so next sync/import won't overwrite
+      const novaOrigem = orig.origem === 'gsheets' ? 'gsheets_editado'
+        : orig.origem === 'importado' ? 'importado_editado'
+        : orig.origem;
       const pidRaw = document.getElementById('nkpi-proc')?.value;
       kpis[idx] = {
         id: editIdNum, origem: novaOrigem,
@@ -8252,12 +8275,14 @@ function deletarKpi(id){
 async function limparKpisImportados(){
   const importados = kpis.filter(k => k.origem === 'importado' || k.origem === 'gsheets' || k.origem === 'gsheets_editado');
   if(!importados.length){ toast('Nenhum indicador importado encontrado.', 'var(--amber)'); return; }
-  confirmar(`Remover ${importados.length} indicador(es) importado(s)/sincronizado(s)? Os indicadores manuais serão mantidos.`, async () => {
+  // importado_editado (manually edited) is intentionally excluded from `importados` and kept
+  confirmar(`Remover ${importados.length} indicador(es) importado(s)/sincronizado(s)? Indicadores manuais e os que foram editados manualmente serão mantidos.`, async () => {
     if(fbReady()){
       const {db,doc,deleteDoc}=fb();
       await Promise.all(importados.map(k => deleteDoc(doc(db,'kpis',String(k.id))).catch(e=>console.warn(e.message))));
     }
     kpis = kpis.filter(k => k.origem !== 'importado' && k.origem !== 'gsheets' && k.origem !== 'gsheets_editado');
+    // importado_editado rows are kept because they have user edits
     rInd();
     toast(`${importados.length} indicador(es) removido(s).`, 'var(--amber)');
   });
@@ -8328,12 +8353,24 @@ async function sincronizarGSheets(){
       cReal=col(['realizado','realiz']),cAnalise=col(['análise','analise','análisis']),
       cPctReal=col(['% realizado','pct realizado']);
 
-    // Build polarity lookup from already-edited entries so re-sync preserves manual changes
-    const polEditadoSync = {};
-    kpis.filter(k => k.origem === 'gsheets_editado' || k.origem === 'manual').forEach(k => {
-      const gk = (k.codigo||k.nome||'').trim();
-      if(gk && k.polaridade) polEditadoSync[gk] = k.polaridade;
-    });
+      // Build polarity lookup from already-edited entries so re-sync preserves manual changes
+      const polEditadoSync = {};
+      // Build full general-config lookup — all manually edited fields survive re-sync
+      const cfgEditadoSync = {};
+      kpis.filter(k => k.origem === 'gsheets_editado' || k.origem === 'manual' || k.origem === 'importado_editado').forEach(k => {
+        const gk = (k.codigo||k.nome||'').trim();
+        if(!gk) return;
+        if(!cfgEditadoSync[gk]){
+          cfgEditadoSync[gk] = {
+            area: k.area, nome: k.nome, desc: k.desc,
+            periodicidade: k.periodicidade, ciclo: k.ciclo, ppe: k.ppe,
+            polaridade: k.polaridade, meta: k.meta, unidade: k.unidade,
+            pid: k.pid != null ? k.pid : null,
+          };
+        }
+        // Also keep individual polEditadoSync for backward compat
+        if(k.polaridade) polEditadoSync[gk] = k.polaridade;
+      });
 
     // Remove previously unedited GSheets entries; preserve gsheets_editado (manual edits)
     const oldGSheets = kpis.filter(k => k.origem === 'gsheets');
@@ -8364,10 +8401,21 @@ async function sincronizarGSheets(){
       if(editados.has(chave)) return;
       const polSheet = cPol ? (row[cPol]||'').toString().trim() : '';
       const groupKey = (nome||enunc||'').trim();
-      const polaridade = polEditadoSync[groupKey]
+      const cfg = cfgEditadoSync[groupKey] || {};
+      const polaridade = cfg.polaridade
         || (polSheet === 'Menor é melhor' ? 'Menor é melhor' : 'Maior é melhor');
-      kpis.push({ id:_kpiIdC++, area, codigo:nome, nome:enunc||nome, desc,
-        periodicidade:period, periodo, ciclo, ppe, indice, meta, realizado:real,
+      kpis.push({ id:_kpiIdC++,
+        area:           cfg.area           || area,
+        codigo:         nome,
+        nome:           cfg.nome           || enunc||nome,
+        desc:           cfg.desc           || desc,
+        periodicidade:  cfg.periodicidade  || period,
+        ciclo:          cfg.ciclo          || ciclo,
+        ppe:            cfg.ppe            || ppe,
+        unidade:        cfg.unidade        || '',
+        meta:           cfg.meta != null   ? cfg.meta : meta,
+        pid:            cfg.pid            != null ? cfg.pid : null,
+        periodo, indice, realizado:real,
         analise, pct_realizado:pctReal, polaridade, origem:'gsheets' });
       added++;
     });
@@ -10499,6 +10547,24 @@ function gerarRelatorioIndPdf(){
     </div>`;
   }).join('');
 
+  // ── Ordena por área → nome → período cronológico ─────────────────
+  function parsePeriodSort(p){
+    const months = {jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
+    const m = (p||'').toLowerCase().match(/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[^0-9]*(\d{4})/);
+    if(m) return parseInt(m[2])*100 + months[m[1]];
+    const t = (p||'').match(/^T([1-4])[^0-9]*(\d{4})/i);
+    if(t) return parseInt(t[2])*100 + (parseInt(t[1])-1)*3 + 1;
+    const y = (p||'').match(/(\d{4})/);
+    return y ? parseInt(y[1])*100 : 0;
+  }
+  lista.sort((a,b)=>{
+    const ac = (a.area||'').localeCompare(b.area||'','pt-BR',{sensitivity:'base'});
+    if(ac!==0) return ac;
+    const nc = (a.nome||'').localeCompare(b.nome||'','pt-BR',{sensitivity:'base'});
+    if(nc!==0) return nc;
+    return parsePeriodSort(a.periodo) - parsePeriodSort(b.periodo);
+  });
+
   // ── Linhas da tabela ────────────────────────────────────────────────
   const rows = lista.map(k => {
     const und     = k.unidade ? ' '+k.unidade : '';
@@ -10511,8 +10577,11 @@ function gerarRelatorioIndPdf(){
     else if(st.tier===0 && pct!==null) pctStyle=`font-size:13px;font-weight:800;color:${st.color}`;
     else pctStyle=`font-weight:700;color:${st.color}`;
     const badgeStyle = `display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;background:${st.bg};color:${st.color}`;
+    const ppeBadge = (k.ppe==='Sim'||k.ppe===true)
+      ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;background:#dbeafe;color:#1e40af;margin-left:5px;vertical-align:middle">PPE</span>'
+      : '';
     return `<tr style="background:${st.rowBg}">
-      <td>${k.codigo?'<strong>'+esc(k.codigo)+'</strong> — ':''}${esc(k.nome)}</td>
+      <td>${k.codigo?'<strong>'+esc(k.codigo)+'</strong> — ':''}${esc(k.nome)}${ppeBadge}</td>
       <td style="font-size:10px;color:#6b7280">${esc(k.area||'—')}</td>
       <td style="font-size:10px;color:#6b7280">${esc(k.periodo||'—')}</td>
       <td style="text-align:center">${hasMeta?k.meta+und:'—'}</td>
