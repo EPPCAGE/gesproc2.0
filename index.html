@@ -5812,10 +5812,12 @@ function rForm(p){
           const resp=(d.resp!==undefined&&d.resp!=='')?d.resp:(e.executor||'');
           const tipo=normTipo(d.tipo||e.tipo);
           const modo=normModo(e.modo);
+          const nat=e.natureza||'';
           return `<tr style="border-bottom:1px solid var(--bdr)">
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3);white-space:nowrap">${i+1}</td>
             <td style="padding:5px 8px;font-size:12px;font-weight:600">${esc(e.nome||'')}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(tipo)}</td>
+            <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(nat)}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(modo)}</td>
             <td style="padding:5px 8px;font-size:12px">${esc(desc)}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(resp)}</td>
@@ -5828,6 +5830,7 @@ function rForm(p){
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">#</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Etapa</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Tipo</th>
+              <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Natureza</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Modo</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Descrição</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Responsável</th>
