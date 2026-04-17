@@ -6112,7 +6112,7 @@ function rMon(p){
     <div class="g2"><div><div class="sec-lbl">Conformidade</div><div style="font-size:13px;font-weight:600">${esc(p.auditoria.conformidade||'—')}</div></div><div><div class="sec-lbl">Status</div><span class="badge ${audBadgeCls}">${audStatus}</span></div></div>
     ${audConclusaoHtml}
   </div>`:'';
-  document.getElementById('tab-mon').innerHTML=inds.length?`<div class="g3" style="gap:10px">${inds.map(d=>kpiCard(d)).join('')}</div>${audHTML}`:`<div class="ib ibb">Nenhum indicador importado. <button type="button" class="btn btn-p" style="font-size:12px;padding:4px 10px;margin-left:8px" onclick="go('indicadores',document.getElementById('nb-ind'))">Ir para indicadores →</button></div>${audHTML}`;
+  document.getElementById('tab-mon').innerHTML=inds.length?`<div class="g3" style="gap:10px">${inds.map(d=>kpiCard(d)).join('')}</div>${audHTML}`:`<div class="ib ibb">Nenhum indicador vinculado a este processo. <button type="button" class="btn btn-p" style="font-size:12px;padding:4px 10px;margin-left:8px" onclick="go('indicadores',document.getElementById('nb-ind'))">Ir para indicadores →</button></div>${audHTML}`;
 }
 function rHist(p){
   const histItems=[...p.hist].reverse().map((h,i)=>{
