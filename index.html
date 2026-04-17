@@ -10547,6 +10547,24 @@ function gerarRelatorioIndPdf(){
     </div>`;
   }).join('');
 
+  // ── Ordena por área → nome → período cronológico ─────────────────
+  function parsePeriodSort(p){
+    const months = {jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
+    const m = (p||'').toLowerCase().match(/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[^0-9]*(\d{4})/);
+    if(m) return parseInt(m[2])*100 + months[m[1]];
+    const t = (p||'').match(/^T([1-4])[^0-9]*(\d{4})/i);
+    if(t) return parseInt(t[2])*100 + (parseInt(t[1])-1)*3 + 1;
+    const y = (p||'').match(/(\d{4})/);
+    return y ? parseInt(y[1])*100 : 0;
+  }
+  lista.sort((a,b)=>{
+    const ac = (a.area||'').localeCompare(b.area||'','pt-BR',{sensitivity:'base'});
+    if(ac!==0) return ac;
+    const nc = (a.nome||'').localeCompare(b.nome||'','pt-BR',{sensitivity:'base'});
+    if(nc!==0) return nc;
+    return parsePeriodSort(a.periodo) - parsePeriodSort(b.periodo);
+  });
+
   // ── Linhas da tabela ────────────────────────────────────────────────
   const rows = lista.map(k => {
     const und     = k.unidade ? ' '+k.unidade : '';
@@ -10559,8 +10577,11 @@ function gerarRelatorioIndPdf(){
     else if(st.tier===0 && pct!==null) pctStyle=`font-size:13px;font-weight:800;color:${st.color}`;
     else pctStyle=`font-weight:700;color:${st.color}`;
     const badgeStyle = `display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;background:${st.bg};color:${st.color}`;
+    const ppeBadge = (k.ppe==='Sim'||k.ppe===true)
+      ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;background:#dbeafe;color:#1e40af;margin-left:5px;vertical-align:middle">PPE</span>'
+      : '';
     return `<tr style="background:${st.rowBg}">
-      <td>${k.codigo?'<strong>'+esc(k.codigo)+'</strong> — ':''}${esc(k.nome)}</td>
+      <td>${k.codigo?'<strong>'+esc(k.codigo)+'</strong> — ':''}${esc(k.nome)}${ppeBadge}</td>
       <td style="font-size:10px;color:#6b7280">${esc(k.area||'—')}</td>
       <td style="font-size:10px;color:#6b7280">${esc(k.periodo||'—')}</td>
       <td style="text-align:center">${hasMeta?k.meta+und:'—'}</td>
