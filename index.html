@@ -5103,8 +5103,8 @@ const _VERB_NAT={
 function inferNatureza(nome){
   if(!nome)return'';
   const verb=nome.trim().split(/\s+/)[0].toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')  // strip accents
-    .replace(/[^a-z]/g,'');
+    .normalize('NFD').replaceAll(/[\u0300-\u036f]/g,'')
+    .replaceAll(/[^a-z]/g,'');
   for(const nat of NATUREZAS){
     if(_VERB_NAT[nat]?.includes(verb))return nat;
   }
@@ -5922,7 +5922,7 @@ function rForm(p){
 function gerarPopPdf(){
   const el=document.getElementById('tab-form');
   if(!el)return;
-  const inner=el.querySelector('.pop-pdf-bar')?el.innerHTML.replace(/<div class="pop-pdf-bar"[\s\S]*?<[/]div>/,''):el.innerHTML;
+  const inner=el.querySelector('.pop-pdf-bar')?el.innerHTML.replace(/<div class="pop-pdf-bar"[\s\S]*?<\/div>/,''):el.innerHTML;
   if(!inner.trim())return;
   const nome=esc(curProc?.nome||'POP');
   const w=window.open('','_blank');
