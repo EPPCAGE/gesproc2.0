@@ -3706,8 +3706,12 @@ function _rsPOP(p){
 }
 function _rsPublicacao(p){
   p.form=p.form||{};
-  p.form.pub_link=document.getElementById('pub-link')?.value||p.form.pub_link;
-  p.form.pub_local=document.getElementById('pub-local')?.value||p.form.pub_local;
+  const link=document.getElementById('a-link')?.value||'';
+  const vig=document.getElementById('a-vig')?.value||'';
+  const efet=document.getElementById('pub-efet')?.value||'';
+  if(link){ p.form.link_pub=link; }
+  if(vig){ p.form.vig=vig; }
+  if(efet && p.ent){ p.ent.dt_efetiva=efet; }
 }
 function _rsMelhorias(p){
   if(!p.ent.analise) p.ent.analise={};
@@ -5462,6 +5466,7 @@ function renderEtapaDetalheConteudo(e){
       <input class="fi" value="${(e.nome||'').replaceAll('"','&quot;')}"
         oninput="(function(v){const _e=curProc.mod.etapas_proc.find(x=>x.id==='${id}');_e.nome=v;document.querySelector('#ep-${id} .etapa-nome').textContent=v;if(_e.tipo==='Atividade'&&!_e.natureza){const inf=inferNatureza(v);if(inf){_e.natureza=inf;reRenderEtapaDetalhe('${id}');}}clearTimeout(globalThis._mmT);globalThis._mmT=setTimeout(atualizarMermaid,600);})(this.value)"
       >
+    </div>
     <div class="fg"><label class="fl">Tipo</label>
       <select class="fi" onchange="(function(s){const _e=curProc.mod.etapas_proc.find(x=>x.id==='${id}');_e.tipo=s.value;_e.subtipo_evento=null;const _b=document.querySelector('#ep-${id} .etapa-tipo');_b.className='etapa-tipo '+tipoCls(s.value,null);_b.textContent=s.value;reRenderEtapaDetalhe('${id}')})(this)">
         <option ${e.tipo==='Atividade'?'selected':''}>Atividade</option>
@@ -8407,8 +8412,8 @@ function rPub(){
           <div style="font-size:10.5px;color:var(--ink3)">${p.data?esc(p.data)+' · ':''}${esc(p.responsavel||'')}</div>
           <div style="display:flex;gap:5px">
             ${safeUrl(p.url)?`<a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" class="btn" style="font-size:10px;padding:2px 8px;text-decoration:none">↗ Abrir</a>`:''}
-            <button type="button" class="btn" style="font-size:10px;padding:2px 8px" onclick="editarPub(${p.id})" aria-label="Editar publicação">✎</button>
-            <button type="button" class="btn" style="font-size:10px;padding:2px 8px;color:var(--red);border-color:var(--red-b)" onclick="deletarPub(${p.id})" aria-label="Excluir publicação">×</button>
+            ${isEP()?`<button type="button" class="btn" style="font-size:10px;padding:2px 8px" onclick="editarPub(${p.id})" aria-label="Editar publicação">✎</button>
+            <button type="button" class="btn" style="font-size:10px;padding:2px 8px;color:var(--red);border-color:var(--red-b)" onclick="deletarPub(${p.id})" aria-label="Excluir publicação">×</button>`:''}
           </div>
         </div>
         </div>
