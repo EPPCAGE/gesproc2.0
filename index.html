@@ -3706,8 +3706,12 @@ function _rsPOP(p){
 }
 function _rsPublicacao(p){
   p.form=p.form||{};
-  p.form.pub_link=document.getElementById('pub-link')?.value||p.form.pub_link;
-  p.form.pub_local=document.getElementById('pub-local')?.value||p.form.pub_local;
+  const link=document.getElementById('a-link')?.value||'';
+  const vig=document.getElementById('a-vig')?.value||'';
+  const efet=document.getElementById('pub-efet')?.value||'';
+  if(link){ p.form.link_pub=link; }
+  if(vig){ p.form.vig=vig; }
+  if(efet && p.ent){ p.ent.dt_efetiva=efet; }
 }
 function _rsMelhorias(p){
   if(!p.ent.analise) p.ent.analise={};
