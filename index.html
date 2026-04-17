@@ -608,7 +608,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   <div class="prog-tr" id="det-prog"></div>
   <div class="tabs" id="det-tabs">
     <div class="tab on" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('acao',this)">Ação atual</div>
-    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('ent',this)">Entendimento</div>
+    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('ent',this)">Visão Geral</div>
     <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('mod',this)">Modelagem</div>
     <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('form',this)">Formalização</div>
     <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('mon',this)">Monitoramento</div>
@@ -5092,6 +5092,24 @@ function popAtivCards(p){
 // ETAPAS DO PROCESSO
 // ═══════════════════════════════════════════
 const NATUREZAS=['Execucao','Comunicacao','Distribuicao','Preparacao','Revisao','Aprovacao'];
+const _VERB_NAT={
+  Execucao:['executar','realizar','fazer','elaborar','produzir','preencher','registrar','lançar','lancar','cadastrar','emitir','gerar','processar','calcular','conferir','verificar','analisar','apurar','consolidar','atualizar','ajustar','corrigir','providenciar','preparar','montar','organizar','coletar','compilar','redigir','formalizar','encaminhar'],
+  Distribuicao:['distribuir','encaminhar','remeter','enviar','direcionar','transferir','atribuir','repassar','submeter','protocolar','despachar','alocar','delegar','disponibilizar','entregar','destinar','movimentar','expedir','transmitir','reencaminhar'],
+  Preparacao:['preparar','planejar','organizar','estruturar','agendar','programar','definir','estabelecer','identificar','levantar','mapear','selecionar','separar','reunir','compilar','providenciar','configurar','parametrizar','instruir','iniciar','montar','ajustar','alinhar','dimensionar','prever'],
+  Revisao:['revisar','analisar','examinar','avaliar','verificar','conferir','validar','criticar','inspecionar','auditar','comparar','checar','ratificar','retificar','corrigir','reexaminar','homologar','testar','controlar','monitorar'],
+  Comunicacao:['comunicar','informar','notificar','avisar','orientar','solicitar','responder','esclarecer','reportar','relatar','registrar','divulgar','publicar','consultar','confirmar','alinhar','negociar','convocar','apresentar','cientificar'],
+  Aprovacao:['aprovar','autorizar','validar','homologar','ratificar','deferir','indeferir','deliberar','decidir','confirmar','aceitar','rejeitar','vetar','chancelar','anuir','consentir','formalizar','referendar','admitir','sancionar'],
+};
+function inferNatureza(nome){
+  if(!nome)return'';
+  const verb=nome.trim().split(/\s+/)[0].toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')  // strip accents
+    .replace(/[^a-z]/g,'');
+  for(const nat of NATUREZAS){
+    if(_VERB_NAT[nat]?.includes(verb))return nat;
+  }
+  return'';
+}
 let etapasIdC=100;
 
 function tipoCls(t,sub){
@@ -5129,7 +5147,7 @@ function renderAcaoGw(camPath,ai,ac,depth){
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:.35rem">
       <span class="etapa-tipo ${tipoCls(tipo)}" style="font-size:10px">${tipo}</span>
       <input class="fi" style="flex:1;font-size:12px" placeholder="Nome da ação" value="${(ac.nome||'').replaceAll('"','&quot;')}"
-        oninput="resolveGwPath('${camPath}').acoes[${ai}].nome=this.value">
+        oninput="(function(v){const _a=resolveGwPath('${camPath}').acoes[${ai}];_a.nome=v;if(_a.tipo==='Atividade'&&!_a.natureza){const inf=inferNatureza(v);if(inf){_a.natureza=inf;reRenderGw('${rootId}');}};})(this.value)">
       <button type="button" class="btn" style="font-size:10px;padding:2px 6px;color:var(--red);border-color:var(--red-b)"
         onclick="remAcaoGw('${camPath}',${ai});reRenderGw('${rootId}')">×</button>
     </div>
@@ -5287,8 +5305,8 @@ function renderEtapaDetalheConteudo(e){
   return `<div class="g2" style="margin-top:.6rem">
     <div class="fg"><label class="fl">Nome da etapa</label>
       <input class="fi" value="${(e.nome||'').replaceAll('"','&quot;')}"
-        oninput="curProc.mod.etapas_proc.find(x=>x.id==='${id}').nome=this.value;document.querySelector('#ep-${id} .etapa-nome').textContent=this.value;clearTimeout(globalThis._mmT);globalThis._mmT=setTimeout(atualizarMermaid,600)">
-    </div>
+        oninput="(function(v){const _e=curProc.mod.etapas_proc.find(x=>x.id==='${id}');_e.nome=v;document.querySelector('#ep-${id} .etapa-nome').textContent=v;if(_e.tipo==='Atividade'&&!_e.natureza){const inf=inferNatureza(v);if(inf){_e.natureza=inf;reRenderEtapaDetalhe('${id}');}}clearTimeout(globalThis._mmT);globalThis._mmT=setTimeout(atualizarMermaid,600);})(this.value)"
+      >
     <div class="fg"><label class="fl">Tipo</label>
       <select class="fi" onchange="(function(s){const _e=curProc.mod.etapas_proc.find(x=>x.id==='${id}');_e.tipo=s.value;_e.subtipo_evento=null;const _b=document.querySelector('#ep-${id} .etapa-tipo');_b.className='etapa-tipo '+tipoCls(s.value,null);_b.textContent=s.value;reRenderEtapaDetalhe('${id}')})(this)">
         <option ${e.tipo==='Atividade'?'selected':''}>Atividade</option>
@@ -5519,9 +5537,13 @@ function _bpmnNodeType(tag, GW_TAGS, TASK_TAGS){
   if(tag==='endevent')      return {tipo:'Evento', subtipo:'Fim',    natureza:null, modo:null, desc:'Evento de fim do processo'};
   if(tag==='intermediatethrowevent'||tag==='intermediatecatchevent')
                             return {tipo:'Evento', subtipo:'Intermediário', natureza:null, modo:null, desc:''};
-  if(GW_TAGS.has(tag))      return {tipo:'Decisao', subtipo:null, natureza:null, modo:null, desc:''};
+  if(tag==='exclusivegateway') return {tipo:'Decisao', subtipo_gateway:'exclusivo', natureza:null, modo:null, desc:''};
+  if(tag==='parallelgateway')  return {tipo:'Decisao', subtipo_gateway:'paralelo',  natureza:null, modo:null, desc:''};
+  if(tag==='inclusivegateway') return {tipo:'Decisao', subtipo_gateway:'inclusivo', natureza:null, modo:null, desc:''};
+  if(tag==='complexgateway')   return {tipo:'Decisao', subtipo_gateway:'complexo',  natureza:null, modo:null, desc:''};
+  if(GW_TAGS.has(tag))         return {tipo:'Decisao', subtipo_gateway:null,        natureza:null, modo:null, desc:''};
   if(TASK_TAGS.has(tag))    return {tipo:'Atividade', subtipo:null,
-    natureza: tag==='sendtask'?'Comunicacao':'Execucao',
+    natureza: tag==='sendtask'?'Comunicacao':null,
     modo:     tag==='servicetask'||tag==='scripttask'?'Automatica':'Manual', desc:''};
   return null;
 }
@@ -5600,7 +5622,7 @@ function extrairBpmn(){
       id:'ep'+etapasIdC++, seq:seq++,
       nome:n.nome||nomeFallback,
       tipo:n.tipo, subtipo_evento:n.subtipo||null,
-      natureza:n.natureza, modo:n.modo,
+      natureza:n.natureza||(n.tipo==='Atividade'?inferNatureza(n.nome||''):''), modo:n.modo,
       executor:n.executor, desc:n.desc||'', caminhos:[]
     };
   });
@@ -5619,6 +5641,39 @@ function extrairBpmn(){
 // ABAS SECUNDÁRIAS DO DETALHE
 // ═══════════════════════════════════════════
 const ML=['','Inicial','Repetível','Definido','Gerenciado','Otimizado'];
+// ── Índice Lean Processual ─────────────────
+// ILP = (E + P + 0.5*(C+D)) / (Total + α*GxorDiv + β*(Atores-1)) * 100
+// α=1: cada exclusive gateway divergente equivale a 1 atividade improdutiva
+// β=0.5: cada ator extra além do primeiro equivale a 0.5
+function calcILP(etapas){
+  if(!etapas||!etapas.length)return null;
+  // Flatten: conta atividades em todos os níveis (etapas raiz + acoes em gateways)
+  function flatAcoes(nodes){
+    const out=[];
+    for(const n of nodes){
+      out.push(n);
+      for(const cam of (n.caminhos||[])){
+        out.push(...flatAcoes(cam.acoes||[]));
+      }
+    }
+    return out;
+  }
+  const all=flatAcoes(etapas);
+  const atividades=all.filter(n=>n.tipo==='Atividade');
+  const total=atividades.length;
+  if(!total)return null;
+  const cnt=nat=>atividades.filter(n=>n.natureza===nat).length;
+  const E=cnt('Execucao'), P=cnt('Preparacao'), C=cnt('Comunicacao'), D=cnt('Distribuicao');
+  // Exclusive diverging gateways: tipo Decisao, subtipo_gateway exclusivo, mais de 1 caminho de saída
+  const gxorDiv=all.filter(n=>n.tipo==='Decisao'&&n.subtipo_gateway==='exclusivo'&&(n.caminhos||[]).length>1).length;
+  // Atores distintos (executores não vazios)
+  const atores=new Set(atividades.map(n=>(n.executor||'').trim()).filter(Boolean));
+  const nAtores=atores.size||1;
+  const numerador=E + P + 0.5*(C+D);
+  const denominador=total + 1*gxorDiv + 0.5*Math.max(0,nAtores-1);
+  const ilp=Math.round((numerador/denominador)*100);
+  return {ilp,total,E,P,C,D,R:cnt('Revisao'),A:cnt('Aprovacao'),gxorDiv,nAtores};
+}
 function rEnt(p){
   const e=p.ent;
   const resp=e.quest_resp||{};
@@ -5636,7 +5691,37 @@ function rEnt(p){
     else{matBg='var(--bg3)';matColor='var(--ink3)';}
     return`<span class="badge" style="margin-right:4px;background:${matBg};color:${matColor}">${n} ${ML[n]}</span>`;
   }).join('');
+  const ilpData=calcILP(p.mod?.etapas_proc||[]);
+  const ilpCard=ilpData?(()=>{
+    const {ilp,total,E,P,C,D,R,A,gxorDiv,nAtores}=ilpData;
+    let ilpBg,ilpColor,ilpLabel;
+    if(ilp>=75){ilpBg='#d1fae5';ilpColor='#065f46';ilpLabel='Processo enxuto';}
+    else if(ilp>=50){ilpBg='#fef3c7';ilpColor='#92400e';ilpLabel='Melhorias possíveis';}
+    else{ilpBg='#fee2e2';ilpColor='#991b1b';ilpLabel='Alto nível de controle';}
+    const bar=w=>`<div style="height:8px;border-radius:4px;background:${ilpBg};overflow:hidden"><div style="height:100%;width:${w}%;background:${ilpColor};border-radius:4px;transition:width .5s"></div></div>`;
+    const nat=(lbl,cnt,color)=>cnt?`<div style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></span><span style="flex:1;color:var(--ink2)">${lbl}</span><span style="font-weight:600">${cnt}</span></div>`:'';
+    return `<div class="card" style="margin-bottom:1rem;border-left:4px solid ${ilpColor}">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:.6rem">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink3)">Índice Lean Processual</div>
+          <div style="font-size:28px;font-weight:800;color:${ilpColor};line-height:1.1">${ilp}<span style="font-size:14px;font-weight:500">/100</span></div>
+          <span style="font-size:11px;font-weight:600;color:${ilpColor};background:${ilpBg};padding:2px 8px;border-radius:20px">${ilpLabel}</span>
+        </div>
+        <div style="flex:1">${bar(Math.min(ilp,100))}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:.5rem">
+        ${nat('Execução',E,'#0d9488')}${nat('Preparação',P,'#6366f1')}
+        ${nat('Comunicação',C,'#f59e0b')}${nat('Distribuição',D,'#8b5cf6')}
+        ${nat('Revisão',R,'#ef4444')}${nat('Aprovação',A,'#f97316')}
+      </div>
+      <div style="font-size:11px;color:var(--ink3);border-top:1px solid var(--bdr);padding-top:.4rem;display:flex;gap:12px;flex-wrap:wrap">
+        <span>Total atividades: <strong>${total}</strong></span>
+        <span>Gateways exclusivos (XOR÷): <strong>${gxorDiv}</strong></span>
+        <span>Atores distintos: <strong>${nAtores}</strong></span>
+      </div>
+    </div>`; })():'';
   document.getElementById('tab-ent').innerHTML=`
+  ${ilpCard}
   <div class="g2" style="gap:12px;margin-bottom:1rem">
     <div class="card">
       <div class="card-t">Identificação temporal</div>
@@ -5794,10 +5879,12 @@ function rForm(p){
           const resp=(d.resp!==undefined&&d.resp!=='')?d.resp:(e.executor||'');
           const tipo=normTipo(d.tipo||e.tipo);
           const modo=normModo(e.modo);
+          const nat=e.natureza||'';
           return `<tr style="border-bottom:1px solid var(--bdr)">
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3);white-space:nowrap">${i+1}</td>
             <td style="padding:5px 8px;font-size:12px;font-weight:600">${esc(e.nome||'')}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(tipo)}</td>
+            <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(nat)}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(modo)}</td>
             <td style="padding:5px 8px;font-size:12px">${esc(desc)}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(resp)}</td>
@@ -5810,6 +5897,7 @@ function rForm(p){
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">#</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Etapa</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Tipo</th>
+              <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Natureza</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Modo</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Descrição</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Responsável</th>
