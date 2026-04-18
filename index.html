@@ -2187,7 +2187,8 @@ function rDash(){
     '<div class="stat ca"><div class="stat-n">'+mx.nMacros+'</div><div class="stat-l">Macroprocessos</div></div>'+
     '<div class="stat cb"><div class="stat-n">'+mx.nProc+'</div><div class="stat-l">Processos</div></div>'+
     '<div class="stat cg"><div class="stat-n">'+mx.nSub+'</div><div class="stat-l">Subprocessos</div></div>'+
-    '<div class="stat cr"><div class="stat-n">'+processos.filter(p=>p.prio==='Critica').length+'</div><div class="stat-l">Prioridade crítica</div></div>';
+    '<div class="stat cr"><div class="stat-n">'+processos.filter(p=>p.prio==='Critica').length+'</div><div class="stat-l">Prioridade crítica</div></div>'+
+    (()=>{const eco=processos.reduce((s,p)=>{const r=(p.reunioes_acomp||[]).filter(r=>r.economia_h!=null);return s+(r.length?r[r.length-1].economia_h:0);},0);return eco!==0?`<div class="stat cg" title="Soma da economia de horas/mês da última reavaliação de cada processo"><div class="stat-n">${eco>=0?'+':''}`+eco.toFixed(1)+'h</div><div class="stat-l">Economia de horas/mês estimada</div></div>':''})();
   // Pipeline
   const cnt={};ETAPAS.forEach(e=>{cnt[e.id]=processos.filter(p=>p.etapa===e.id).length;});
   document.getElementById('dash-pipe').innerHTML=buildPipelineHTML(cnt);
@@ -2984,12 +2985,17 @@ const ACOES = {
     <hr>
     <div class="card-t">Volumetria e tempos</div>
     <div class="g3" style="margin-top:.5rem">
-      <div class="fg"><label class="fl">Volume de execuções</label><input class="fi" id="r-exec" value="${esc(p.ent.vol?.exec||'')}" placeholder="Ex: ~40/mês"></div>
+      <div class="fg"><label class="fl">Volume de execuções (por mês)</label><input class="fi" id="r-exec-mensal" type="number" min="0" step="1" value="${p.ent.vol?.exec_mensal||''}" oninput="calcVolumetria()" placeholder="Ex: 40"></div>
       <div class="fg"><label class="fl">Tempo médio de ciclo (horas)</label><input class="fi" id="r-tciclo" type="number" min="0" step="0.5" value="${p.ent.t_ciclo||''}" oninput="calcGaveta()" placeholder="Ex: 4"></div>
-      <div class="fg"><label class="fl">Tempo real / lead time (horas)</label><input class="fi" id="r-treal" type="number" min="0" step="0.5" value="${p.ent.t_real||''}" oninput="calcGaveta()" placeholder="Ex: 24"></div>
+      <div class="fg"><label class="fl">Tempo real / lead time (horas)</label><input class="fi" id="r-treal" type="number" min="0" step="0.5" value="${p.ent.t_real||''}" oninput="calcGaveta();calcVolumetria()" placeholder="Ex: 24"></div>
     </div>
-    <div class="fg"><label class="fl">Tempo de gaveta <small style="font-weight:400;color:var(--ink3)">(calculado: tempo real − tempo médio de ciclo)</small></label>
-      <input class="fi" id="r-tgaveta" readonly style="background:var(--bg2);color:var(--ink3)" value="${p.ent.t_gaveta!=null&&p.ent.t_gaveta!==''?p.ent.t_gaveta+' horas':''}">
+    <div class="g2">
+      <div class="fg"><label class="fl">Tempo de gaveta <small style="font-weight:400;color:var(--ink3)">(calculado: tempo real − tempo médio de ciclo)</small></label>
+        <input class="fi" id="r-tgaveta" readonly style="background:var(--bg2);color:var(--ink3)" value="${p.ent.t_gaveta!=null&&p.ent.t_gaveta!==''?p.ent.t_gaveta+' horas':''}">
+      </div>
+      <div class="fg"><label class="fl">Total de horas/mês no processo <small style="font-weight:400;color:var(--ink3)">(calculado: volume × tempo real)</small></label>
+        <input class="fi" id="r-total-mensal" readonly style="background:var(--bg2);color:var(--teal);font-weight:600" value="${p.ent.total_h_mensal!=null&&p.ent.total_h_mensal!==''?p.ent.total_h_mensal+' h/mês':''}">
+      </div>
     </div>
     <hr>
     <div class="card-t">Problemas e dores</div>
@@ -3012,10 +3018,12 @@ const ACOES = {
     <button type="button" class="btn" style="margin-top:6px;font-size:12px" onclick="addRisco()">+ Adicionar risco</button>
     <div class="btn-row"><button type="button" class="btn btn-t" onclick="salvarRiscos()">Registrar riscos e avançar →</button></div>`},
 
-  analise:{titulo:'Análise do fluxo AS IS',sub:'Análise inteligente gerada por IA com base no BPMN e etapas mapeadas.',role:'EP',rk:'ep',
+  analise:{titulo:'Análise do fluxo AS IS',sub:'Análise inteligente gerada por IA com base nas etapas mapeadas e dados do processo.',role:'EP',rk:'ep',
     form:p=>{
       const a=p.ent.analise||{};
-      const bpmnOk=!!(p.mod?.bpmnAsIs||p.mod?.asIs);
+      const temBpmn=!!(p.mod?.bpmnAsIs||p.mod?.asIs);
+      const temEtapas=!!(p.mod?.etapas_proc||[]).length;
+      const temBase=temBpmn||temEtapas;
       let iaHtml;
       if(a.ia_resultado){
         const resumoHtml = a.ia_resultado.resumo?'<div class="ai-result-lbl">Resumo</div><p>'+esc(a.ia_resultado.resumo)+'</p>':'';
@@ -3032,8 +3040,8 @@ const ACOES = {
       } else {
         iaHtml = '<div style="font-size:12px;color:var(--ink3)">Nenhuma análise gerada ainda.</div>';
       }
-      return `<div class="ib ibp">A análise inteligente é gerada automaticamente pela IA com base no BPMN, etapas mapeadas e dados do processo.</div>
-        ${bpmnOk?'':'<div class="ib ibr">⚠ Mapeamento BPMN ainda não realizado. A análise será limitada.</div>'}
+      return `<div class="ib ibp">A análise inteligente é gerada pela IA com base nas etapas mapeadas e dados do processo. O fluxo BPMN desenhado enriquece a análise, mas não é obrigatório.</div>
+        ${!temBase?'<div class="ib iba">⚠ Nenhuma etapa mapeada ainda. Adicione etapas na etapa Esboço AS IS para obter uma análise mais precisa.</div>':(!temBpmn&&temEtapas?'<div class="ib ibt" style="font-size:12px">ℹ O BPMN não foi desenhado no editor — a análise será realizada com base nas etapas mapeadas.</div>':'')}
         <div style="font-weight:600;font-size:13px;margin-bottom:.5rem">✦ Análise gerada por IA</div>
         <div id="ia-analise-result">${iaHtml}</div>
         <div class="btn-row" style="margin-top:.8rem">
@@ -3279,7 +3287,7 @@ const ACOES = {
               ${r.desvios?`<div style="font-size:12px;color:var(--red);margin-top:.2rem">⚠ Desvios: ${esc(r.desvios)}</div>`:''}
               ${r.acoes?`<div style="font-size:12px;color:var(--teal);margin-top:.2rem">→ Ações: ${esc(r.acoes)}</div>`:''}
               ${r.proxima?`<div style="font-size:11px;color:var(--ink4);margin-top:.2rem">Próxima: ${r.proxima}</div>`:''}
-            </div>
+              ${r.economia_h!=null?`<div style="font-size:12px;color:var(--teal);margin-top:.2rem;font-weight:600">📊 Economia estimada: ${r.economia_h>=0?'+':''}`+r.economia_h+' h/mês (vol: '+r.vol_exec_novo+'/mês × '+r.t_real_novo+'h)</div>':''}            </div>
             <div style="display:flex;gap:4px;flex-shrink:0">
               <button type="button" class="btn" style="font-size:11px;padding:2px 7px" onclick="editarReuniaoAcomp(${i})">✎ Editar</button>
               <button type="button" class="btn" style="font-size:11px;padding:2px 7px;color:var(--red);border-color:var(--red)" onclick="excluirReuniaoAcomp(${i})" aria-label="Remover reunião">✕</button>
@@ -3301,6 +3309,13 @@ const ACOES = {
         <div class="fg"><label class="fl">Ações corretivas</label><textarea class="fi" id="ac-acoes" style="min-height:60px" placeholder="Ações definidas..."></textarea></div>
         <div class="fg"><label class="fl">Participantes</label><input class="fi" id="ac-partic" placeholder="Nomes dos participantes"></div>
         <div class="fg"><label class="fl">Próxima reunião prevista</label><input class="fi" id="ac-proxima" type="date"></div>
+        <div style="font-weight:600;font-size:13px;margin-bottom:.6rem;padding-top:.8rem;border-top:1px solid var(--bdr)">Reavaliação de volumetria <small style="font-weight:400;font-size:11px;color:var(--ink3)">(opcional)</small></div>
+        ${(curProc?.ent?.total_h_mensal)?`<div class="ib ibt" style="font-size:11.5px;margin-bottom:.6rem">Baseline: <strong>${curProc.ent.vol?.exec_mensal||'—'} exec/mês × ${curProc.ent.t_real||'—'}h = ${curProc.ent.total_h_mensal}h/mês</strong></div>`:''}
+        <div class="g3">
+          <div class="fg"><label class="fl">Novo volume (exec/mês)</label><input class="fi" id="ac-vol-novo" type="number" min="0" step="1" oninput="calcEconomiaAcomp()" placeholder="Novo volume mensal"></div>
+          <div class="fg"><label class="fl">Novo tempo real (horas)</label><input class="fi" id="ac-treal-novo" type="number" min="0" step="0.5" oninput="calcEconomiaAcomp()" placeholder="Novo lead time"></div>
+          <div class="fg"><label class="fl">Economia estimada (h/mês)</label><input class="fi" id="ac-economia" readonly style="background:var(--bg2);color:var(--teal);font-weight:600" placeholder="Calculado automaticamente"></div>
+        </div>
         <div class="btn-row">
           <button type="button" class="btn" onclick="registrarReuniaoAcomp()">＋ Registrar reunião</button>
           <button type="button" class="btn btn-p" onclick="av('acompanha','EP','Acompanhamento concluído')">Concluir acompanhamento →</button>
@@ -3318,6 +3333,12 @@ const ACOES = {
           <div class="fg"><label class="fl">Ações corretivas</label><textarea class="fi" id="ac-edit-acoes" style="min-height:60px"></textarea></div>
           <div class="fg"><label class="fl">Participantes</label><input class="fi" id="ac-edit-partic"></div>
           <div class="fg"><label class="fl">Próxima reunião prevista</label><input class="fi" id="ac-edit-proxima" type="date"></div>
+          <div style="font-weight:600;font-size:13px;margin-bottom:.6rem;padding-top:.8rem;border-top:1px solid var(--bdr)">Reavaliação de volumetria <small style="font-weight:400;font-size:11px;color:var(--ink3)">(opcional)</small></div>
+          <div class="g3">
+            <div class="fg"><label class="fl">Novo volume (exec/mês)</label><input class="fi" id="ac-edit-vol-novo" type="number" min="0" step="1" oninput="calcEconomiaAcompEdit()" placeholder="Novo volume mensal"></div>
+            <div class="fg"><label class="fl">Novo tempo real (horas)</label><input class="fi" id="ac-edit-treal-novo" type="number" min="0" step="0.5" oninput="calcEconomiaAcompEdit()" placeholder="Novo lead time"></div>
+            <div class="fg"><label class="fl">Economia estimada (h/mês)</label><input class="fi" id="ac-edit-economia" readonly style="background:var(--bg2);color:var(--teal);font-weight:600" placeholder="Calculado automaticamente"></div>
+          </div>
           <div class="btn-row">
             <button type="button" class="btn" onclick="cancelarEditReuniaoAcomp()">Cancelar</button>
             <button type="button" class="btn btn-p" onclick="salvarEditReuniaoAcomp()">✓ Salvar alterações</button>
@@ -3894,6 +3915,12 @@ function calcGaveta(){
   const gav=document.getElementById('r-tgaveta');
   if(gav&&(ciclo||real)) gav.value=(real-ciclo).toFixed(1)+' horas';
 }
+function calcVolumetria(){
+  const vol=Number.parseFloat(document.getElementById('r-exec-mensal')?.value)||0;
+  const real=Number.parseFloat(document.getElementById('r-treal')?.value)||0;
+  const tot=document.getElementById('r-total-mensal');
+  if(tot) tot.value=(vol&&real)?+(vol*real).toFixed(1)+' h/mês':'';
+}
 function salvarAbertura(){
   const p=curProc;
   p.ent.dt_inicio=document.getElementById('a-ini')?.value||'';
@@ -3997,10 +4024,12 @@ function salvarReuniao(){
   p.ent.saidas=document.getElementById('r-saidas')?.value||'';
   p.ent.atores=document.getElementById('r-atores')?.value||'';
   if(!p.ent.vol)p.ent.vol={};
-  p.ent.vol.exec=document.getElementById('r-exec')?.value||'';
+  p.ent.vol.exec_mensal=Number.parseFloat(document.getElementById('r-exec-mensal')?.value)||null;
   p.ent.t_ciclo=Number.parseFloat(document.getElementById('r-tciclo')?.value)||null;
   p.ent.t_real=Number.parseFloat(document.getElementById('r-treal')?.value)||null;
   if(p.ent.t_ciclo!=null&&p.ent.t_real!=null) p.ent.t_gaveta=+(p.ent.t_real-p.ent.t_ciclo).toFixed(1);
+  if(p.ent.vol.exec_mensal&&p.ent.t_real) p.ent.total_h_mensal=+(p.ent.vol.exec_mensal*p.ent.t_real).toFixed(1);
+  else p.ent.total_h_mensal=null;
   const prob=(document.getElementById('a-prob')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
   p.ent.prob=prob;
   sincronizarSIPOCArquitetura(p);
@@ -4036,9 +4065,25 @@ function salvarRiscos(){
   const p=curProc;
   av('riscos','EP','Riscos identificados: '+(p.ent.riscos||[]).length+' registro(s).');
 }
+function calcEconomiaAcomp(){
+  const volNovo=Number.parseFloat(document.getElementById('ac-vol-novo')?.value)||0;
+  const trealNovo=Number.parseFloat(document.getElementById('ac-treal-novo')?.value)||0;
+  const el=document.getElementById('ac-economia');
+  if(!el)return;
+  if(volNovo&&trealNovo){
+    const totalNovo=+(volNovo*trealNovo).toFixed(1);
+    const baseline=curProc?.ent?.total_h_mensal||0;
+    const eco=baseline?+(baseline-totalNovo).toFixed(1):null;
+    el.value=eco!=null?(eco>=0?'+'+eco:eco)+' h/mês':'novo total: '+totalNovo+' h/mês';
+  } else {
+    el.value='';
+  }
+}
 async function registrarReuniaoAcomp(){
   const p=curProc;if(!p)return;
   if(!p.reunioes_acomp)p.reunioes_acomp=[];
+  const volNovo=Number.parseFloat(document.getElementById('ac-vol-novo')?.value)||null;
+  const trealNovo=Number.parseFloat(document.getElementById('ac-treal-novo')?.value)||null;
   const r={
     data:document.getElementById('ac-data')?.value||now(),
     conformidade:document.getElementById('ac-conf')?.value||'Conforme',
@@ -4049,12 +4094,33 @@ async function registrarReuniaoAcomp(){
     proxima:document.getElementById('ac-proxima')?.value||'',
     registrada_em:now()
   };
+  if(volNovo&&trealNovo){
+    r.vol_exec_novo=volNovo;
+    r.t_real_novo=trealNovo;
+    r.total_novo=+(volNovo*trealNovo).toFixed(1);
+    const baseline=p.ent?.total_h_mensal||null;
+    r.economia_h=baseline!=null?+(baseline-r.total_novo).toFixed(1):null;
+  }
   if(!r.data){toast('Informe a data da reunião','var(--red)');return;}
   p.reunioes_acomp.push(r);
   push(p,'acompanha','EP','Reunião de acompanhamento registrada — '+r.data+' — '+r.conformidade);
   await fbSaveAll();
   toast('Reunião registrada!','var(--teal)');
   rDetalhe();
+}
+function calcEconomiaAcompEdit(){
+  const volNovo=Number.parseFloat(document.getElementById('ac-edit-vol-novo')?.value)||0;
+  const trealNovo=Number.parseFloat(document.getElementById('ac-edit-treal-novo')?.value)||0;
+  const el=document.getElementById('ac-edit-economia');
+  if(!el)return;
+  if(volNovo&&trealNovo){
+    const totalNovo=+(volNovo*trealNovo).toFixed(1);
+    const baseline=curProc?.ent?.total_h_mensal||0;
+    const eco=baseline?+(baseline-totalNovo).toFixed(1):null;
+    el.value=eco!=null?(eco>=0?'+'+eco:eco)+' h/mês':'novo total: '+totalNovo+' h/mês';
+  } else {
+    el.value='';
+  }
 }
 function editarReuniaoAcomp(idx){
   const r=(curProc?.reunioes_acomp||[])[idx];
@@ -4068,6 +4134,9 @@ function editarReuniaoAcomp(idx){
   v('ac-edit-acoes').value=r.acoes||'';
   v('ac-edit-partic').value=r.participantes||'';
   v('ac-edit-proxima').value=r.proxima||'';
+  v('ac-edit-vol-novo').value=r.vol_exec_novo||'';
+  v('ac-edit-treal-novo').value=r.t_real_novo||'';
+  v('ac-edit-economia').value=r.economia_h!=null?(r.economia_h>=0?'+'+r.economia_h:r.economia_h)+' h/mês':'';
   v('ac-edit-panel').style.display='block';
   v('ac-edit-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -4076,7 +4145,9 @@ async function salvarEditReuniaoAcomp(){
   const idx=globalThis._acEditIdx;
   if(idx==null||!p.reunioes_acomp?.[idx])return;
   const v=id=>document.getElementById(id)?.value||'';
-  p.reunioes_acomp[idx]={
+  const volNovo=Number.parseFloat(v('ac-edit-vol-novo'))||null;
+  const trealNovo=Number.parseFloat(v('ac-edit-treal-novo'))||null;
+  const updated={
     ...p.reunioes_acomp[idx],
     data:v('ac-edit-data'),
     conformidade:v('ac-edit-conf'),
@@ -4085,7 +4156,12 @@ async function salvarEditReuniaoAcomp(){
     acoes:v('ac-edit-acoes'),
     participantes:v('ac-edit-partic'),
     proxima:v('ac-edit-proxima'),
+    vol_exec_novo:volNovo,
+    t_real_novo:trealNovo,
+    total_novo:volNovo&&trealNovo?+(volNovo*trealNovo).toFixed(1):null,
+    economia_h:volNovo&&trealNovo&&p.ent?.total_h_mensal!=null?+(p.ent.total_h_mensal-volNovo*trealNovo).toFixed(1):null,
   };
+  p.reunioes_acomp[idx]=updated;
   await fbSaveAll();
   toast('Reunião atualizada!','var(--teal)');
   globalThis._acEditIdx=null;
