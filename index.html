@@ -9463,6 +9463,13 @@ function planoDashAnual(lista){
   </div>`;
 }
 
+function planoFiltrarTri(tri){
+  const sel=document.getElementById('plano-filt-tri');
+  if(!sel) return;
+  sel.value = sel.value===tri ? '' : tri;
+  rPlano();
+}
+
 function planoStatsTrimestrais(lista){
   const el = document.getElementById('plano-stats');
   if(!el) return;
@@ -9472,12 +9479,14 @@ function planoStatsTrimestrais(lista){
   else if(mes<6) trimAtual='T2';
   else if(mes<9) trimAtual='T3';
   else trimAtual='T4';
+  const triF = document.getElementById('plano-filt-tri')?.value||'';
   const trimestres = ['T1','T2','T3','T4'];
   el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:.8rem">
     ${trimestres.map(tri=>{
       const items=lista.filter(a=>a.trimestre===tri);
       const isCur=tri===trimAtual;
-      if(!items.length) return `<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:.8rem;opacity:.45">
+      const isFilt=tri===triF;
+      if(!items.length) return `<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:.8rem;opacity:.45;cursor:default">
         <div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:.3rem">${tri}${isCur?' <span style="color:var(--blue)">●</span>':''}</div>
         <div style="font-size:11px;color:var(--ink3)">Sem atividades</div></div>`;
       const concl   =items.filter(a=>planoStatusEfetivo(a)==='concluida').length;
@@ -9488,9 +9497,11 @@ function planoStatsTrimestrais(lista){
       if(pct>=75) cor='#14b8a6';
       else if(pct>=40) cor='#f59e0b';
       else cor='#ef4444';
-      return `<div style="background:${isCur?'rgba(59,130,246,.06)':'var(--bg2)'};border:${isCur?'2px solid var(--blue)':'1px solid var(--bdr)'};border-radius:var(--r);padding:.8rem">
+      const borderStyle=isFilt?`3px solid var(--blue)`:isCur?`2px solid var(--blue)`:`1px solid var(--bdr)`;
+      const bgStyle=isFilt?`rgba(59,130,246,.12)`:isCur?`rgba(59,130,246,.06)`:`var(--bg2)`;
+      return `<div role="button" tabindex="0" onclick="planoFiltrarTri('${tri}')" onkeydown="if(event.key==='Enter'||event.key===' ')planoFiltrarTri('${tri}')" title="${isFilt?'Clique para remover filtro':'Filtrar por '+tri}" style="background:${bgStyle};border:${borderStyle};border-radius:var(--r);padding:.8rem;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow=''" onfocus="this.style.boxShadow='0 0 0 2px var(--blue)'" onblur="this.style.boxShadow=''">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
-          <span style="font-size:11px;font-weight:700;color:${isCur?'var(--blue)':'var(--ink)'}">${tri}${isCur?' ●':''}</span>
+          <span style="font-size:11px;font-weight:700;color:${isFilt||isCur?'var(--blue)':'var(--ink)'}">${tri}${isCur?' ●':''}${isFilt?' ▼':''}</span>
           <span style="font-size:18px;font-weight:700;color:${cor}">${pct}%</span>
         </div>
         <div style="height:4px;background:var(--bdr2);border-radius:2px;overflow:hidden;margin-bottom:.4rem">
