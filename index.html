@@ -406,8 +406,8 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
     </div>
     <div style="margin-top:1.4rem;border-top:1px solid rgba(255,255,255,.1);padding-top:1rem;text-align:center;font-size:11.5px;color:rgba(255,255,255,.35);line-height:1.6">
       Precisa de apoio com seus projetos ou processos?<br>
-      Entre em contato por <a href="mailto:epp.cage@sefaz.rs.gov.br" style="color:rgba(255,255,255,.55);text-decoration:none" onmouseover="this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.color='rgba(255,255,255,.55)'">e-mail</a>
-      ou através do <a href="https://atendimentocage.sefaz.rs.gov.br/" target="_blank" rel="noopener noreferrer" style="color:rgba(255,255,255,.55);text-decoration:none" onmouseover="this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.color='rgba(255,255,255,.55)'">Portal e-CAGE</a>.
+      Entre em contato por <a href="mailto:epp.cage@sefaz.rs.gov.br" style="color:rgba(255,255,255,.55);text-decoration:none" onmouseover="this.style.color='rgba(255,255,255,.8)'" onfocus="this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.color='rgba(255,255,255,.55)'" onblur="this.style.color='rgba(255,255,255,.55)'">e-mail</a>
+      ou através do <a href="https://atendimentocage.sefaz.rs.gov.br/" target="_blank" rel="noopener noreferrer" style="color:rgba(255,255,255,.55);text-decoration:none" onmouseover="this.style.color='rgba(255,255,255,.8)'" onfocus="this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.color='rgba(255,255,255,.55)'" onblur="this.style.color='rgba(255,255,255,.55)'">Portal e-CAGE</a>.
     </div>
   </div>
 </div>
@@ -2193,7 +2193,7 @@ function rDash(){
     '<div class="stat cb"><div class="stat-n">'+mx.nProc+'</div><div class="stat-l">Processos</div></div>'+
     '<div class="stat cg"><div class="stat-n">'+mx.nSub+'</div><div class="stat-l">Subprocessos</div></div>'+
     '<div class="stat cr"><div class="stat-n">'+processos.filter(p=>p.prio==='Critica').length+'</div><div class="stat-l">Prioridade crítica</div></div>'+
-    (()=>{const eco=processos.reduce((s,p)=>{const r=(p.reunioes_acomp||[]).filter(r=>r.economia_h!=null);return s+(r.length?r[r.length-1].economia_h:0);},0);if(eco===0)return '';const ecoSign=eco>=0?'+':'';return `<div class="stat cg" title="Soma da economia de horas/mês da última reavaliação de cada processo"><div class="stat-n">${ecoSign}${eco.toFixed(1)}h</div><div class="stat-l">Economia de horas/mês estimada</div></div>`;})();
+    (()=>{const eco=processos.reduce((s,p)=>{const r=(p.reunioes_acomp||[]).filter(r=>r.economia_h!=null);return s+(r.length?r[r.length-1].economia_h:0);},0);if(eco===0){return '';}const ecoSign=eco>=0?'+':'';return `<div class="stat cg" title="Soma da economia de horas/mês da última reavaliação de cada processo"><div class="stat-n">${ecoSign}${eco.toFixed(1)}h</div><div class="stat-l">Economia de horas/mês estimada</div></div>`;})();
   // Pipeline
   const cnt={};ETAPAS.forEach(e=>{cnt[e.id]=processos.filter(p=>p.etapa===e.id).length;});
   document.getElementById('dash-pipe').innerHTML=buildPipelineHTML(cnt);
@@ -3294,7 +3294,7 @@ const ACOES = {
               ${r.desvios?`<div style="font-size:12px;color:var(--red);margin-top:.2rem">⚠ Desvios: ${esc(r.desvios)}</div>`:''}
               ${r.acoes?`<div style="font-size:12px;color:var(--teal);margin-top:.2rem">→ Ações: ${esc(r.acoes)}</div>`:''}
               ${r.proxima?`<div style="font-size:11px;color:var(--ink4);margin-top:.2rem">Próxima: ${r.proxima}</div>`:''}
-              ${(()=>{if(r.economia_h==null)return '';const s=r.economia_h>=0?'+':'';return `<div style="font-size:12px;color:var(--teal);margin-top:.2rem;font-weight:600">📊 Economia estimada: ${s}${r.economia_h} h/mês (vol: ${r.vol_exec_novo}/mês × ${r.t_real_novo}h)</div>`;})()}            </div>
+              ${(()=>{if(r.economia_h===null){return '';}const s=r.economia_h>=0?'+':'';return `<div style="font-size:12px;color:var(--teal);margin-top:.2rem;font-weight:600">📊 Economia estimada: ${s}${r.economia_h} h/mês (vol: ${r.vol_exec_novo}/mês × ${r.t_real_novo}h)</div>`;})()}            </div>
             <div style="display:flex;gap:4px;flex-shrink:0">
               <button type="button" class="btn" style="font-size:11px;padding:2px 7px" onclick="editarReuniaoAcomp(${i})">✎ Editar</button>
               <button type="button" class="btn" style="font-size:11px;padding:2px 7px;color:var(--red);border-color:var(--red)" onclick="excluirReuniaoAcomp(${i})" aria-label="Remover reunião">✕</button>
@@ -4106,7 +4106,7 @@ async function registrarReuniaoAcomp(){
     r.t_real_novo=trealNovo;
     r.total_novo=+(volNovo*trealNovo).toFixed(1);
     const baseline=p.ent?.total_h_mensal||null;
-    r.economia_h=baseline!=null?+(baseline-r.total_novo).toFixed(1):null;
+    r.economia_h=baseline===null?null:+(baseline-r.total_novo).toFixed(1);
   }
   if(r.data){
     p.reunioes_acomp.push(r);
@@ -7336,7 +7336,7 @@ function removerMacro(mid){
     // Break links in processos[]
     m.processos.forEach(p=>{
       const ids = p.subprocessos&&p.subprocessos.length>0 ? p.subprocessos.map(s=>s.id) : [p.id];
-      ids.forEach(id=>{ const pr=processos.find(x=>x.arq_id===id); if(pr) pr.arq_id=null; });
+      for(const id of ids){ const pr=processos.find(x=>x.arq_id===id); if(pr) pr.arq_id=null; }
     });
     ARQUITETURA=ARQUITETURA.filter(x=>x.id!==mid);
     fbAutoSave('removerMacro');
@@ -7523,12 +7523,12 @@ function getUnidadesMapeaveis(){
   ARQUITETURA.forEach(m=>{
     m.processos.forEach(p=>{
       if(p.subprocessos && p.subprocessos.length > 0){
-        p.subprocessos.forEach(s=>{
+        for(const s of p.subprocessos){
           const proc = processos.find(pr=>pr.arq_id===s.id)||null;
           lista.push({arq_id:s.id, label:m.nome+' › '+p.nome+' › '+s.nome,
             nome:s.nome, gerente:s.gerente||p.gerente, area:s.area||p.area,
             macro:m.nome, proc, isSub:true, parentNome:p.nome});
-        });
+        }
       } else {
         const proc = processos.find(pr=>pr.arq_id===p.id)||null;
         lista.push({arq_id:p.id, label:m.nome+' › '+p.nome,
@@ -9188,13 +9188,14 @@ function renderPlanoMetas(){
   const metas=PLANO_METAS.filter(m=>!m.ano||m.ano===ano);
   const podeEditar=isEP();
   const btnAdd=podeEditar?`<button type="button" class="btn btn-a ep-only" onclick="abrirMetaModal(null)" style="font-size:11px;padding:3px 10px">+ Meta</button>`:'';
+  const addMetaHint=podeEditar?' Clique em <b>+ Meta</b> para adicionar.':'';
   if(metas.length===0 && !podeEditar){el.innerHTML='';return;}
   el.innerHTML=`
   <div style="margin-bottom:.5rem;display:flex;align-items:center;gap:8px">
     <span style="font-size:12px;font-weight:700;color:var(--ink)">🎯 Metas do Escritório — ${ano}</span>
     ${btnAdd}
   </div>
-  ${metas.length===0?`<div style="font-size:12px;color:var(--ink3);padding:.5rem 0">Nenhuma meta cadastrada. ${podeEditar?'Clique em <b>+ Meta</b> para adicionar.':''}</div>`:''}
+  ${metas.length===0?`<div style="font-size:12px;color:var(--ink3);padding:.5rem 0">Nenhuma meta cadastrada.${addMetaHint}</div>`:''}
   <div style="display:flex;gap:10px;flex-wrap:wrap">
     ${metas.map(m=>{
       const real=_metaRealizado(m);
@@ -9287,7 +9288,7 @@ function abrirMetaModal(id){
   document.getElementById('mm-id').value = m?m.id:'';
   document.getElementById('mm-ano').value = m?m.ano||ano:ano;
   document.getElementById('mm-titulo').value = m?m.titulo:'';
-  document.getElementById('mm-meta').value = m!=null?m.meta:'';
+  document.getElementById('mm-meta').value = m?.meta??'';
   document.getElementById('mm-unidade').value = m?m.unidade||'':'';
   document.getElementById('mm-obs').value = m?m.obs||'':'';
   // fonte
