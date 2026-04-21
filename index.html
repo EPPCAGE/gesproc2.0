@@ -2605,7 +2605,11 @@ function perguntarNotifDono(etapaProxId){
 function salvarPrazoDono(etapaProxId, notificar){
   const prazo=document.getElementById('prazo-dono-inp')?.value;
   if(!prazo){toast('Informe o prazo antes de continuar.','var(--red)');return;}
-  if(curProc) curProc.prazo_dono=prazo;
+  if(curProc){
+    curProc.prazo_dono=prazo; // mantém campo legado para compatibilidade
+    if(!curProc.prazos_dono) curProc.prazos_dono={};
+    curProc.prazos_dono[etapaProxId]=prazo;
+  }
   if(globalThis._prazoDonoOv){globalThis._prazoDonoOv.remove();globalThis._prazoDonoOv=null;}
   fbAutoSave('prazo_dono');
   if(notificar) confirmarNotifDono(etapaProxId);
@@ -2616,8 +2620,9 @@ function confirmarNotifDono(etapaProxId){
   if(!p||!p.dono) return;
   const email=getDonoEmail(p);
   if(!email){toast('E-mail do dono não encontrado no cadastro.','var(--amber)');return;}
-  const pz=p.prazo_dono?p.prazo_dono.split('-').reverse().join('/'):'';
-  const acao='Nova tarefa: '+etLb(etapaProxId)+' — prazo: '+(pz||'a definir');
+  const prazoEt=(p.prazos_dono||{})[etapaProxId]||p.prazo_dono||'';
+  const pz=prazoEt?prazoEt.split('-').reverse().join('/'):'a definir';
+  const acao='Nova tarefa: '+etLb(etapaProxId)+' — prazo: '+pz;
   enviarNotif(email, p.dono, acao, p.nome, '', usuarioLogado?.nome||'EP');
   toast('Notificação enviada para '+p.dono,'var(--teal)');
 }
@@ -2627,6 +2632,7 @@ function reprovar(voltaEt, role, acao){
   curProc.etapa = voltaEt;
   push(curProc, voltaEt, 'Sistema', 'Retornado para ajustes');
   rDetalhe();
+  fbAutoSave('reprovar');
 }
 function popupConclusaoDono(msg){
   const ov=document.createElement('div');
@@ -2693,8 +2699,20 @@ function _salvarDadosDono(){
     p.form.forms=document.getElementById('aforms')?.value??p.form.forms??'';
     const obs=document.getElementById('aobs')?.value||'';
     if(obs) p.form.obs_complement=obs;
+  } else if(etDono==='det_valid_asis'){
+    if(!p.ent.analise) p.ent.analise={};
+    const dt=document.getElementById('va-dt')?.value||'';
+    const part=document.getElementById('va-part')?.value||'';
+    const ata=document.getElementById('va-ata')?.value||'';
+    if(dt||part||ata) p.ent.analise.reuniao_valid_asis={data:dt,participantes:part,ata};
+  } else if(etDono==='det_valid_tobe'){
+    if(!p.mod) p.mod={};
+    const dt=document.getElementById('vtb-dt')?.value||'';
+    const part=document.getElementById('vtb-part')?.value||'';
+    const ata=document.getElementById('vtb-ata')?.value||'';
+    if(dt||part||ata) p.mod.reuniao_valid_tobe={data:dt,participantes:part,ata};
   }
-  // det_valid_asis / det_valid_tobe: etapas_proc já salvas por handlers inline; apenas flush
+  // etapas_proc (BPMN): já salvas por handlers inline nos editores
 }
 function salvarEdicaoEPDono(){
   const p=curProc;
@@ -2745,11 +2763,13 @@ function _rAcaoRevisaoDono(el, p){
 function prosseguirFluxo(){
   const p=curProc;
   if(!p?.ent?.revisao_ep_pendente) return;
-  _salvarDadosDono(); // salva silenciosamente quaisquer edições pendentes
-  delete p.ent.revisao_ep_pendente;
-  fbAutoSave('prosseguirFluxo');
-  rDetalhe();
-  updCounts();
+  confirmar('Confirma que a entrega do dono está correta e o fluxo pode prosseguir?', ()=>{
+    _salvarDadosDono(); // salva silenciosamente quaisquer edições pendentes
+    delete p.ent.revisao_ep_pendente;
+    fbAutoSave('prosseguirFluxo');
+    rDetalhe();
+    updCounts();
+  });
 }
 
 // ── Devolver tarefa ao dono (EP → dono) ──
@@ -2762,16 +2782,27 @@ function getDevolverEtapa(p){
   }
   return null;
 }
+function getDevolverEtapas(p){
+  const etapas=getEtapas(p);
+  const idx=etapas.findIndex(e=>e.id===p.etapa);
+  if(idx<=0) return [];
+  return etapas.slice(0,idx).filter(e=>e.resp==='dono');
+}
 function devolverAoDono(){
   const p=curProc;
-  const etRet=getDevolverEtapa(p);
-  if(!etRet){toast('Nenhuma etapa anterior do dono encontrada.','var(--amber)');return;}
+  const opcoes=getDevolverEtapas(p);
+  if(!opcoes.length){toast('Nenhuma etapa anterior do dono encontrada.','var(--amber)');return;}
+  // Default: última etapa do dono antes da atual (comportamento anterior)
+  const etRetDefault=opcoes[opcoes.length-1].id;
+  const selectHtml=opcoes.length===1
+    ? `<input type="hidden" id="devolver-etapa-sel" value="${etRetDefault}"><div style="font-size:13px;color:var(--ink3);margin-bottom:1rem">A tarefa voltará para <strong>${etLb(etRetDefault)}</strong>. O preenchimento anterior será mantido — o dono só precisará ajustar o que você indicar.</div>`
+    : `<div class="fg" style="margin-bottom:.9rem"><label class="fl">Para qual etapa devolver? <span style="color:var(--red)">*</span></label><select class="fi" id="devolver-etapa-sel">${opcoes.map(e=>`<option value="${e.id}"${e.id===etRetDefault?' selected':''}>${etLb(e.id)}</option>`).join('')}</select><div style="font-size:11px;color:var(--ink3);margin-top:3px">O preenchimento anterior é preservado — o dono ajustará apenas o que você indicar.</div></div>`;
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center';
   ov.id='devolver-ov';
   ov.innerHTML=`<div style="background:var(--surf);border-radius:14px;padding:2rem 1.8rem;max-width:480px;width:92%;box-shadow:0 12px 40px rgba(0,0,0,.25)">
     <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:.4rem">↩ Devolver ao dono</div>
-    <div style="font-size:13px;color:var(--ink3);margin-bottom:1rem">A tarefa voltará para <strong>${etLb(etRet)}</strong>. O preenchimento anterior será mantido — o dono só precisará ajustar o que você indicar.</div>
+    ${selectHtml}
     <div class="fg" style="margin-bottom:.9rem">
       <label class="fl">O que você quer que o dono faça?</label>
       <div style="display:flex;gap:8px;margin-top:4px">
@@ -2789,10 +2820,15 @@ function devolverAoDono(){
     </div>
     <div class="btn-row">
       <button type="button" class="btn" onclick="document.getElementById('devolver-ov').remove()">Cancelar</button>
-      <button type="button" class="btn" style="background:#fef3c7;color:#92400e;border-color:#f59e0b" onclick="confirmarDevolucao('${etRet}')">Confirmar →</button>
+      <button type="button" class="btn" style="background:#fef3c7;color:#92400e;border-color:#f59e0b" onclick="confirmarDevolucaoDinamica()">Confirmar →</button>
     </div>
   </div>`;
   document.body.appendChild(ov);
+}
+function confirmarDevolucaoDinamica(){
+  const etRet=document.getElementById('devolver-etapa-sel')?.value;
+  if(!etRet){toast('Selecione a etapa de retorno.','var(--red)');return;}
+  confirmarDevolucao(etRet);
 }
 function confirmarDevolucao(etRet){
   const motivo=document.getElementById('devolver-motivo')?.value?.trim();
@@ -3285,7 +3321,7 @@ const ACOES = {
     <div class="fg"><label class="fl">Ata / encaminhamentos</label><textarea class="fi" id="apr-ata" style="min-height:70px" placeholder="Registre os encaminhamentos da reunião...">${p.form?.reuniao_apresentacao?.ata||''}</textarea></div>
     <div class="fg"><label class="fl">Decisão / observações do gestor</label><textarea class="fi" id="aobs" style="min-height:60px" placeholder="Decisão do gestor..."></textarea></div>
     <div class="btn-row">
-      <button type="button" class="btn btn-a" onclick="reprovar('complement','Gestor','Gestor solicitou revisão')">Solicitar revisão</button>
+      <button type="button" class="btn btn-a" onclick="reprovarApresentacao()">Solicitar revisão</button>
       <button type="button" class="btn btn-g" onclick="salvarApresentacao()">Autorizar publicação ✓</button>
     </div>`},
 
@@ -4000,15 +4036,10 @@ function salvarQuestionario(){
     p.ent.quest_nota=nota;
     if(!p.ent.quest_hist)p.ent.quest_hist=[];
     p.ent.quest_hist.push({dt:now(),nivel,media,respondidas,nota});
-    registrarRespondidoPor('questionario');
+    // Usa avDono() para consistência: seta revisao_ep_pendente e avança etapa
     push(p,'questionario','Dono do processo','Questionário respondido — '+respondidas+'/15 perguntas — média '+media+' — nível '+nivel);
-    const nx=nextEt('questionario');
-    if(nx){p.etapa=nx;push(p,nx,'Sistema','Etapa iniciada');}
-    {const epEmail=getEPEmail(p)||p.resp_ep+(p.resp_ep?.includes('@')?'':'@sefaz.rs.gov.br');enviarNotif(epEmail,p.resp_ep,'Questionário de maturidade respondido. Nível: '+nivel+'/5. Próxima etapa: '+etLb(nx||''),p.nome,'',p.dono);}
-    toast('Questionário enviado! Maturidade nível '+nivel);
-    rDetalhe();updCounts();
-    fbAutoSave('questionario');
-    setTimeout(()=>mostrarResultadoMaturidade(p,nivel,media),200);
+    avDono('questionario','Dono do processo','Questionário de maturidade concluído — nível '+nivel,null);
+    setTimeout(()=>mostrarResultadoMaturidade(p,nivel,media),400);
   };
   if(respondidas<15) { confirmar(`Apenas ${respondidas}/15 afirmações respondidas. Continuar assim mesmo?`, _enviarQuestionario); } else { _enviarQuestionario(); }
 }
@@ -4391,6 +4422,39 @@ function salvarComplementacaoDono(){
   const ata=document.getElementById('comp-ata')?.value||'';
   if(dt||part||ata) p.form.reuniao_complement={data:dt,participantes:part,ata};
   avDono('complement','Dono do processo','Complementação fornecida pelo dono do processo');
+}
+function reprovarApresentacao(){
+  const p=curProc;
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center';
+  ov.id='reprovar-apres-ov';
+  ov.innerHTML=`<div style="background:var(--surf);border-radius:14px;padding:2rem 1.8rem;max-width:440px;width:92%;box-shadow:0 12px 40px rgba(0,0,0,.25)">
+    <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:.4rem">↩ Solicitar revisão ao EP</div>
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:1rem">O processo voltará para <strong>Complementação do dono</strong>. Descreva o que precisa ser ajustado antes da publicação.</div>
+    <div class="fg" style="margin-bottom:1.2rem">
+      <label class="fl">Instrução para o EP / dono <span style="color:var(--red)">*</span></label>
+      <textarea class="fi" id="reprovar-apres-motivo" rows="3" placeholder="Ex: Falta detalhar os formulários utilizados..."></textarea>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="btn" onclick="document.getElementById('reprovar-apres-ov').remove()">Cancelar</button>
+      <button type="button" class="btn btn-a" onclick="confirmarReprovarApresentacao()">Confirmar revisão →</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+function confirmarReprovarApresentacao(){
+  const motivo=document.getElementById('reprovar-apres-motivo')?.value?.trim();
+  if(!motivo){toast('Informe o motivo da revisão.','var(--red)');return;}
+  const p=curProc;
+  const obs=document.getElementById('aobs')?.value||'';
+  const dt=document.getElementById('adt')?.value||'';
+  const part=document.getElementById('apart')?.value||'';
+  const ata=document.getElementById('apr-ata')?.value||'';
+  if(!p.form) p.form={};
+  if(dt||part||ata) p.form.reuniao_apresentacao={data:dt,participantes:part,ata};
+  if(obs) p.form.obs_apresentacao=obs;
+  document.getElementById('reprovar-apres-ov')?.remove();
+  reprovar('complement','Gestor','Gestor solicitou revisão — '+motivo);
 }
 function salvarApresentacao(){
   const obs=document.getElementById('aobs')?.value||'';
@@ -11033,7 +11097,10 @@ function fbAutoSave(label){
   // Debounce: wait 1.5s after last change before saving
   clearTimeout(globalThis._fbSaveTimer);
   globalThis._fbSaveTimer = setTimeout(()=>{
-    fbSaveAll();
+    fbSaveAll().catch(e=>{
+      console.error('fbAutoSave error ('+label+'):', e);
+      toast('⚠ Erro ao salvar dados. Verifique sua conexão.','var(--red)');
+    });
   }, 1500);
 }
 
