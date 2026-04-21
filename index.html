@@ -3658,6 +3658,13 @@ const ACOES = {
       <button type="button" class="btn btn-t" onclick="extrairBpmn()">⚡ Extrair etapas do BPMN</button>
       <button type="button" class="btn" onclick="addEtapaProc()">+ Adicionar manualmente</button>
     </div>
+    <div style="border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg2);padding:.5rem .75rem;margin-bottom:.8rem;min-height:60px;overflow-x:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem">
+        <span style="font-size:11.5px;font-weight:600;color:var(--ink2)">Prévia do fluxo</span>
+        <span style="font-size:10px;color:var(--blue);font-weight:600">💡 Clique em uma etapa para detalhar</span>
+      </div>
+      <div id="mermaid-preview"></div>
+    </div>
     <div id="etapas-proc-list">${renderEtapasProc(p.mod.etapas_proc||[])}</div>
     <div class="btn-row"><button type="button" class="btn btn-p" onclick="salvarEsboco()">Encaminhar para detalhamento →</button></div>`},
 
@@ -3676,6 +3683,13 @@ const ACOES = {
         <button type="button" class="btn" style="font-size:11px;padding:3px 10px" onclick="exportarEtapasAsIsXlsx()" title="Exportar todas as etapas para planilha Excel">⬇ Exportar Excel</button>
       </div>
       <div style="font-size:12px;color:var(--ink3);margin-bottom:.8rem">Expanda cada etapa (✎ Detalhar) e preencha natureza, modo de execução, executor e descrição.</div>
+      <div style="border:1px solid var(--bdr);border-radius:var(--r);background:var(--bg2);padding:.5rem .75rem;margin-bottom:.8rem;min-height:60px;overflow-x:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem">
+          <span style="font-size:11.5px;font-weight:600;color:var(--ink2)">Prévia do fluxo</span>
+          <span style="font-size:10px;color:var(--blue);font-weight:600">💡 Clique em uma etapa para detalhar</span>
+        </div>
+        <div id="mermaid-preview"></div>
+      </div>
       <div id="etapas-proc-list">${renderEtapasProc(p.mod.etapas_proc||[])}</div>
 
       <hr style="margin:.8rem 0">
@@ -4424,7 +4438,7 @@ function _rAcaoTarefaRespondidaHTML(jr){
   </div></div>`;
 }
 const _BPMN_INIT = {
-  det_valid_asis: (p,mt) => { if(mt) setTimeout(()=>initBpmnMod('asis',p),120); },
+  det_valid_asis: (p,mt) => { if(mt) setTimeout(()=>initBpmnMod('asis',p),120); setTimeout(atualizarMermaid,300); },
   det_valid_tobe: (p,mt) => { if(mt) setTimeout(()=>initBpmnMod('tobe',p),120); },
   esboco_asis:    (p)    => { setTimeout(()=>initBpmnMod('asis',p),120); setTimeout(atualizarMermaid,300); },
   esboco_tobe:    (p)    => { setTimeout(()=>initBpmnMod('tobe',p),120); },
@@ -6422,11 +6436,15 @@ function reRenderEtapaDetalhe(etapaId){
   const el=document.getElementById('ed-'+etapaId);
   const e=curProc.mod.etapas_proc.find(x=>x.id===etapaId);
   if(el&&e){ el.innerHTML=renderEtapaDetalheConteudo(e); atualizarMermaid(); }
+  if(_etapaModalId===etapaId) _refreshEtapaModal(etapaId);
 }
 function reRenderGw(etapaId){
   const el=document.getElementById('gw-'+etapaId);
   const e=curProc.mod.etapas_proc.find(x=>x.id===etapaId);
   if(el&&e){ el.innerHTML=renderGatewaySection(etapaId,0); atualizarMermaid(); }
+  // Also update modal gateway section if open
+  const mel=document.getElementById('modal-gw-'+etapaId);
+  if(mel&&e){ mel.innerHTML=renderGatewaySection(etapaId,0); }
 }
 function addCaminhoGw(path){
   const obj=resolveGwPath(path);
@@ -6453,9 +6471,11 @@ function remAcaoGw(camPath,ai){
 
 // ── MERMAID LIVE PREVIEW ─────────────────────
 let _mermaidCode = '';
+let _mermaidNodeMap = {}; // Mermaid node id (N0, N1…) → etapa_proc id
 
 function etapasToMermaid(etapas){
   if(!etapas||!etapas.length) return '';
+  _mermaidNodeMap = {};
   const safe = s => (s||'sem nome').replaceAll(/["'<>&[\]{}()]/g,' ').replaceAll(/\s+/g,' ').trim().slice(0,45);
   let lines = ['flowchart TD'];
   let nodeId = 0;
@@ -6476,7 +6496,7 @@ function etapasToMermaid(etapas){
       lines.push(`  ${id}[${lbl}]`, `  style ${id} fill:#dbeafe,stroke:#2563eb,color:#1e3a5f`);
     }
   }
-  function pushGatewayCaminhos(id, e){
+  function pushGatewayCaminhos(mmId, e, gwEpId){
     const mergeId = getId();
     lines.push(`  ${mergeId}[ ]`, `  style ${mergeId} fill:transparent,stroke:transparent`);
     e.caminhos.forEach(cam=>{
@@ -6484,25 +6504,28 @@ function etapasToMermaid(etapas){
       const acoes = cam.acoes||[];
       if(acoes.length){
         const firstId = 'N'+nodeId;
-        buildNodes(acoes, null);
+        buildNodes(acoes, null, gwEpId);
         const lastId = 'N'+(nodeId-1);
-        lines.push(`  ${id} -->|${clbl}| ${firstId}`, `  ${lastId} --> ${mergeId}`);
+        lines.push(`  ${mmId} -->|${clbl}| ${firstId}`, `  ${lastId} --> ${mergeId}`);
       } else {
         const emptyId = getId();
-        lines.push(`  ${emptyId}[ ]`, `  style ${emptyId} fill:transparent,stroke:transparent`, `  ${id} -->|${clbl}| ${emptyId}`, `  ${emptyId} --> ${mergeId}`);
+        lines.push(`  ${emptyId}[ ]`, `  style ${emptyId} fill:transparent,stroke:transparent`, `  ${mmId} -->|${clbl}| ${emptyId}`, `  ${emptyId} --> ${mergeId}`);
       }
     });
     return mergeId;
   }
-  function buildNodes(items, parentEndId){
+  function buildNodes(items, parentEndId, parentGwEpId){
     let prevId = parentEndId;
     items.forEach(e => {
       const id = getId();
       const lbl = safe(e.nome);
       pushNodeShape(id, e, lbl);
+      // Map Mermaid node → etapa_proc id (top-level nodes have e.id; gateway sub-actions map to parent gateway)
+      const epId = e.id || parentGwEpId || null;
+      if(epId) _mermaidNodeMap[id] = epId;
       if(prevId!==null) lines.push(`  ${prevId} --> ${id}`);
       if(e.tipo==='Decisao' && e.caminhos && e.caminhos.length){
-        prevId = pushGatewayCaminhos(id, e);
+        prevId = pushGatewayCaminhos(id, e, epId);
         return;
       }
       prevId = id;
@@ -6510,7 +6533,7 @@ function etapasToMermaid(etapas){
     return prevId;
   }
 
-  buildNodes(etapas, null);
+  buildNodes(etapas, null, null);
   return lines.join('\n');
 }
 
@@ -6530,12 +6553,118 @@ async function atualizarMermaid(){
     const uid = 'mm-'+Date.now();
     const {svg} = await mermaid.render(uid, _mermaidCode);
     el.innerHTML = svg;
+    _bpmnAddSvgClicks(el);
   } catch {
     el.innerHTML = `<pre style="font-size:10px;color:var(--red);white-space:pre-wrap;word-break:break-all">${esc(_mermaidCode)}</pre>`;
   }
 }
 
 // copiarMermaid removida (dead code — botão removido, não há chamador)
+
+// ── Nós do diagrama Mermaid clicáveis ────────────────────────────────────────
+let _etapaModalId = null;
+
+function _bpmnAddSvgClicks(container){
+  // Wait for SVG to be fully rendered in DOM
+  setTimeout(()=>{
+    if(!container) return;
+    container.querySelectorAll('g.node').forEach(nodeEl=>{
+      const m=(nodeEl.id||'').match(/flowchart-(N\d+)-/);
+      if(!m) return;
+      const epId=_mermaidNodeMap[m[1]];
+      if(!epId) return;
+      nodeEl.style.cursor='pointer';
+      // Highlight on hover
+      const shapes=nodeEl.querySelectorAll('rect,polygon,circle,ellipse,path');
+      nodeEl.addEventListener('mouseenter',()=>shapes.forEach(s=>{s.style.filter='brightness(.88) drop-shadow(0 0 5px rgba(37,99,235,.55))';s.style.transition='filter .12s';}));
+      nodeEl.addEventListener('mouseleave',()=>shapes.forEach(s=>s.style.filter=''));
+      nodeEl.addEventListener('click',()=>abrirDetalheEtapaModal(epId));
+    });
+  },80);
+}
+
+function abrirDetalheEtapaModal(epId){
+  const p=curProc;
+  if(!p) return;
+  const e=p.mod?.etapas_proc?.find(x=>x.id===epId);
+  if(!e) return;
+  fecharDetalheEtapaModal();
+  _etapaModalId=epId;
+  const ov=document.createElement('div');
+  ov.id='etapa-modal-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto';
+  ov.innerHTML=`<div id="etapa-modal-box" style="background:var(--surf);border-radius:14px;padding:1.5rem 1.8rem;width:100%;max-width:660px;box-shadow:0 12px 40px rgba(0,0,0,.32)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <div id="etapa-modal-title" class="card-t" style="margin-bottom:0;font-size:14px">✎ ${esc(e.nome||'Sem nome')}</div>
+      <button type="button" class="btn" onclick="fecharDetalheEtapaModal()">× Fechar</button>
+    </div>
+    <div id="etapa-modal-content"></div>
+  </div>`;
+  ov.addEventListener('click',ev=>{if(ev.target===ov)fecharDetalheEtapaModal();});
+  document.body.appendChild(ov);
+  document.getElementById('etapa-modal-content').innerHTML=_renderModalConteudo(epId);
+  // ESC to close
+  globalThis._etapaModalKeydown=ev=>{if(ev.key==='Escape')fecharDetalheEtapaModal();};
+  document.addEventListener('keydown',globalThis._etapaModalKeydown);
+}
+
+function fecharDetalheEtapaModal(){
+  const ov=document.getElementById('etapa-modal-ov');
+  if(ov) ov.remove();
+  _etapaModalId=null;
+  if(globalThis._etapaModalKeydown){document.removeEventListener('keydown',globalThis._etapaModalKeydown);globalThis._etapaModalKeydown=null;}
+  atualizarMermaid(); // refresh SVG after edits
+  // Also refresh the etapas list if visible
+  const list=document.getElementById('etapas-proc-list');
+  if(list&&curProc?.mod?.etapas_proc) list.innerHTML=renderEtapasProc(curProc.mod.etapas_proc);
+}
+
+function salvarEtapaModal(id){
+  fbAutoSave('salvarEtapa');
+  toast('Etapa salva');
+  fecharDetalheEtapaModal();
+}
+
+function _refreshEtapaModal(id){
+  if(_etapaModalId!==id) return;
+  const content=document.getElementById('etapa-modal-content');
+  if(!content) return;
+  content.innerHTML=_renderModalConteudo(id);
+  const e=curProc?.mod?.etapas_proc?.find(x=>x.id===id);
+  const title=document.getElementById('etapa-modal-title');
+  if(title&&e) title.textContent='✎ '+(e.nome||'Sem nome');
+}
+
+function _renderModalConteudo(epId){
+  const e=curProc?.mod?.etapas_proc?.find(x=>x.id===epId);
+  if(!e) return '';
+  const id=epId;
+  return `<div class="g2" style="margin-top:.3rem">
+    <div class="fg"><label class="fl">Nome da etapa</label>
+      <input class="fi" value="${(e.nome||'').replaceAll('"','&quot;')}"
+        oninput="(function(v){const _e=curProc.mod.etapas_proc.find(x=>x.id==='${id}');_e.nome=v;const _t=document.getElementById('etapa-modal-title');if(_t)_t.textContent='✎ '+v;const _el=document.querySelector('#ep-${id} .etapa-nome');if(_el)_el.textContent=v;clearTimeout(globalThis._mmT);globalThis._mmT=setTimeout(atualizarMermaid,800);})(this.value)">
+    </div>
+    <div class="fg"><label class="fl">Tipo</label>
+      <select class="fi" onchange="(function(s){const _e=curProc.mod.etapas_proc.find(x=>x.id==='${id}');_e.tipo=s.value;_e.subtipo_evento=null;_refreshEtapaModal('${id}');})(this)">
+        <option ${e.tipo==='Atividade'?'selected':''}>Atividade</option>
+        <option ${e.tipo==='Evento'?'selected':''}>Evento</option>
+        <option ${e.tipo==='Decisao'?'selected':''}>Decisao</option>
+        <option ${e.tipo==='Comentario'?'selected':''}>Comentario</option>
+      </select>
+    </div>
+  </div>
+  ${_renderEtapaAtividadeFields(e,id)}
+  ${_renderEtapaEventoFields(e,id)}
+  ${e.tipo==='Decisao'?`<div id="modal-gw-${id}">${renderGatewaySection(id,0)}</div>`:''}
+  <div class="fg" style="margin-top:.5rem"><label class="fl">Descrição detalhada</label>
+    <textarea class="fi" style="min-height:70px"
+      oninput="curProc.mod.etapas_proc.find(x=>x.id==='${id}').desc=this.value">${e.desc||''}</textarea>
+  </div>
+  <div style="margin-top:.9rem;display:flex;gap:8px">
+    <button type="button" class="btn btn-p" style="padding:6px 18px" onclick="salvarEtapaModal('${id}')">✓ Salvar e fechar</button>
+    <button type="button" class="btn" style="padding:6px 14px" onclick="fecharDetalheEtapaModal()">Cancelar</button>
+  </div>`;
+}
 
 function toggleEtapaDetalhe(id){
   const el=document.getElementById('ed-'+id);
