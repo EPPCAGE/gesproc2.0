@@ -2170,7 +2170,9 @@ function taskCard(p,ACT){
   const prazo=(p.prazos_dono||{})[p.etapa]||p.prazo_dono||'';
   const hoje=new Date().toISOString().slice(0,10);
   const venc=prazo && prazo<hoje;
-  const prazoHtml=prazo?`<span style="font-size:11px;color:${venc?'var(--red)':'var(--ink3)'}">📅 ${venc?'Vencido':'Prazo'}: ${prazo.split('-').reverse().join('/')}</span>`:'';
+  const prazoLabel=venc?'Vencido':'Prazo';
+  const prazoColor=venc?'var(--red)':'var(--ink3)';
+  const prazoHtml=prazo?`<span style="font-size:11px;color:${prazoColor}">📅 ${prazoLabel}: ${prazo.split('-').reverse().join('/')}</span>`:'';
   const vencBorder=venc||isVencido(p)?'border-left:3px solid var(--red);':'';
   return `<div class="prc ${p.prio==='Critica'?'urg':''}" onclick="abrirProc(${p.id})" style="margin-bottom:8px;${vencBorder}">
     <div><div class="prc-t">${esc(p.nome)}</div>
