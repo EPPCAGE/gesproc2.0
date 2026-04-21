@@ -6423,6 +6423,8 @@ function _renderVinculoGwField(e, id){
   const selLabel=e.vinculo_gw?.label||'';
   const selGw=gateways.find(x=>x.id===selGwId);
   const caminhos=selGw?.caminhos||[];
+  const labeledCaminhos=caminhos.filter(c=>c.label);
+  const currentLabelMissing=selLabel&&!labeledCaminhos.some(c=>c.label===selLabel);
   return `<div class="g2" style="margin-top:.5rem;padding:.5rem .75rem;background:var(--bg2);border-radius:var(--r);border:1px solid var(--bdr)">
     <div class="fg"><label class="fl">Gateway anterior <small style="font-weight:400;color:var(--ink3)">(opcional)</small></label>
       <select class="fi" onchange="(function(s){const _e=curProc.mod[_ekey()].find(x=>x.id==='${id}');_e.vinculo_gw=s.value?{gw_ep_id:s.value,label:''}:null;reRenderEtapaDetalhe('${id}');})(this)">
@@ -6433,8 +6435,8 @@ function _renderVinculoGwField(e, id){
     ${selGwId?`<div class="fg"><label class="fl">Caminho do gateway</label>
       <select class="fi" onchange="curProc.mod[_ekey()].find(x=>x.id==='${id}').vinculo_gw.label=this.value">
         <option value="">— Selecione —</option>
-        ${caminhos.filter(c=>c.label).map(c=>`<option value="${esc(c.label)}" ${selLabel===c.label?'selected':''}>${esc(c.label)}</option>`).join('')}
-        ${!caminhos.filter(c=>c.label).some(c=>c.label===selLabel&&selLabel)?`<option value="${esc(selLabel)}" selected>${esc(selLabel)||'(sem rótulo)'}</option>`:''}
+        ${labeledCaminhos.map(c=>`<option value="${esc(c.label)}" ${selLabel===c.label?'selected':''}>${esc(c.label)}</option>`).join('')}
+        ${currentLabelMissing?`<option value="${esc(selLabel)}" selected>${esc(selLabel)||'(sem rótulo)'}</option>`:''}
       </select>
     </div>`:'<div></div>'}
   </div>`;
@@ -6458,8 +6460,7 @@ function renderEtapaDetalheConteudo(e){
   </div>
   ${_renderEtapaAtividadeFields(e, id)}
   ${_renderEtapaEventoFields(e, id)}
-  ${e.tipo!=='Decisao'?_renderVinculoGwField(e,id):''}
-  ${e.tipo==='Decisao'?`<div id="gw-${id}">${renderGatewaySection(id,0)}</div>`:''}
+  ${e.tipo==='Decisao'?`<div id="gw-${id}">${renderGatewaySection(id,0)}</div>`:_renderVinculoGwField(e,id)}
   <div class="fg" style="margin-top:.4rem"><label class="fl">Descrição detalhada</label>
     <textarea class="fi" style="min-height:60px"
       oninput="curProc.mod[_ekey()].find(x=>x.id==='${id}').desc=this.value">${e.desc||''}</textarea>
@@ -6475,6 +6476,13 @@ function salvarEtapa(id){
   toast('Etapa salva');
 }
 
+function _gwBadge(e){
+  if(!e.vinculo_gw?.gw_ep_id) return '';
+  const gw=curProc.mod[_ekey()]?.find(x=>x.id===e.vinculo_gw.gw_ep_id);
+  if(!gw) return '';
+  const labelPart=e.vinculo_gw.label?' · '+esc(e.vinculo_gw.label):'';
+  return '<div style="font-size:10.5px;color:var(--teal);margin-top:1px">⤷ '+esc(gw.nome||'Gateway')+labelPart+'</div>';
+}
 function renderEtapasProc(etapas){
   if(!etapas||!etapas.length)return '<div class="ib ibsl">Nenhuma etapa adicionada. Extraia do BPMN ou adicione manualmente.</div>';
   return etapas.map((e)=>`
@@ -6489,7 +6497,7 @@ function renderEtapasProc(etapas){
         <span class="etapa-tipo ${tipoCls(e.tipo,e.subtipo_evento)}">${e.tipo}${e.subtipo_evento?' · '+e.subtipo_evento:''}</span>
         <div class="etapa-nome">
           ${e.nome}
-          ${(()=>{if(!e.vinculo_gw?.gw_ep_id)return '';const _gw=curProc.mod[_ekey()]?.find(x=>x.id===e.vinculo_gw.gw_ep_id);return _gw?`<div style="font-size:10.5px;color:var(--teal);margin-top:1px">⤷ ${esc(_gw.nome||'Gateway')}${e.vinculo_gw.label?' · '+esc(e.vinculo_gw.label):''}</div>`:''})()}
+          ${_gwBadge(e)}
         </div>
         <button type="button" class="btn" style="font-size:11px;padding:3px 8px" onclick="toggleEtapaDetalhe('${e.id}')">✎ Detalhar</button>
         <button type="button" class="btn" style="font-size:11px;padding:3px 8px;color:var(--red);border-color:var(--red-b)" onclick="remEtapaProc('${e.id}')" aria-label="Remover etapa">×</button>
@@ -6900,7 +6908,7 @@ function rEnt(p){
       </div>`:'<div class="ib iba">Não preenchido.</div>'}
     </div>
     <div class="card"><div class="card-t">Problemas identificados (${(e.prob||[]).length})</div>
-      ${(e.prob||[]).length?(e.prob||[]).map((pr,i)=>{const d=typeof pr==='string'?pr:pr.desc||'';const s=typeof pr==='string'?'':pr.solucao||'';return `<div style="padding:6px 0;border-bottom:1px solid var(--bdr)"><div style="display:flex;gap:6px;font-size:12.5px"><span style="color:var(--red);font-weight:700;flex-shrink:0">${i+1}</span><span>${d}</span></div>${s?`<div style="margin:3px 0 0 20px;font-size:12px;color:var(--teal);font-style:italic">💡 Proposta: ${s}</div>`:''}</div>`;}).join(''):'<div class="ib iba">Nenhum problema registrado.</div>'}
+      ${(e.prob||[]).length?(e.prob||[]).map((pr,i)=>{const d=typeof pr==='string'?pr:pr.desc||'';const s=typeof pr==='string'?'':pr.solucao||'';return '<div style="padding:6px 0;border-bottom:1px solid var(--bdr)"><div style="display:flex;gap:6px;font-size:12.5px"><span style="color:var(--red);font-weight:700;flex-shrink:0">'+(i+1)+'</span><span>'+esc(d)+'</span></div>'+(s?'<div style="margin:3px 0 0 20px;font-size:12px;color:var(--teal);font-style:italic">💡 Proposta: '+esc(s)+'</div>':'')+'</div>';}).join(''):'<div class="ib iba">Nenhum problema registrado.</div>'}
     </div>
   </div>
   ${(e.fornecedores||e.entradas||e.saidas||e.clientes)?`<div class="card" style="margin-bottom:1rem">
