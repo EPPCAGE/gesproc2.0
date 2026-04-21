@@ -4902,11 +4902,9 @@ async function iaGerarRelatorioAuditoria(){
     try {
       const json = JSON.parse(result.replace(/^```[a-z]*\n?/,'').replace(/```$/,'').trim());
       const conf = document.getElementById('aud-conf')?.value || aud.conformidade || '';
-      const html = renderRelatorioAuditoria(json, conf, p, aud);
-      const _tpl = document.createElement('template');
-      _tpl.innerHTML = html;
-      el.replaceChildren(_tpl.content.cloneNode(true));
-      p.auditoria.relatorio_html = html;
+      const _node = renderRelatorioAuditoria(json, conf, p, aud);
+      el.replaceChildren(_node);
+      p.auditoria.relatorio_html = el.querySelector('.aud-report')?.outerHTML || '';
     } catch {
       const _wrap=document.createElement('div'); _wrap.className='ai-result';
       const _lbl=document.createElement('div'); _lbl.className='ai-result-lbl'; _lbl.textContent='✦ Relatório';
@@ -4920,83 +4918,133 @@ async function iaGerarRelatorioAuditoria(){
 }
 
 function renderRelatorioAuditoria(json, conf, p, aud){
-  const nc   = (aud.achados_list||[]).filter(a=>a.tipo==='Não conformidade').length;
-  const obs  = (aud.achados_list||[]).filter(a=>a.tipo==='Observação'||a.tipo==='Ponto de melhoria').length;
-  const confOk = conf==='Conforme';
+  const nc  = (aud.achados_list||[]).filter(a=>a.tipo==='Não conformidade').length;
+  const obs = (aud.achados_list||[]).filter(a=>a.tipo==='Observação'||a.tipo==='Ponto de melhoria').length;
+  const confOk   = conf==='Conforme';
   const confWarn = conf==='Conforme com ressalvas';
-  let confColor,confBg;
+  let confColor, confBg;
   if(confOk){confColor='#16a34a';confBg='#dcfce7';}
   else if(confWarn){confColor='#d97706';confBg='#fef3c7';}
   else{confColor='#dc2626';confBg='#fee2e2';}
 
-  const achadosHtml = (aud.achados_list||[]).map(a=>{
-    let c;
-    if(a.tipo==='Não conformidade')c='#dc2626';
-    else if(a.tipo==='Conformidade')c='#16a34a';
-    else c='#d97706';
-    return `<div style="border-left:3px solid ${c};padding:.5rem .75rem;margin-bottom:.4rem;background:var(--surf2);border-radius:0 6px 6px 0">
-      <div style="display:flex;gap:6px;align-items:center;margin-bottom:2px">
-        <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;background:${c}22;color:${c}">${esc(a.tipo)}</span>
-        <strong style="font-size:12px">${esc(a.titulo)}</strong>
-      </div>
-      <div style="font-size:11.5px;color:var(--ink2)">${esc(a.desc)}</div>
-      ${a.evidencia?`<div style="font-size:10px;color:var(--ink3);margin-top:2px">Evidência: ${esc(a.evidencia)}</div>`:''}
-    </div>`;
-  }).join('');
+  const mk = (tag, cls, txt, css) => {
+    const e = document.createElement(tag);
+    if(cls) e.className = cls;
+    if(txt !== undefined) e.textContent = txt;
+    if(css) e.style.cssText = css;
+    return e;
+  };
+  const sec = (title) => {
+    const d = mk('div','aud-rep-section');
+    d.append(mk('div','aud-rep-stitle',title));
+    return d;
+  };
 
-  const acoesHtml = (aud.acoes_list||[]).map(a=>{
-    let sc;
-    if(a.status==='Concluída') sc='#16a34a';
-    else if(a.status==='Em andamento') sc='#d97706';
-    else sc='#6b7280';
-    return `<div style="display:flex;gap:8px;align-items:flex-start;padding:.4rem 0;border-bottom:1px solid var(--bdr)">
-      <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:${sc}22;color:${sc};flex-shrink:0;margin-top:1px">${esc(a.status)}</span>
-      <div style="flex:1"><div style="font-size:12px">${esc(a.acao)}</div><div style="font-size:10px;color:var(--ink3)">${esc(a.responsavel)} · ${esc(a.prazo)}</div></div>
-    </div>`;
-  }).join('');
+  const root = mk('div','aud-report');
 
-  return `<div class="aud-report">
-    <div class="aud-rep-header">
-      <div>
-        <div class="aud-rep-title">Relatório Executivo de Auditoria</div>
-        <div class="aud-rep-sub">${esc(p.nome)} · ${esc(p.area)}</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.65);margin-top:3px">Emitido em ${now()}${aud.equipe?' · Equipe: '+esc(aud.equipe):''}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:10px;color:rgba(255,255,255,.7);margin-bottom:5px">Conformidade geral</div>
-        <span class="aud-conf-badge" style="background:${confBg};color:${confColor}">${esc(conf)}</span>
-      </div>
-    </div>
-    <div class="aud-rep-stats">
-      <div class="aud-stat"><div class="aud-stat-n">${(aud.questoes||[]).length}</div><div class="aud-stat-l">Questões</div></div>
-      <div class="aud-stat"><div class="aud-stat-n" style="color:#dc2626">${nc}</div><div class="aud-stat-l">Não conformidades</div></div>
-      <div class="aud-stat"><div class="aud-stat-n" style="color:#d97706">${obs}</div><div class="aud-stat-l">Observações</div></div>
-      <div class="aud-stat"><div class="aud-stat-n">${(aud.acoes_list||[]).length}</div><div class="aud-stat-l">Ações corretivas</div></div>
-    </div>
-    <div class="aud-rep-section">
-      <div class="aud-rep-stitle">Sumário Executivo</div>
-      <p class="aud-rep-p">${esc(json.sumario||'')}</p>
-      ${json.conformidade_justificativa?`<p class="aud-rep-p" style="color:var(--ink3);font-style:italic">${esc(json.conformidade_justificativa)}</p>`:''}
-    </div>
-    ${json.achados_resumo?.length?`<div class="aud-rep-section">
-      <div class="aud-rep-stitle">Principais Achados</div>
-      <ul class="aud-rep-list">${json.achados_resumo.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>
-    </div>`:''}
-    ${achadosHtml?`<div class="aud-rep-section">
-      <div class="aud-rep-stitle">Achados Detalhados</div>${achadosHtml}
-    </div>`:''}
-    ${json.recomendacoes?.length?`<div class="aud-rep-section">
-      <div class="aud-rep-stitle">Recomendações</div>
-      <ul class="aud-rep-list">${json.recomendacoes.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>
-    </div>`:''}
-    ${acoesHtml?`<div class="aud-rep-section">
-      <div class="aud-rep-stitle">Ações Corretivas</div>${acoesHtml}
-    </div>`:''}
-    <div class="aud-rep-section">
-      <div class="aud-rep-stitle">Conclusão</div>
-      <p class="aud-rep-p">${esc(json.conclusao||'')}</p>
-    </div>
-  </div>`;
+  // ── Header
+  const hdr = mk('div','aud-rep-header');
+  const hL = mk('div'); 
+  hL.append(
+    mk('div','aud-rep-title','Relatório Executivo de Auditoria'),
+    mk('div','aud-rep-sub', p.nome+' · '+p.area),
+    mk('div', null, 'Emitido em '+now()+(aud.equipe?' · Equipe: '+aud.equipe:''), 'font-size:11px;color:rgba(255,255,255,.65);margin-top:3px')
+  );
+  const hR = mk('div', null, null, 'text-align:right;flex-shrink:0');
+  const bdg = mk('span','aud-conf-badge', conf);
+  bdg.style.cssText = 'background:'+confBg+';color:'+confColor;
+  hR.append(mk('div',null,'Conformidade geral','font-size:10px;color:rgba(255,255,255,.7);margin-bottom:5px'), bdg);
+  hdr.append(hL, hR);
+
+  // ── Stats
+  const stats = mk('div','aud-rep-stats');
+  for(const [n,l,color] of [
+    [(aud.questoes||[]).length,'Questões',null],
+    [nc,'Não conformidades','#dc2626'],
+    [obs,'Observações','#d97706'],
+    [(aud.acoes_list||[]).length,'Ações corretivas',null]
+  ]){
+    const sd = mk('div','aud-stat');
+    const sn = mk('div','aud-stat-n',String(n));
+    if(color) sn.style.color = color;
+    sd.append(sn, mk('div','aud-stat-l',l));
+    stats.append(sd);
+  }
+
+  // ── Sumário
+  const sumSec = sec('Sumário Executivo');
+  sumSec.append(mk('p','aud-rep-p', json.sumario||''));
+  if(json.conformidade_justificativa){
+    sumSec.append(mk('p','aud-rep-p', json.conformidade_justificativa, 'color:var(--ink3);font-style:italic'));
+  }
+
+  // ── Principais Achados
+  let prAchSec = null;
+  if(json.achados_resumo?.length){
+    prAchSec = sec('Principais Achados');
+    const ul = mk('ul','aud-rep-list');
+    for(const a of json.achados_resumo) ul.append(mk('li',null,a));
+    prAchSec.append(ul);
+  }
+
+  // ── Achados Detalhados
+  let achSec = null;
+  if((aud.achados_list||[]).length){
+    achSec = sec('Achados Detalhados');
+    for(const a of aud.achados_list){
+      const c = a.tipo==='Não conformidade'?'#dc2626':a.tipo==='Conformidade'?'#16a34a':'#d97706';
+      const card = mk('div',null,null,
+        'border-left:3px solid '+c+';padding:.5rem .75rem;margin-bottom:.4rem;background:var(--surf2);border-radius:0 6px 6px 0');
+      const row = mk('div',null,null,'display:flex;gap:6px;align-items:center;margin-bottom:2px');
+      const sp = mk('span',null,a.tipo,
+        'font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;background:'+c+'22;color:'+c);
+      const ttl = mk('strong',null,a.titulo); ttl.style.fontSize='12px';
+      row.append(sp, ttl);
+      card.append(row, mk('div',null,a.desc,'font-size:11.5px;color:var(--ink2)'));
+      if(a.evidencia) card.append(mk('div',null,'Evidência: '+a.evidencia,'font-size:10px;color:var(--ink3);margin-top:2px'));
+      achSec.append(card);
+    }
+  }
+
+  // ── Recomendações
+  let recSec = null;
+  if(json.recomendacoes?.length){
+    recSec = sec('Recomendações');
+    const ul = mk('ul','aud-rep-list');
+    for(const r of json.recomendacoes) ul.append(mk('li',null,r));
+    recSec.append(ul);
+  }
+
+  // ── Ações Corretivas
+  let acSec = null;
+  if((aud.acoes_list||[]).length){
+    acSec = sec('Ações Corretivas');
+    for(const a of aud.acoes_list){
+      const sc = a.status==='Concluída'?'#16a34a':a.status==='Em andamento'?'#d97706':'#6b7280';
+      const row = mk('div',null,null,'display:flex;gap:8px;align-items:flex-start;padding:.4rem 0;border-bottom:1px solid var(--bdr)');
+      const sp = mk('span',null,a.status,
+        'font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:'+sc+'22;color:'+sc+';flex-shrink:0;margin-top:1px');
+      const info = mk('div',null,null,'flex:1');
+      info.append(
+        mk('div',null,a.acao,'font-size:12px'),
+        mk('div',null,a.responsavel+' · '+a.prazo,'font-size:10px;color:var(--ink3)')
+      );
+      row.append(sp, info);
+      acSec.append(row);
+    }
+  }
+
+  // ── Conclusão
+  const conclSec = sec('Conclusão');
+  conclSec.append(mk('p','aud-rep-p', json.conclusao||''));
+
+  root.append(hdr, stats, sumSec);
+  if(prAchSec) root.append(prAchSec);
+  if(achSec)   root.append(achSec);
+  if(recSec)   root.append(recSec);
+  if(acSec)    root.append(acSec);
+  root.append(conclSec);
+  return root;
 }
 function salvarPlanejamentoAuditoria(){
   const p=curProc;if(!p)return;
