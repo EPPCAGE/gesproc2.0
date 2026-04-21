@@ -6675,7 +6675,9 @@ function _bpmnBuildFlatGwAware(xml, outgoing, nodeInfo, flowLabels){
     // Merge point (multiple predecessors) → clear gateway context
     const myCtx=(incoming[id]||0)>1?null:gwCtx;
     const n=nodeInfo[id];
-    if(n){
+    // Skip pure merge gateways (multiple incoming, ≤1 outgoing) — organisational only
+    const isMergeGw=n?.tipo==='Decisao'&&(incoming[id]||0)>1&&(outgoing[id]||[]).length<=1;
+    if(n&&!isMergeGw){
       let nomeFallback;
       if(n.tipo==='Evento') nomeFallback=n.subtipo||'Evento';
       else if(n.tipo==='Decisao') nomeFallback='Decisão';
@@ -6691,7 +6693,7 @@ function _bpmnBuildFlatGwAware(xml, outgoing, nodeInfo, flowLabels){
         executor:n.executor||'', desc:n.desc||'', caminhos:[],
         vinculo_gw: (myCtx&&n.tipo!=='Decisao') ? {gw_ep_id:myCtx.epId,label:myCtx.label} : null
       };
-      // For gateways: pre-populate caminhos labels from flow labels
+      // For split gateways: pre-populate caminhos labels from flow labels
       if(n.tipo==='Decisao'){
         const nextsGw=outgoing[id]||[];
         if(nextsGw.length>1){
@@ -6701,7 +6703,7 @@ function _bpmnBuildFlatGwAware(xml, outgoing, nodeInfo, flowLabels){
       ordered.push(elem);
     }
     const nexts=outgoing[id]||[];
-    const isGw=nodeInfo[id]?.tipo==='Decisao';
+    const isGw=!isMergeGw&&nodeInfo[id]?.tipo==='Decisao';
     nexts.forEach(tgt=>{
       if(!visited.has(tgt)){
         let nextCtx;
