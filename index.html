@@ -2754,7 +2754,6 @@ function confirmarSuspender(){
 }
 function cancelarProcesso(){
   if(!isEP()&&usuarioLogado?.perfil!=='gestor'){toast('Ação restrita ao EP ou Gestor.','var(--amber)');return;}
-  const p=curProc;
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center';
   ov.id='modal-cancelar';
@@ -5084,7 +5083,6 @@ function salvarComplementacaoDono(){
   avDono('complement','Dono do processo','Complementação fornecida pelo dono do processo');
 }
 function reprovarApresentacao(){
-  const p=curProc;
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center';
   ov.id='reprovar-apres-ov';
