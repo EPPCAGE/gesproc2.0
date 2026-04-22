@@ -2531,9 +2531,11 @@ function rDetalhe(){
     else if(cur) tip=`Editar etapa atual: ${e.lb}`;
     else tip=`Editar: ${e.lb}`;
     const clickAttrs=clickable?`onclick="navegarRetro('${e.id}')" style="cursor:pointer" title="${tip}"`:'';
+    const progIcon = skipped ? '!' : (past ? '✓' : (i+1));
+    const labelCls = skipped ? 'sk' : (cur ? 'da' : '');
     return `<div class="prog-s ${stageCls}" ${clickAttrs}>
-      <div class="prog-d ${stageCls}">${skipped?'!':(past?'✓':(i+1))}</div>
-      <div class="prog-l ${skipped?'sk':(cur?'da':'')}">${e.lb}</div>
+      <div class="prog-d ${stageCls}">${progIcon}</div>
+      <div class="prog-l ${labelCls}">${e.lb}</div>
     </div>`;
   }).join('');
   // Q003: linha de próxima etapa esperada
