@@ -1338,6 +1338,7 @@ const ETAPAS = [
   {id:'det_valid_tobe',lb:'Detalhamento e validação TO BE',fase:'Modelagem',cor:'pip-m',resp:'dono',tobe:true},
   // Formalização
   {id:'desenho_final',lb:'Desenho final',fase:'Formalizacao',cor:'pip-f',resp:'ep'},
+  {id:'indicadores_proc',lb:'Indicadores',fase:'Formalizacao',cor:'pip-f',resp:'ep'},
   {id:'pop',lb:'Construção POP',fase:'Formalizacao',cor:'pip-f',resp:'ep'},
   {id:'apresentacao',lb:'Aprov. gestor',fase:'Formalizacao',cor:'pip-f',resp:'gestor'},
   {id:'publicacao',lb:'Publicação',fase:'Formalizacao',cor:'pip-f',resp:'ep'},
@@ -3832,6 +3833,34 @@ const ACOES = {
       `;
     }},
 
+  indicadores_proc:{titulo:'Indicadores do processo',sub:'Defina indicadores de desempenho para monitoramento contínuo do processo.',role:'EP',rk:'ep',
+    form:p=>{
+      const inds=p.form?.indicadores_proc||[];
+      return `<div class="ib ibt">Cadastre indicadores de desempenho ou solicite sugestões à IA com base nas informações do processo.</div>
+      <div style="margin-bottom:.8rem;display:flex;gap:8px;align-items:center">
+        <button type="button" class="btn btn-t" style="font-size:12px" onclick="iaGerarIndicadores()">✦ Sugerir com IA</button>
+        <span id="ind-ia-status" style="font-size:11px;color:var(--ink3)"></span>
+      </div>
+      <div id="ind-proc-list" style="margin-bottom:.7rem">${rIndProcList(inds)}</div>
+      <div style="border:1px solid var(--bdr);border-radius:var(--r);padding:.8rem;background:var(--bg2)">
+        <div style="font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.5px">Adicionar indicador</div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px">
+          <input class="fi" id="ind-nome" placeholder="Nome do indicador *" style="font-size:12px">
+          <input class="fi" id="ind-meta" placeholder="Meta (ex: ≥ 95%)" style="font-size:12px">
+          <input class="fi" id="ind-unid" placeholder="Unidade (%, qtd…)" style="font-size:12px">
+          <select class="fi" id="ind-period" style="font-size:12px">
+            <option value="">Periodicidade</option>
+            <option>Mensal</option><option>Trimestral</option>
+            <option>Semestral</option><option>Anual</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:3fr auto;gap:6px;align-items:end">
+          <input class="fi" id="ind-fonte" placeholder="Fonte dos dados" style="font-size:12px">
+          <button type="button" class="btn btn-p" style="font-size:12px;white-space:nowrap" onclick="addIndProc()">+ Adicionar</button>
+        </div>
+      </div>`;
+    }},
+
   pop:{titulo:'Construção do POP',sub:'Redigir o Procedimento Operacional Padrão no modelo CAGE.',role:'EP',rk:'ep',
     form:p=>`<div class="ib iba">Preencha as seções do POP conforme padrão CAGE.</div>
     <div class="tabs" style="margin-bottom:.8rem">
@@ -4418,6 +4447,7 @@ const _RESET_MAP={
   esboco_tobe:   p=>{ if(p.mod){p.mod.toBe='';p.mod.bpmnToBe=null;p.mod.etapas_proc_tobe=[];} },
   det_valid_tobe:p=>{ if(p.ent?.evidencias) p.ent.evidencias.det_valid_tobe=[]; },
   desenho_final: p=>{ if(p.mod) p.mod.desenho_final=null; if(p.form) p.form.obs_final=''; },
+  indicadores_proc: p=>{ if(p.form) p.form.indicadores_proc=[]; },
   pop:           p=>{ if(p.form){p.form.pop=null;p.form.faq='';p.form.excecoes='';p.form.contatos='';p.form.forms='';p.form.obs_complement='';} },
   apresentacao:  p=>{ if(p.ent?.evidencias) p.ent.evidencias.apresentacao=[]; },
   publicacao:    p=>{ if(p.form){p.form.link_pub='';p.form.vig='';} if(p.ent) p.ent.dt_efetiva=''; },
@@ -4444,6 +4474,7 @@ const _RS_MAP={
   det_valid_asis:_rsDetValidAsis, det_valid_tobe:_rsDetValidTobe,
   apresentacao:_rsApresentacao, questionario:_rsQuestionario,
   analise:_rsAnalise, desenho_final:_rsDesenhoFinal,
+  indicadores_proc:()=>{},
   pop:_rsPOP, publicacao:_rsPublicacao,
   melhorias:_rsMelhorias, acompanha:_rsAcompanha,
 };
@@ -4476,6 +4507,7 @@ const _ADVANCE_MAP={
   melhorias:   ()=>salvarMelhorias(),
   esboco_tobe: ()=>salvarEsbocaTobe(),
   desenho_final:()=>salvarDesenhoFinal(),
+  indicadores_proc: ()=>salvarIndicadoresProc(),
   pop:         ()=>salvarPOP(),
   publicacao:  ()=>publicarProcesso(),
   acompanha:   ()=>av('acompanha','EP','Acompanhamento concluído'),
@@ -4926,6 +4958,81 @@ async function iaGerarRiscos(){
 function salvarRiscos(){
   const p=curProc;
   av('riscos','EP','Riscos identificados: '+(p.ent.riscos||[]).length+' registro(s).');
+}
+
+// ── Etapa: Indicadores do processo ──────────────────────────────────────────
+function rIndProcList(inds){
+  if(!inds||!inds.length) return '<div style="font-size:12px;color:var(--ink3);padding:.5rem 0">Nenhum indicador cadastrado ainda.</div>';
+  const hdr='<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:6px;padding:4px 0;border-bottom:2px solid var(--bdr);margin-bottom:4px">'+
+    ['Indicador','Meta','Unidade','Periodicidade','Fonte',''].map((h,i)=>`<span style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px${i===5?';width:24px':''}">${h}</span>`).join('')+'</div>';
+  return hdr+inds.map((ind,i)=>`
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--bdr)">
+      <span style="font-size:12px;font-weight:600;color:var(--ink)">${esc(ind.nome)}</span>
+      <span style="font-size:11px;color:var(--ink2)">${esc(ind.meta||'—')}</span>
+      <span style="font-size:11px;color:var(--ink3)">${esc(ind.unidade||'—')}</span>
+      <span style="font-size:11px;color:var(--ink3)">${esc(ind.periodicidade||'—')}</span>
+      <span style="font-size:11px;color:var(--ink3)">${esc(ind.fonte||'—')}</span>
+      <button type="button" class="ri-del" style="width:22px;height:22px;flex-shrink:0" onclick="remIndProc(${i})" aria-label="Remover">×</button>
+    </div>`).join('');
+}
+function atualizarIndProcUI(){
+  const el=document.getElementById('ind-proc-list');
+  if(el) el.innerHTML=rIndProcList(curProc?.form?.indicadores_proc||[]);
+}
+function addIndProc(){
+  const p=curProc;if(!p)return;
+  const nome=(document.getElementById('ind-nome')?.value||'').trim();
+  if(!nome){toast('Informe o nome do indicador.','var(--amber)');return;}
+  if(!p.form) p.form={};
+  if(!p.form.indicadores_proc) p.form.indicadores_proc=[];
+  p.form.indicadores_proc.push({
+    nome,
+    meta:(document.getElementById('ind-meta')?.value||'').trim(),
+    unidade:(document.getElementById('ind-unid')?.value||'').trim(),
+    periodicidade:document.getElementById('ind-period')?.value||'',
+    fonte:(document.getElementById('ind-fonte')?.value||'').trim()
+  });
+  atualizarIndProcUI();
+  ['ind-nome','ind-meta','ind-unid','ind-fonte'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const sel=document.getElementById('ind-period');if(sel)sel.value='';
+  fbAutoSave('addIndProc');
+}
+function remIndProc(i){
+  const p=curProc;if(!p||!p.form?.indicadores_proc)return;
+  p.form.indicadores_proc.splice(i,1);
+  atualizarIndProcUI();
+  fbAutoSave('remIndProc');
+}
+async function iaGerarIndicadores(){
+  const p=curProc;if(!p)return;
+  const statusEl=document.getElementById('ind-ia-status');
+  if(statusEl){statusEl.textContent='Gerando…';}
+  const etapasStr=(p.mod?.etapas_proc||[]).map((e,i)=>`${i+1}. ${e.nome||''} (${e.tipo||'Atividade'}, resp: ${e.executor||'—'})`).join('\n');
+  const probsStr=(p.ent?.prob||[]).map(x=>typeof x==='string'?x:x.desc||'').filter(Boolean).join('; ');
+  const payload=`Processo: ${p.nome}\nÁrea: ${p.area}\nObjetivo: ${p.objetivo||''}\nEntradas: ${p.ent?.entradas||''}\nSaídas: ${p.ent?.saidas||''}\nProblemas identificados: ${probsStr||'—'}${etapasStr?'\nEtapas do processo:\n'+etapasStr:''}\n\nSugira até 5 indicadores de desempenho para monitoramento contínuo deste processo. Responda com uma lista, cada linha no formato exato:\nNome do indicador | Meta sugerida | Unidade | Periodicidade | Fonte de dados\nSem numeração, sem cabeçalho, sem explicações adicionais.`;
+  const result=await chamarIA('assistente',payload,null);
+  if(result){
+    if(!p.form) p.form={};
+    if(!p.form.indicadores_proc) p.form.indicadores_proc=[];
+    const linhas=result.split('\n').map(l=>l.trim()).filter(l=>l.includes('|'));
+    let adicionados=0;
+    linhas.forEach(l=>{
+      const pts=l.split('|').map(s=>s.trim());
+      if(pts[0]){
+        p.form.indicadores_proc.push({nome:pts[0],meta:pts[1]||'',unidade:pts[2]||'',periodicidade:pts[3]||'',fonte:pts[4]||''});
+        adicionados++;
+      }
+    });
+    atualizarIndProcUI();
+    if(statusEl)statusEl.textContent=adicionados+' indicador(es) sugerido(s) pela IA';
+    fbAutoSave('iaGerarIndicadores');
+  } else if(statusEl){
+    statusEl.textContent='Erro ao gerar sugestões.';
+  }
+}
+function salvarIndicadoresProc(){
+  const p=curProc;if(!p)return;
+  av('indicadores_proc','EP','Indicadores definidos: '+(p.form?.indicadores_proc||[]).length+' indicador(es).');
 }
 function calcEconomiaAcomp(){
   const volNovo=Number.parseFloat(document.getElementById('ac-vol-novo')?.value)||0;
@@ -7196,7 +7303,30 @@ function rForm(p){
       ${p.form?.excecoes?`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">4.1 Exceções / casos especiais</div><div style="font-size:12.5px;white-space:pre-wrap">${esc(p.form.excecoes)}</div></div>`:''}
       ${p.form?.contatos?`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">4.2 Contatos-chave do processo</div><div style="font-size:12.5px;white-space:pre-wrap">${esc(p.form.contatos)}</div></div>`:''}
       ${p.form?.forms?`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">4.3 Formulários e sistemas utilizados</div><div style="font-size:12.5px">${esc(p.form.forms)}</div></div>`:''}
-      ${pd.ind?`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">5.0 Indicadores</div><div style="font-size:12.5px;white-space:pre-wrap">${pd.ind}</div></div>`:''}
+      ${(()=>{
+        const inds=p.form?.indicadores_proc||[];
+        const secTitle='<div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">5.0 Indicadores</div>';
+        if(inds.length){
+          const rows=inds.map(ind=>`<tr style="border-bottom:1px solid var(--bdr)">
+            <td style="padding:5px 8px;font-size:12px;font-weight:600">${esc(ind.nome)}</td>
+            <td style="padding:5px 8px;font-size:11px;color:var(--ink2)">${esc(ind.meta||'—')}</td>
+            <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(ind.unidade||'—')}</td>
+            <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(ind.periodicidade||'—')}</td>
+            <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(ind.fonte||'—')}</td>
+          </tr>`).join('');
+          return `<div style="margin-bottom:1rem">${secTitle}<table style="width:100%;border-collapse:collapse">
+            <thead><tr style="background:var(--bg2)">
+              <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Indicador</th>
+              <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Meta</th>
+              <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Unidade</th>
+              <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Periodicidade</th>
+              <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Fonte</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table></div>`;
+        }
+        return pd.ind?`<div style="margin-bottom:1rem">${secTitle}<div style="font-size:12.5px;white-space:pre-wrap">${pd.ind}</div></div>`:'';
+      })()}
       ${p.form.apresent?`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">6.0 Aprovações</div><div style="font-size:12.5px">${p.form.apresent}</div></div>`:''}
     </div>
   </div>
