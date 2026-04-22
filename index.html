@@ -7408,6 +7408,11 @@ function bpmnHoverEtapa(event, epId){
   try{
     canvas.addMarker(et.bpmn_id,'bpmn-ep-highlight');
     globalThis._bpmnLastHL=et.bpmn_id;
+    const el=mod.get('elementRegistry').get(et.bpmn_id);
+    if(el){
+      const vb=canvas.viewbox();
+      canvas.viewbox({x:(el.x+el.width/2)-vb.width/2, y:(el.y+el.height/2)-vb.height/2, width:vb.width, height:vb.height});
+    }
   }catch{}
 }
 // ── Modal de detalhe de etapa via duplo-clique no BPMN ──────────────────────
