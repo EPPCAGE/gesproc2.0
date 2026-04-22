@@ -4241,6 +4241,7 @@ function _formAcompanha(p)   { return ACOES.acompanha.form(p); }
 function _formAuditoria(p)   { return ACOES.auditoria.form(p); }
 
 function navegarRetro(etId){
+  if(etId===curProc?.etapa){fecharRetro();return;}
   epRetroEtapa=etId;
   document.querySelectorAll('#det-tabs .tab').forEach((t,i)=>t.classList.toggle('on',i===0));
   document.querySelectorAll('.tab-p').forEach(el=>el.classList.remove('on'));
@@ -4270,6 +4271,7 @@ function rAcaoRetro(){
       ${ac.form(p)}
     </div>
     <div class="btn-row" style="margin-top:1rem;padding:.8rem;background:var(--bg2);border:1px solid var(--bdr);border-radius:8px">
+      ${_RESET_MAP[etId]?`<button type="button" class="btn btn-r" style="margin-right:auto" onclick="refazerEtapaConfirm('${etId}')">🗑 Refazer etapa</button>`:''}
       <span style="font-size:12px;color:var(--ink3)">Salva os dados sem avançar o fluxo</span>
       <button type="button" class="btn btn-p" onclick="salvarRetroativo('${etId}')">💾 Salvar dados</button>
     </div>`;
@@ -4426,6 +4428,39 @@ function _rsAcompanha(p){
     proxima:      document.getElementById('ac-proxima')?.value||'',
     registrada_em:now()
   });
+}
+const _RESET_MAP={
+  abertura:      p=>{ if(p.ent){p.ent.dt_inicio='';p.ent.escopo='';p.ent.equipe='';} p.objetivo=''; },
+  reuniao:       p=>{ if(p.ent){p.ent.fornecedores='';p.ent.clientes='';p.ent.entradas='';p.ent.saidas='';p.ent.atores='';p.ent.t_ciclo='';p.ent.t_real='';p.ent.prob=[];p.ent.atividades_principais='';} },
+  riscos:        p=>{ if(p.ent) p.ent.riscos=[]; },
+  questionario:  p=>{ if(p.ent){p.ent.quest_resp={};p.ent.quest_nota='';p.ent.mat=null;} },
+  analise:       p=>{ if(p.ent){p.ent.analise={gargalos:[],retrabalhos:[],gaps:[],oportunidades:[]};} },
+  esboco_asis:   p=>{ if(p.mod){p.mod.asIs='';p.mod.bpmnAsIs=null;p.mod.etapas_proc=[];} },
+  det_valid_asis:p=>{ if(p.ent?.evidencias) p.ent.evidencias.det_valid_asis=[]; },
+  melhorias:     p=>{ if(p.ent?.analise) p.ent.analise.feedback_dono={}; },
+  esboco_tobe:   p=>{ if(p.mod){p.mod.toBe='';p.mod.bpmnToBe=null;p.mod.etapas_proc_tobe=[];} },
+  det_valid_tobe:p=>{ if(p.ent?.evidencias) p.ent.evidencias.det_valid_tobe=[]; },
+  desenho_final: p=>{ if(p.mod) p.mod.desenho_final=null; if(p.form) p.form.obs_final=''; },
+  pop:           p=>{ if(p.form) p.form.pop=null; },
+  complement:    p=>{ if(p.form){p.form.faq='';p.form.excecoes='';p.form.contatos='';p.form.forms='';p.form.obs_complement='';} },
+  apresentacao:  p=>{ if(p.ent?.evidencias) p.ent.evidencias.apresentacao=[]; },
+  publicacao:    p=>{ if(p.form){p.form.link_pub='';p.form.vig='';} if(p.ent) p.ent.dt_efetiva=''; },
+  acompanha:     p=>{ if(p.mod) p.mod.reunioes_acomp=[]; },
+  auditoria:     p=>{ p.auditoria=null; },
+};
+function refazerEtapaConfirm(etId){
+  const lb=etLb(etId);
+  confirmar(`⚠ Refazer a etapa "${lb}"?\n\nTodos os dados preenchidos nesta etapa serão apagados permanentemente. Esta ação não pode ser desfeita.\n\nDeseja continuar?`,()=>refazerEtapa(etId));
+}
+function refazerEtapa(etId){
+  const p=curProc; if(!p) return;
+  if(_RESET_MAP[etId]) _RESET_MAP[etId](p);
+  if(p.dt_etapas) delete p.dt_etapas[etId];
+  push(p,etId,'EP','Etapa redefinida — dados apagados para repreenchimento');
+  fbAutoSave('refazerEtapa');
+  epRetroEtapa=null;
+  rDetalhe();
+  toast(`Etapa "${etLb(etId)}" redefinida. Preencha os dados novamente.`,'var(--amber)');
 }
 const _RS_MAP={
   abertura:_rsAbertura, reuniao:_rsReuniao, riscos:()=>{},
