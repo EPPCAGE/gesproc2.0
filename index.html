@@ -4459,8 +4459,8 @@ function _rAcaoTarefaRespondidaHTML(jr){
   </div></div>`;
 }
 const _BPMN_INIT = {
-  det_valid_asis: (p,mt) => { if(mt){ setTimeout(()=>initBpmnMod('asis',p),120); } },
-  det_valid_tobe: (p,mt) => { if(mt) setTimeout(()=>initBpmnMod('tobe',p),120); },
+  det_valid_asis: (p) => { setTimeout(()=>initBpmnMod('asis',p),120); },
+  det_valid_tobe: (p) => { setTimeout(()=>initBpmnMod('tobe',p),120); },
   esboco_asis:    (p)    => { setTimeout(()=>initBpmnMod('asis',p),120); },
   esboco_tobe:    (p)    => { setTimeout(()=>initBpmnMod('tobe',p),120); },
   desenho_final:  (p)    => { setTimeout(()=>initBpmnMod('asis',p),120); },
@@ -7530,10 +7530,10 @@ function initBpmnMod(which, p){
     const l=document.getElementById('bpmn-'+which+'-loading');
     if(l)l.style.display='none';
     mod.get('canvas').zoom('fit-viewport');
-    mod.on('element.dblclick',({element})=>{
+    mod.on('element.dblclick',1500,(event)=>{
       const etapas=curProc?.mod?.[_ekey()]||[];
-      const et=etapas.find(x=>x.bpmn_id===element.id);
-      if(et) abrirBpmnEtapaModal(et.id);
+      const et=etapas.find(x=>x.bpmn_id===event.element.id);
+      if(et){ event.stopPropagation(); abrirBpmnEtapaModal(et.id); }
     });
   }).catch(err=>{
     const l=document.getElementById('bpmn-'+which+'-loading');
