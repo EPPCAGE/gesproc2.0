@@ -7542,6 +7542,7 @@ function bpmnEditorHTML(which, existingXml){
       <span style="font-size:11px;color:${savedColor}">${saved}</span>
       <span id="bpmn-${which}-dirty" class="bpmn-dirty" style="display:none">● Não salvo</span>
       <div style="flex:1"></div>
+      <button type="button" class="btn" id="bpmn-${which}-palette-btn" onclick="bpmnTogglePalette('${which}')" title="Mostrar/ocultar menu de elementos">☰ Menu</button>
       <button type="button" class="btn" onclick="bpmnZ('${which}',1)">+</button>
       <button type="button" class="btn" onclick="bpmnZ('${which}',-1)">-</button>
       <button type="button" class="btn" onclick="bpmnFit('${which}')">Ajustar</button>
@@ -7666,6 +7667,16 @@ function bpmnSave(which){
     fbAutoSave('bpmnSave');
     toast('✓ Fluxo '+which.toUpperCase()+' salvo no servidor');
   }).catch(err=>toast('Erro ao salvar: '+(err.message||err),'var(--red)'));
+}
+function bpmnTogglePalette(which){
+  const canvas=document.getElementById('bpmn-'+which+'-canvas');
+  if(!canvas) return;
+  const palette=canvas.querySelector('.djs-palette');
+  if(!palette) return;
+  const hidden=palette.style.display==='none';
+  palette.style.display=hidden?'':'none';
+  const btn=document.getElementById('bpmn-'+which+'-palette-btn');
+  if(btn) btn.textContent=hidden?'☰ Menu':'☰ Menu ✕';
 }
 function bpmnZ(which,dir){const m=bpmnModelers[which];if(!m){return;}try{m.get('zoomScroll').zoom(dir,{x:400,y:240});}catch{}}
 function bpmnFit(which){const m=bpmnModelers[which];if(!m){return;}try{m.get('canvas').zoom('fit-viewport');}catch{}}
