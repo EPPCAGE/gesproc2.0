@@ -2401,7 +2401,7 @@ async function uploadEvidencia(etapa, input){
   if(!storage){toast('Armazenamento não disponível','var(--red)');return;}
   input.value='';
   try{
-    const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const safeName=file.name.replaceAll(/[^a-zA-Z0-9._-]/g,'_');
     const path=`evidencias/${p.id}/${etapa}/${Date.now()}_${safeName}`;
     const ref=storageRef(storage,path);
     toast('Enviando…','var(--blue)');
@@ -2532,8 +2532,14 @@ function rDetalhe(){
     else if(cur) tip=`Editar etapa atual: ${e.lb}`;
     else tip=`Editar: ${e.lb}`;
     const clickAttrs=clickable?`onclick="navegarRetro('${e.id}')" style="cursor:pointer" title="${tip}"`:'';
-    const progIcon = skipped ? '!' : (past ? '✓' : (i+1));
-    const labelCls = skipped ? 'sk' : (cur ? 'da' : '');
+    let progIcon;
+    if(skipped) progIcon='!';
+    else if(past) progIcon='✓';
+    else progIcon=i+1;
+    let labelCls;
+    if(skipped) labelCls='sk';
+    else if(cur) labelCls='da';
+    else labelCls='';
     return `<div class="prog-s ${stageCls}" ${clickAttrs}>
       <div class="prog-d ${stageCls}">${progIcon}</div>
       <div class="prog-l ${labelCls}">${e.lb}</div>
