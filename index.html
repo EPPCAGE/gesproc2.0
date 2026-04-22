@@ -9489,8 +9489,10 @@ function _kpiGrpStatus(items){
   const r = Number.parseFloat(last.realizado);
   const m = Number.parseFloat(last.meta);
   // meta=0 e realizado=0 → meta cumprida (ex: zero ocorrências de incidentes)
-  if(r === 0 && m === 0) return 'ok';
-  if(m <= 0) return null; // sem meta real (apenas _metaFallback ou sem meta)
+  // Só dispara quando meta foi EXPLICITAMENTE definida como 0 (m===0, não NaN)
+  if(r === 0 && m === 0 && !Number.isNaN(m)) return 'ok';
+  // Sem meta definida (null/undefined→NaN) ou meta<=0 → sem análise possível
+  if(Number.isNaN(m) || m <= 0) return null;
   const pol = items[0].polaridade||'Maior é melhor';
   let pct;
   if(pol==='Menor é melhor'){
@@ -9578,8 +9580,8 @@ function kpiGrupoCardHTML(key, items){
   const last = withData.length ? withData[withData.length-1] : null;
   const lastR = last ? Number.parseFloat(last.realizado) : null;
   const lastM = last ? Number.parseFloat(last.meta) : null;
-  // meta=0 e realizado=0 → meta cumprida
-  const hasMeta = last && (lastM > 0 || (lastR === 0 && lastM === 0));
+  // hasMeta: meta explícita (>0) OU meta=0 explícita com real=0 (não NaN = não preenchida)
+  const hasMeta = last && !Number.isNaN(lastM) && (lastM > 0 || (lastR === 0 && lastM === 0));
   let borderColor = 'var(--bdr)';
   if(hasMeta){
     let pct;
@@ -9959,7 +9961,7 @@ function salvarNovoKpi(){
       ciclo:        document.getElementById('nkpi-ciclo').value.trim(),
       unidade:      document.getElementById('nkpi-unidade').value.trim(),
       polaridade:   document.getElementById('nkpi-polaridade').value,
-      meta:         Number.parseFloat(document.getElementById('nkpi-meta').value) || 0,
+      meta:         (()=>{ const v=Number.parseFloat(document.getElementById('nkpi-meta').value); return Number.isNaN(v)?null:v; })(),
       ppe:          document.getElementById('nkpi-ppe').value,
       pid:          _pid,
     };
@@ -9986,6 +9988,8 @@ function salvarNovoKpi(){
       const real = Number.parseFloat(kpis[idx].realizado);
       if(kpis[idx].sem_dado){
         kpis[idx].pct_realizado = null;
+      } else if(Number.isNaN(meta) || kpis[idx].meta === null || kpis[idx].meta === ''){
+        kpis[idx].pct_realizado = null; // sem meta → sem análise
       } else if(real === 0 && meta === 0){
         kpis[idx].pct_realizado = 100; // meta cumprida
       } else if(pol === 'Menor é melhor'){
@@ -9999,15 +10003,17 @@ function salvarNovoKpi(){
     // Single-period edit
     const meta      = Number.parseFloat(document.getElementById('nkpi-meta').value);
     const real      = Number.parseFloat(document.getElementById('nkpi-real').value);
-    const metaVal   = Number.isNaN(meta) ? 0 : meta;
+    const metaVal   = Number.isNaN(meta) ? null : meta;
     const realVal   = Number.isNaN(real) ? 0 : real;
     const semDado   = !!(document.getElementById('nkpi-sem-dado')?.checked);
     const polaridade = document.getElementById('nkpi-polaridade').value;
     let pct;
     if(semDado){
       pct = null;
-    } else if(realVal === 0 && metaVal === 0 && document.getElementById('nkpi-meta').value !== '' && document.getElementById('nkpi-real').value !== ''){
-      pct = 100;
+    } else if(metaVal === null){
+      pct = null; // sem meta → sem análise
+    } else if(realVal === 0 && metaVal === 0){
+      pct = 100; // meta=0, real=0 → meta cumprida
     } else if(polaridade === 'Menor é melhor'){
       pct = realVal > 0 ? Math.round((metaVal/realVal)*100) : 0;
     } else {
@@ -10042,15 +10048,17 @@ function salvarNovoKpi(){
     // New KPI
     const meta      = Number.parseFloat(document.getElementById('nkpi-meta').value);
     const real      = Number.parseFloat(document.getElementById('nkpi-real').value);
-    const metaVal   = Number.isNaN(meta) ? 0 : meta;
+    const metaVal   = Number.isNaN(meta) ? null : meta;
     const realVal   = Number.isNaN(real) ? 0 : real;
     const semDado   = !!(document.getElementById('nkpi-sem-dado')?.checked);
     const polaridade = document.getElementById('nkpi-polaridade').value;
     let pct;
     if(semDado){
       pct = null;
-    } else if(realVal === 0 && metaVal === 0 && document.getElementById('nkpi-meta').value !== '' && document.getElementById('nkpi-real').value !== ''){
-      pct = 100;
+    } else if(metaVal === null){
+      pct = null; // sem meta → sem análise
+    } else if(realVal === 0 && metaVal === 0){
+      pct = 100; // meta=0, real=0 → meta cumprida
     } else if(polaridade === 'Menor é melhor'){
       pct = realVal > 0 ? Math.round((metaVal/realVal)*100) : 0;
     } else {
