@@ -3847,6 +3847,7 @@ const ACOES = {
         <button type="button" class="btn btn-t" style="font-size:12px" onclick="iaGerarIndicadores()">✦ Sugerir com IA</button>
         <span id="ind-ia-status" style="font-size:11px;color:var(--ink3)"></span>
       </div>
+      <div id="ind-kpis-vinculados" style="margin-bottom:.5rem">${rKpisVinculados(p.id)}</div>
       <div id="ind-proc-list" style="margin-bottom:.7rem">${rIndProcList(inds)}</div>
       <div style="border:1px solid var(--bdr);border-radius:var(--r);padding:.8rem;background:var(--bg2)">
         <div style="font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.5px">Adicionar indicador</div>
@@ -4984,9 +4985,38 @@ function rIndProcList(inds){
       <button type="button" class="ri-del" style="width:24px;height:24px;flex-shrink:0" onclick="remIndProc(${i})" aria-label="Remover">×</button>
     </div>`).join('');
 }
+function rKpisVinculados(procId){
+  if(!procId) return '';
+  const vinculados=(kpis||[]).filter(k=>k.pid===procId);
+  if(!vinculados.length) return '';
+  // Deduplicate by codigo or nome (one row per indicator, not per period)
+  const seen=new Set();
+  const unicos=vinculados.filter(k=>{
+    const key=k.codigo||k.nome||'';
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+  const hdr=`<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:6px;padding:4px 0;border-bottom:2px solid var(--teal-b,#99f6e4);margin-bottom:4px">`+
+    ['Indicador','Meta','Unidade','Periodicidade'].map(h=>`<span style="font-size:10px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.4px">${h}</span>`).join('')+'</div>';
+  const rows=unicos.map(k=>`<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--bdr)">
+    <span style="font-size:12px;font-weight:600;color:var(--ink)">${esc(k.nome)}</span>
+    <span style="font-size:11px;color:var(--ink2)">${k.meta!=null?esc(String(k.meta)):'—'}</span>
+    <span style="font-size:11px;color:var(--ink3)">${esc(k.unidade||'—')}</span>
+    <span style="font-size:11px;color:var(--ink3)">${esc(k.periodicidade||'—')}</span>
+  </div>`).join('');
+  return `<div style="margin-bottom:1rem;padding:.7rem;background:var(--bg2);border-radius:var(--r);border-left:3px solid var(--teal)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+      <span style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.5px">📊 Vinculados do módulo de indicadores (${unicos.length})</span>
+      <button type="button" class="btn" style="font-size:10px;padding:2px 8px" onclick="go('indicadores',document.getElementById('nb-ind'))">Ver módulo →</button>
+    </div>
+    ${hdr}${rows}
+  </div>`;
+}
 function atualizarIndProcUI(){
   const el=document.getElementById('ind-proc-list');
   if(el) el.innerHTML=rIndProcList(curProc?.form?.indicadores_proc||[]);
+  const elv=document.getElementById('ind-kpis-vinculados');
+  if(elv) elv.innerHTML=rKpisVinculados(curProc?.id||null);
 }
 function addIndProc(){
   const p=curProc;if(!p)return;
