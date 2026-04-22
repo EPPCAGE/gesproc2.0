@@ -7137,15 +7137,16 @@ function calcILP(etapas){
   if(!total)return null;
   const cnt=nat=>atividades.filter(n=>n.natureza===nat).length;
   const E=cnt('Execucao'), P=cnt('Preparacao'), C=cnt('Comunicacao'), D=cnt('Distribuicao');
-  // Exclusive diverging gateways: tipo Decisao, subtipo_gateway exclusivo
-  // Detecta divergência em DUAS estruturas:
-  //   1. Manual (editor de branches): gateway tem caminhos.length>1
-  //   2. BPMN plano (extrairBpmn): atividades dentro de branches referenciam o
-  //      gateway via vinculo_gw.gw_ep_id — o gateway em si fica com caminhos:[]
-  const xorGateways=all.filter(n=>n.tipo==='Decisao'&&n.subtipo_gateway==='exclusivo');
-  const gxorDiv=xorGateways.filter(gw=>
-    (gw.caminhos||[]).length>1 ||                          // estrutura manual
-    all.some(n=>n.vinculo_gw?.gw_ep_id===gw.id)           // estrutura BPMN plana
+  // Gateways divergentes (qualquer tipo): Decisao com ramificações reais.
+  // NÃO filtra por subtipo_gateway — dados antigos não têm esse campo salvo.
+  // Detecta divergência por estrutura:
+  //   a) caminhos.length>1   → estrutura manual OU BPMN novo (extrator popula caminhos)
+  //   b) vinculo_gw.gw_ep_id → estrutura BPMN plana (atividades dentro de branches)
+  const gxorDiv=all.filter(n=>
+    n.tipo==='Decisao' && (
+      (n.caminhos||[]).length>1 ||
+      all.some(a=>a.vinculo_gw?.gw_ep_id===n.id)
+    )
   ).length;
   // Atores distintos (executores não vazios)
   const atores=new Set(atividades.map(n=>(n.executor||'').trim()).filter(Boolean));
@@ -7190,7 +7191,7 @@ function _rEntIlpCard(ilpData){
     </div>
     <div style="font-size:11px;color:var(--ink3);border-top:1px solid var(--bdr);padding-top:.4rem;display:flex;gap:12px;flex-wrap:wrap">
       <span>Total atividades: <strong>${total}</strong></span>
-      <span>Gateways exclusivos (XOR÷): <strong>${gxorDiv}</strong></span>
+      <span>Gateways divergentes: <strong>${gxorDiv}</strong></span>
       <span>Atores distintos: <strong>${nAtores}</strong></span>
     </div>
   </div>`;
@@ -7556,7 +7557,7 @@ async function _popPdfAnexo(p){
       <div style="flex:1">
         <div style="font-size:12px;color:#4a4a6a;line-height:1.55;margin-bottom:.7rem">${ilpDesc}</div>
         <div style="flex-wrap:wrap">${natRow}</div>
-        <div style="font-size:10px;color:#8888aa;margin-top:.4rem">Total atividades: <strong>${total}</strong> · Gateways XOR÷: <strong>${gxorDiv}</strong> · Atores distintos: <strong>${nAtores}</strong></div>
+        <div style="font-size:10px;color:#8888aa;margin-top:.4rem">Total atividades: <strong>${total}</strong> · Gateways divergentes: <strong>${gxorDiv}</strong> · Atores distintos: <strong>${nAtores}</strong></div>
       </div>
     </div>`);
   }
