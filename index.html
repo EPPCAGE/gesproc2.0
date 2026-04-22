@@ -173,7 +173,9 @@ select.fi{cursor:pointer}
 .prog-s.dn:not(:last-child)::after{background:var(--teal)}
 .prog-d{width:22px;height:22px;border-radius:50%;border:2px solid var(--bdr2);background:var(--surf);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--ink4);z-index:1;position:relative;flex-shrink:0}
 .prog-d.dn{background:var(--teal);border-color:var(--teal);color:#fff}.prog-d.da{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
-.prog-l{font-size:8px;color:var(--ink3);margin-top:4px;text-align:center;max-width:46px;line-height:1.3}.prog-l.da{color:var(--blue);font-weight:600}
+.prog-d.sk{background:var(--amber-l);border-color:var(--amber);color:var(--amber)}
+.prog-s.sk:not(:last-child)::after{background:var(--amber)}
+.prog-l{font-size:8px;color:var(--ink3);margin-top:4px;text-align:center;max-width:46px;line-height:1.3}.prog-l.da{color:var(--blue);font-weight:600}.prog-l.sk{color:var(--amber);font-weight:600}
 /* timeline */
 .tl{display:flex;flex-direction:column;gap:0}
 .tl-i{display:flex;gap:10px;padding-bottom:12px;position:relative}
@@ -2515,20 +2517,23 @@ function rDetalhe(){
   const _etapasEfetivas=getEtapas(p);
   const idx=_etapasEfetivas.findIndex(e=>e.id===p.etapa);
   const epUser=isEP();
+  const _puladas=curProc.etapas_puladas||[];
   document.getElementById('det-prog').innerHTML=_etapasEfetivas.map((e,i)=>{
-    const past=i<idx,cur=i===idx;
+    const past=i<idx,cur=i===idx,skipped=_puladas.includes(e.id);
     let stageCls;
-    if(past) stageCls='dn';
+    if(skipped) stageCls='sk';
+    else if(past) stageCls='dn';
     else if(cur) stageCls='da';
     else stageCls='';
     const clickable=epUser;
     let tip;
-    if(cur) tip=`Editar etapa atual: ${e.lb}`;
+    if(skipped) tip=`Etapa pendente (pulada): ${e.lb}`;
+    else if(cur) tip=`Editar etapa atual: ${e.lb}`;
     else tip=`Editar: ${e.lb}`;
     const clickAttrs=clickable?`onclick="navegarRetro('${e.id}')" style="cursor:pointer" title="${tip}"`:'';
     return `<div class="prog-s ${stageCls}" ${clickAttrs}>
-      <div class="prog-d ${stageCls}">${past?'✓':(i+1)}</div>
-      <div class="prog-l ${cur?'da':''}">${e.lb}</div>
+      <div class="prog-d ${stageCls}">${skipped?'!':(past?'✓':(i+1))}</div>
+      <div class="prog-l ${skipped?'sk':(cur?'da':'')}">${e.lb}</div>
     </div>`;
   }).join('');
   // Q003: linha de próxima etapa esperada
@@ -3022,6 +3027,7 @@ function criarProcesso(){
 // ═══════════════════════════════════════════
 function av(etAtu, role, acao, _prazoEl, notifDest){
   push(curProc, etAtu, role, acao);
+  if(curProc.etapas_puladas) curProc.etapas_puladas=curProc.etapas_puladas.filter(id=>id!==etAtu);
   const nx = nextEt(etAtu);
   // Q027: registrar data efetiva de conclusão da etapa atual
   if(!curProc.dt_etapas) curProc.dt_etapas={};
@@ -4600,9 +4606,15 @@ function rAcao(p){
     return;
   }
   const roleNote=role===ac.rk?'':`<div class="ib iba" style="margin-top:.7rem">Esta etapa aguarda: <strong>${ac.role}</strong>. Troque o perfil para interagir.</div>`;
+  const isPulada=isEP()&&(p.etapas_puladas||[]).includes(p.etapa);
+  const pendenteBanner=isPulada?`<div style="background:var(--amber-l);border:1.5px solid var(--amber);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:.7rem">
+    <span style="font-size:1.3rem">⏳</span>
+    <div><div style="font-weight:700;font-size:13px;color:var(--amber)">Etapa pendente</div>
+    <div style="font-size:12.5px;color:var(--ink2)">Esta etapa foi pulada e ainda não foi concluída. Complete-a para removê-la da lista de pendências.</div></div>
+  </div>`:'';
   // Q019: checklist de pendências da etapa atual (apenas EP)
   const checklistHtml=isEP()?_renderChecklist(p):'';
-  el.innerHTML=checklistHtml+buildAcaoCardHTML(ac,p,roleNote);
+  el.innerHTML=pendenteBanner+checklistHtml+buildAcaoCardHTML(ac,p,roleNote);
   // Barra de devolução ao dono (apenas EP, quando há etapa anterior do dono)
   if(isEP()){
     const etRet=getDevolverEtapa(p);
@@ -4623,6 +4635,14 @@ function rAcao(p){
         <button type="button" class="btn" style="font-size:11px;padding:3px 9px" onclick="definirPrazoEP('${p.etapa}')">✎ Definir prazo</button>`;
       el.appendChild(epbar);
     }
+  }
+  // Barra de pular etapa (apenas EP, quando há próxima etapa e a atual não foi pulada)
+  if(isEP() && nextEt(p.etapa) && !isPulada){
+    const skipBar=document.createElement('div');
+    skipBar.style.cssText='margin-top:.6rem;padding:.55rem 1rem;border:1px dashed var(--amber-b,#fcd34d);border-radius:var(--r);display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--amber-l,#fffbeb)';
+    skipBar.innerHTML=`<span style="font-size:12px;color:var(--ink3)">Precisa avançar sem concluir esta etapa agora?</span>
+      <button type="button" class="btn btn-a" style="font-size:12px;padding:4px 10px" onclick="pularEtapaConfirm('${p.etapa}')">⏭ Pular etapa</button>`;
+    el.appendChild(skipBar);
   }
   _rAcaoInitBpmn(p, false);
 }
@@ -5099,8 +5119,15 @@ function salvarEsbocaTobe(){
 }
 
 
+function pularEtapaConfirm(etId){
+  const lb=etLb(etId);
+  if(!confirm(`Pular a etapa "${lb}"?\n\nEla ficará marcada como pendente (em laranja) e poderá ser retomada depois.`)) return;
+  pularEtapa(etId);
+}
 function pularEtapa(etId){
-  push(curProc,etId,'EP','Etapa pulada (opcional)');
+  if(!curProc.etapas_puladas) curProc.etapas_puladas=[];
+  if(!curProc.etapas_puladas.includes(etId)) curProc.etapas_puladas.push(etId);
+  push(curProc,etId,'EP','Etapa pulada — pendente');
   const nx=nextEt(etId);
   if(nx){curProc.etapa=nx;push(curProc,nx,'Sistema','Etapa iniciada');}
   rDetalhe();updCounts();fbAutoSave('pularEtapa');
@@ -7515,6 +7542,7 @@ function bpmnEditorHTML(which, existingXml){
       <span style="font-size:11px;color:${savedColor}">${saved}</span>
       <span id="bpmn-${which}-dirty" class="bpmn-dirty" style="display:none">● Não salvo</span>
       <div style="flex:1"></div>
+      <button type="button" class="btn" id="bpmn-${which}-palette-btn" onclick="bpmnTogglePalette('${which}')" title="Mostrar/ocultar menu de elementos">☰ Menu</button>
       <button type="button" class="btn" onclick="bpmnZ('${which}',1)">+</button>
       <button type="button" class="btn" onclick="bpmnZ('${which}',-1)">-</button>
       <button type="button" class="btn" onclick="bpmnFit('${which}')">Ajustar</button>
@@ -7639,6 +7667,16 @@ function bpmnSave(which){
     fbAutoSave('bpmnSave');
     toast('✓ Fluxo '+which.toUpperCase()+' salvo no servidor');
   }).catch(err=>toast('Erro ao salvar: '+(err.message||err),'var(--red)'));
+}
+function bpmnTogglePalette(which){
+  const canvas=document.getElementById('bpmn-'+which+'-canvas');
+  if(!canvas) return;
+  const palette=canvas.querySelector('.djs-palette');
+  if(!palette) return;
+  const hidden=palette.style.display==='none';
+  palette.style.display=hidden?'':'none';
+  const btn=document.getElementById('bpmn-'+which+'-palette-btn');
+  if(btn) btn.textContent=hidden?'☰ Menu':'☰ Menu ✕';
 }
 function bpmnZ(which,dir){const m=bpmnModelers[which];if(!m){return;}try{m.get('zoomScroll').zoom(dir,{x:400,y:240});}catch{}}
 function bpmnFit(which){const m=bpmnModelers[which];if(!m){return;}try{m.get('canvas').zoom('fit-viewport');}catch{}}
