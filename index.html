@@ -7637,18 +7637,26 @@ async function _popPdfAnexo(p){
   const hasBpmnT=!!(p.mod?.bpmnToBe);
   if(hasBpmnA||hasBpmnT){
     let bpInner=`<div style="font-size:15px;font-weight:700;color:#1a1a2e;border-bottom:3px solid #1e6bfa;padding-bottom:8px;margin-bottom:1.2rem;font-family:'Segoe UI',Arial,sans-serif">12.0 Desenho do Processo</div>`;
+    // Normaliza o SVG para caber na largura da página sem encoding frágil
+    const _svgForPdf=svg=>{
+      // Substitui width/height fixos por 100%/auto para escalar ao container
+      return svg.replace(/<svg([^>]*)>/,(m,a)=>{
+        let at=a.replace(/\bwidth="[^"]*"/g,'width="100%"').replace(/\bheight="[^"]*"/g,'height="auto"');
+        if(!/\bwidth=/.test(at)) at+=' width="100%"';
+        if(!/\bheight=/.test(at)) at+=' height="auto"';
+        return `<svg${at}>`;
+      });
+    };
     if(hasBpmnA){
       const svg=await _bpmnGetSvg('asis',p);
       if(svg){
-        const uri='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg)));
-        bpInner+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#8888aa;margin-bottom:.5rem">AS IS — Situação Atual</div><img src="${uri}" style="width:100%;max-width:100%;border:1px solid #e0e0f0;border-radius:4px;margin-bottom:1.4rem;display:block" alt="Fluxo AS IS">`;
+        bpInner+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#8888aa;margin-bottom:.5rem">AS IS — Situação Atual</div><div style="border:1px solid #e0e0f0;border-radius:4px;overflow:hidden;margin-bottom:1.4rem;background:#fff">${_svgForPdf(svg)}</div>`;
       }
     }
     if(hasBpmnT){
       const svg=await _bpmnGetSvg('tobe',p);
       if(svg){
-        const uri='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg)));
-        bpInner+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#8888aa;margin-bottom:.5rem">TO BE — Situação Proposta</div><img src="${uri}" style="width:100%;max-width:100%;border:1px solid #e0e0f0;border-radius:4px;display:block" alt="Fluxo TO BE">`;
+        bpInner+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#8888aa;margin-bottom:.5rem">TO BE — Situação Proposta</div><div style="border:1px solid #e0e0f0;border-radius:4px;overflow:hidden;background:#fff">${_svgForPdf(svg)}</div>`;
       }
     }
     bpmnLandscape=`<div class="bpmn-landscape">${bpInner}</div>`;
@@ -7681,15 +7689,16 @@ async function gerarPopPdf(){
   <style>
     :root{--blue:#1e6bfa;--ink:#1a1a2e;--ink2:#4a4a6a;--ink3:#8888aa;--bg2:#f4f5f8;--surf:#fff;--bdr:#e0e0f0;--r:6px;--rl:8px;--fh:'Segoe UI',Arial,sans-serif}
     *{box-sizing:border-box}
-    body{font-family:Arial,sans-serif;background:#fff;margin:0;padding:20px;color:#1a1a2e}
+    body{font-family:Arial,sans-serif;background:#fff;margin:0;padding:24px 28px;color:#1a1a2e}
     table{width:100%;border-collapse:collapse;margin-bottom:10px}
     th,td{border:1px solid #ddd;padding:5px 8px;text-align:left}
     th{background:#f4f5f8;font-size:10px}
     img{max-width:100%}
-    @page{size:A4 portrait;margin:15mm}
-    @page landscape-page{size:A4 landscape;margin:12mm}
-    .bpmn-landscape{page:landscape-page;page-break-before:always;padding-top:0}
-    @media print{body{padding:10px}.pop-pdf-bar{display:none!important}}
+    svg{max-width:100%;display:block}
+    @page{size:A4 portrait;margin:22mm 20mm}
+    @page landscape-page{size:A4 landscape;margin:15mm 18mm}
+    .bpmn-landscape{page:landscape-page;page-break-before:always}
+    @media print{body{padding:0}.pop-pdf-bar{display:none!important}}
   </style>
   </head><body>${inner}${anexo}</body></html>`);
   w.document.close();
