@@ -5076,7 +5076,7 @@ function _gerarAnaliseIAPayloadExtra(p){
   if(!problemas.length && !riscos.length) return '';
   const probsStr=problemas.length?'\n\nProblemas/dores levantados na reunião de entendimento:\n'+problemas.map((x,i)=>{const d=typeof x==='string'?x:x.desc||'';const s=typeof x==='string'?'':x.solucao||'';return `${i+1}. ${d}`+(s?` [Proposta pré-existente: ${s}]`:'');}).join('\n'):'';
   const riscosStr=riscos.length?'\n\nRiscos identificados na etapa de identificação de riscos:\n'+riscos.map((r,i)=>`${i+1}. ${r}`).join('\n'):'';
-  const instrucoes='\n\nAlém dos campos padrão (resumo, gargalos, retrabalhos, gaps, oportunidades, complexidade), inclua obrigatoriamente no JSON:\n- "solucoes_problemas": array de strings, uma solução por problema listado acima, obrigatoriamente no formato "[Problema: <texto exato do problema>] <sugestão de solução concreta>" (mesma ordem e quantidade dos problemas)';
+  const instrucoes='\n\nAlém dos campos padrão (resumo, gargalos, retrabalhos, gaps, oportunidades, complexidade), inclua obrigatoriamente no JSON:\n- "solucoes_problemas": array de strings SOMENTE para os problemas/dores levantados na reunião de entendimento (NÃO inclua riscos neste campo). Uma entrada por problema, obrigatoriamente no formato "[Problema: <texto exato do problema>] <sugestão de solução concreta>". Mesma ordem e quantidade dos problemas da reunião. Os riscos servem apenas como contexto adicional para enriquecer a análise geral.';
   return probsStr+riscosStr+instrucoes;
 }
 function _gerarAnaliseIASalvarJSON(p, json){
