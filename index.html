@@ -4971,11 +4971,16 @@ function salvarRiscos(){
 // ── Etapa: Indicadores do processo ──────────────────────────────────────────
 function rIndProcList(inds){
   if(!inds||!inds.length) return '<div style="font-size:12px;color:var(--ink3);padding:.5rem 0">Nenhum indicador cadastrado ainda.</div>';
-  const hdr='<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.5fr 1.5fr auto auto;gap:6px;padding:4px 0;border-bottom:2px solid var(--bdr);margin-bottom:4px">'+
-    ['Indicador','Meta','Unidade','Periodicidade','Fórmula','Fonte','',''].map((h,i)=>`<span style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px${i>=6?';width:24px':''}">${h}</span>`).join('')+'</div>';
-  return hdr+inds.map((ind,i)=>`
-    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.5fr 1.5fr auto auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--bdr)">
-      <span style="font-size:12px;font-weight:600;color:var(--ink)">${esc(ind.nome)}</span>
+  const cols='auto 2fr 1fr 1fr 1fr 1.5fr 1.5fr auto auto';
+  const hdr=`<div style="display:grid;grid-template-columns:${cols};gap:6px;padding:4px 0;border-bottom:2px solid var(--bdr);margin-bottom:4px">`+
+    ['No POP','Indicador','Meta','Unidade','Periodicidade','Fórmula','Fonte','',''].map((h,i)=>`<span style="font-size:10px;font-weight:700;color:${i===0?'var(--blue)':'var(--ink3)'};text-transform:uppercase;letter-spacing:.4px${i>=7?';width:24px':''}">${h}</span>`).join('')+'</div>';
+  return hdr+inds.map((ind,i)=>{
+    const noPopChecked=ind.incluir_pop!==false;
+    return `<div style="display:grid;grid-template-columns:${cols};gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--bdr)">
+      <label title="${noPopChecked?'Remover do POP':'Incluir no POP'}" style="cursor:pointer;display:flex;justify-content:center">
+        <input type="checkbox" ${noPopChecked?'checked':''} onchange="toggleIndProcPop(${i})" style="width:14px;height:14px;cursor:pointer;accent-color:var(--blue)">
+      </label>
+      <span style="font-size:12px;font-weight:600;color:${noPopChecked?'var(--ink)':'var(--ink3)'}">${esc(ind.nome)}</span>
       <span style="font-size:11px;color:var(--ink2)">${esc(ind.meta||'—')}</span>
       <span style="font-size:11px;color:var(--ink3)">${esc(ind.unidade||'—')}</span>
       <span style="font-size:11px;color:var(--ink3)">${esc(ind.periodicidade||'—')}</span>
@@ -4983,7 +4988,8 @@ function rIndProcList(inds){
       <span style="font-size:11px;color:var(--ink3)">${esc(ind.fonte||'—')}</span>
       <button type="button" class="btn" style="width:24px;height:24px;padding:0;font-size:12px;flex-shrink:0" onclick="editarIndProc(${i})" aria-label="Editar">✎</button>
       <button type="button" class="ri-del" style="width:24px;height:24px;flex-shrink:0" onclick="remIndProc(${i})" aria-label="Remover">×</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function rKpisVinculados(procId){
   if(!procId) return '';
@@ -4996,14 +5002,23 @@ function rKpisVinculados(procId){
     if(seen.has(key)) return false;
     seen.add(key); return true;
   });
-  const hdr=`<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:6px;padding:4px 0;border-bottom:2px solid var(--teal-b,#99f6e4);margin-bottom:4px">`+
-    ['Indicador','Meta','Unidade','Periodicidade'].map(h=>`<span style="font-size:10px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.4px">${h}</span>`).join('')+'</div>';
-  const rows=unicos.map(k=>`<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--bdr)">
-    <span style="font-size:12px;font-weight:600;color:var(--ink)">${esc(k.nome)}</span>
-    <span style="font-size:11px;color:var(--ink2)">${k.meta!=null?esc(String(k.meta)):'—'}</span>
-    <span style="font-size:11px;color:var(--ink3)">${esc(k.unidade||'—')}</span>
-    <span style="font-size:11px;color:var(--ink3)">${esc(k.periodicidade||'—')}</span>
-  </div>`).join('');
+  const popIds=curProc?.form?.kpis_pop_ids||[];
+  const cols='auto 2fr 1fr 1fr 1fr';
+  const hdr=`<div style="display:grid;grid-template-columns:${cols};gap:6px;padding:4px 0;border-bottom:2px solid var(--teal-b,#99f6e4);margin-bottom:4px">`+
+    ['No POP','Indicador','Meta','Unidade','Periodicidade'].map((h,i)=>`<span style="font-size:10px;font-weight:700;color:${i===0?'var(--blue)':'var(--teal)'};text-transform:uppercase;letter-spacing:.4px">${h}</span>`).join('')+'</div>';
+  const rows=unicos.map((k,idx)=>{
+    const key=k.codigo||k.nome||'';
+    const inPop=popIds.includes(key);
+    return `<div style="display:grid;grid-template-columns:${cols};gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--bdr)">
+      <label title="${inPop?'Remover do POP':'Incluir no POP'}" style="cursor:pointer;display:flex;justify-content:center">
+        <input type="checkbox" ${inPop?'checked':''} onchange="toggleKpiVinculadoPop(${idx})" style="width:14px;height:14px;cursor:pointer;accent-color:var(--blue)">
+      </label>
+      <span style="font-size:12px;font-weight:600;color:${inPop?'var(--ink)':'var(--ink3)'}">${esc(k.nome)}</span>
+      <span style="font-size:11px;color:var(--ink2)">${k.meta!=null?esc(String(k.meta)):'—'}</span>
+      <span style="font-size:11px;color:var(--ink3)">${esc(k.unidade||'—')}</span>
+      <span style="font-size:11px;color:var(--ink3)">${esc(k.periodicidade||'—')}</span>
+    </div>`;
+  }).join('');
   return `<div style="margin-bottom:1rem;padding:.7rem;background:var(--bg2);border-radius:var(--r);border-left:3px solid var(--teal)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
       <span style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.5px">📊 Vinculados do módulo de indicadores (${unicos.length})</span>
@@ -5011,6 +5026,28 @@ function rKpisVinculados(procId){
     </div>
     ${hdr}${rows}
   </div>`;
+}
+function toggleIndProcPop(i){
+  const ind=(curProc?.form?.indicadores_proc||[])[i];
+  if(!ind) return;
+  ind.incluir_pop=(ind.incluir_pop===false)?true:false;
+  atualizarIndProcUI();
+  fbAutoSave('toggleIndProcPop');
+}
+function toggleKpiVinculadoPop(idx){
+  const p=curProc; if(!p) return;
+  const vinculados=(kpis||[]).filter(k=>k.pid===p.id);
+  const seen=new Set();
+  const unicos=vinculados.filter(k=>{const key=k.codigo||k.nome||'';if(seen.has(key))return false;seen.add(key);return true;});
+  const k=unicos[idx]; if(!k) return;
+  const key=k.codigo||k.nome||'';
+  if(!p.form) p.form={};
+  if(!p.form.kpis_pop_ids) p.form.kpis_pop_ids=[];
+  const pos=p.form.kpis_pop_ids.indexOf(key);
+  if(pos>=0) p.form.kpis_pop_ids.splice(pos,1);
+  else p.form.kpis_pop_ids.push(key);
+  atualizarIndProcUI();
+  fbAutoSave('toggleKpiVinculadoPop');
 }
 function atualizarIndProcUI(){
   const el=document.getElementById('ind-proc-list');
@@ -7390,17 +7427,38 @@ function rForm(p){
       ${p.form?.contatos?`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">4.2 Contatos-chave do processo</div><div style="font-size:12.5px;white-space:pre-wrap">${esc(p.form.contatos)}</div></div>`:''}
       ${p.form?.forms?`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">4.3 Formulários e sistemas utilizados</div><div style="font-size:12.5px">${esc(p.form.forms)}</div></div>`:''}
       ${(()=>{
-        const inds=p.form?.indicadores_proc||[];
-        const secTitle='<div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">5.0 Indicadores</div>';
-        if(inds.length){
-          const rows=inds.map(ind=>`<tr style="border-bottom:1px solid var(--bdr)">
+        // Indicadores manuais selecionados para o POP
+        const indsManual=(p.form?.indicadores_proc||[]).filter(ind=>ind.incluir_pop!==false);
+        // Indicadores vinculados do módulo selecionados para o POP
+        const popIds=p.form?.kpis_pop_ids||[];
+        const seenV=new Set();
+        const indsVinc=popIds.length?(kpis||[]).filter(k=>{
+          if(k.pid!==p.id) return false;
+          const key=k.codigo||k.nome||'';
+          if(!popIds.includes(key)||seenV.has(key)) return false;
+          seenV.add(key); return true;
+        }):[];
+        // Rows combinados: manuais primeiro, depois vinculados
+        const todasRows=[
+          ...indsManual.map(ind=>`<tr style="border-bottom:1px solid var(--bdr)">
             <td style="padding:5px 8px;font-size:12px;font-weight:600">${esc(ind.nome)}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink2)">${esc(ind.meta||'—')}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(ind.unidade||'—')}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(ind.periodicidade||'—')}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(ind.formula||'—')}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(ind.fonte||'—')}</td>
-          </tr>`).join('');
+          </tr>`),
+          ...indsVinc.map(k=>`<tr style="border-bottom:1px solid var(--bdr)">
+            <td style="padding:5px 8px;font-size:12px;font-weight:600">${esc(k.nome)}</td>
+            <td style="padding:5px 8px;font-size:11px;color:var(--ink2)">${k.meta!=null?esc(String(k.meta)):'—'}</td>
+            <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(k.unidade||'—')}</td>
+            <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(k.periodicidade||'—')}</td>
+            <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">—</td>
+            <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">—</td>
+          </tr>`),
+        ];
+        const secTitle='<div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">5.0 Indicadores</div>';
+        if(todasRows.length){
           return `<div style="margin-bottom:1rem">${secTitle}<table style="width:100%;border-collapse:collapse">
             <thead><tr style="background:var(--bg2)">
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Indicador</th>
@@ -7410,7 +7468,7 @@ function rForm(p){
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Fórmula</th>
               <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--ink3)">Fonte</th>
             </tr></thead>
-            <tbody>${rows}</tbody>
+            <tbody>${todasRows.join('')}</tbody>
           </table></div>`;
         }
         return pd.ind?`<div style="margin-bottom:1rem">${secTitle}<div style="font-size:12.5px;white-space:pre-wrap">${pd.ind}</div></div>`:'';
