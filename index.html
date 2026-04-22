@@ -7181,15 +7181,17 @@ function rForm(p){
         const normTipo=t=>{if(t==='Decisao'||t==='Decisão'){return 'Decisão';}if(t==='Comentario'||t==='Observação'){return 'Observação';}return t||'Atividade';};
         const normModo=m=>{if(m==='Automatica'){return 'Automática';}if(m==='Semi-automatica'){return 'Semi-automática';}return m||'Manual';};
         const linhas=etapas.map((e,i)=>{
-          const d=det[i]||{};
+          const d=det[e.id]||{};
           const desc=(d.desc!==undefined&&d.desc!=='')?d.desc:(e.desc||'');
           const resp=(d.resp!==undefined&&d.resp!=='')?d.resp:(e.executor||'');
           const tipo=normTipo(d.tipo||e.tipo);
           const modo=normModo(e.modo);
           const nat=e.natureza||'';
+          const gw=e.vinculo_gw?.gw_ep_id?etapas.find(x=>x.id===e.vinculo_gw.gw_ep_id):null;
+          const gwCell=gw?`<div style="font-size:10px;color:var(--ink3)">⤷ ${esc(gw.nome||'Gateway')}${e.vinculo_gw.label?' · '+esc(e.vinculo_gw.label):''}</div>`:'';
           return `<tr style="border-bottom:1px solid var(--bdr)">
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3);white-space:nowrap">${i+1}</td>
-            <td style="padding:5px 8px;font-size:12px;font-weight:600">${esc(e.nome||'')}</td>
+            <td style="padding:5px 8px;font-size:12px;font-weight:600">${esc(e.nome||'')}${gwCell}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(tipo)}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(nat)}</td>
             <td style="padding:5px 8px;font-size:11px;color:var(--ink3)">${esc(modo)}</td>
