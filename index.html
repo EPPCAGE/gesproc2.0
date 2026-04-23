@@ -2783,8 +2783,15 @@ function confirmarSuspender(){
   fbAutoSave('suspenderProcesso');
   rDetalhe();updCounts();
   toast('Processo suspenso. Os dados estão preservados.','var(--amber)');
-  const _donoEmailSusp=getDonoEmail(p);
-  if(_donoEmailSusp&&p.dono) enviarNotif(_donoEmailSusp,p.dono,'O mapeamento do processo "'+p.nome+'" foi suspenso.',p.nome,'',usuarioLogado?.nome||'EP');
+  const _gestorUserSusp=USUARIOS.find(u=>u.nome===p.pat);
+  const _pSusp=p;
+  setTimeout(()=>_abrirModalNotifInformativa(
+    'Notificar sobre suspensão',
+    'Selecione quem deve ser avisado de que o mapeamento de "'+_pSusp.nome+'" foi suspenso.',
+    [{id:'dono',label:'Dono do processo',nome:_pSusp.dono,email:getDonoEmail(_pSusp)},
+     {id:'gestor',label:'Gestor / Patrocinador',nome:_pSusp.pat,email:_gestorUserSusp?.email||''}],
+    alvos=>alvos.forEach(d=>enviarNotif(d.email,d.nome||d.email,'O mapeamento do processo "'+_pSusp.nome+'" foi suspenso.',_pSusp.nome,'',usuarioLogado?.nome||'EP'))
+  ),300);
 }
 function cancelarProcesso(){
   if(!isEP()&&usuarioLogado?.perfil!=='gestor'){toast('Ação restrita ao EP ou Gestor.','var(--amber)');return;}
@@ -3009,8 +3016,15 @@ function criarProcesso(){
   processos.push(p);
   updCounts();
   toast('Processo criado com sucesso!');
-  if(donoEmail&&donoNome) enviarNotif(donoEmail,donoNome,'O mapeamento do processo "'+p.nome+'" foi iniciado.',p.nome,'','EP·CAGE');
   fbAutoSave('criarProcesso');
+  const _gestorUserCriar=USUARIOS.find(u=>u.nome===p.pat);
+  setTimeout(()=>_abrirModalNotifInformativa(
+    'Notificar sobre início do mapeamento',
+    'Selecione quem deve receber o aviso de que o mapeamento de "'+p.nome+'" foi iniciado.',
+    [{id:'dono',label:'Dono do processo',nome:p.dono,email:getDonoEmail(p)},
+     {id:'gestor',label:'Gestor / Patrocinador',nome:p.pat,email:_gestorUserCriar?.email||''}],
+    alvos=>alvos.forEach(d=>enviarNotif(d.email,d.nome||d.email,'O mapeamento do processo "'+p.nome+'" foi iniciado.',p.nome,'','EP·CAGE'))
+  ),400);
   abrirProc(p.id);
 }
 
@@ -3385,6 +3399,45 @@ function confirmarDevolucao(etRet){
     toast(tipoLabel+' solicitado. '+paraNome+' notificado(a).','var(--teal)');
   } else {
     toast(tipoLabel+' solicitado.','var(--teal)');
+  }
+}
+
+// ═══════════════════════════════════════════
+// MODAL DE NOTIFICAÇÃO INFORMATIVA (início / suspensão / publicação)
+// ═══════════════════════════════════════════
+// destinos: [{id, label, nome, email}]
+// onConfirm(selecionados) onde selecionados = [{label, nome, email}]
+function _abrirModalNotifInformativa(titulo, descricao, destinos, onConfirm){
+  const validos=destinos.filter(d=>d.email&&d.id);
+  if(!validos.length){toast('Nenhum destinatário com e-mail cadastrado.','var(--amber)');return;}
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center';
+  ov.id='modal-notif-info';
+  const checkboxes=validos.map(d=>`
+    <label style="display:flex;align-items:flex-start;gap:8px;padding:.55rem .7rem;border:1.5px solid var(--bdr);border-radius:var(--r);cursor:pointer;font-size:13px;margin-bottom:.5rem">
+      <input type="checkbox" name="notif-dest" value="${esc(d.id)}" checked style="margin-top:2px;flex-shrink:0">
+      <div><div style="font-weight:600">${esc(d.label)}</div>
+      <div style="font-size:11.5px;color:var(--ink3)">${esc(d.nome||(d.email.startsWith('_')?'':d.email))}${(!d.email.startsWith('_')&&d.nome)?' · '+esc(d.email):''}</div></div>
+    </label>`).join('');
+  ov.innerHTML=`<div style="background:var(--surf);border-radius:14px;padding:2rem 1.8rem;max-width:440px;width:92%;box-shadow:0 12px 40px rgba(0,0,0,.25)">
+    <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:.4rem">📣 ${esc(titulo)}</div>
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:1rem">${esc(descricao)}</div>
+    <div style="margin-bottom:1.2rem">${checkboxes}</div>
+    <div class="btn-row">
+      <button type="button" class="btn" onclick="document.getElementById('modal-notif-info').remove()">Não notificar</button>
+      <button type="button" class="btn btn-p" onclick="_confirmarNotifInformativa()">Enviar notificações →</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  globalThis._notifInfoCallback={destinos:validos,onConfirm};
+}
+function _confirmarNotifInformativa(){
+  const selecionados=Array.from(document.querySelectorAll('input[name="notif-dest"]:checked')).map(el=>el.value);
+  const {destinos,onConfirm}=globalThis._notifInfoCallback||{};
+  document.getElementById('modal-notif-info')?.remove();
+  if(destinos&&onConfirm){
+    const alvos=destinos.filter(d=>selecionados.includes(d.id));
+    if(alvos.length) onConfirm(alvos);
   }
 }
 
@@ -5410,13 +5463,29 @@ function publicarProcesso(){
   p.form.link_pub=document.getElementById('a-link')?.value||p.form.link_pub||'';
   p.form.vig=_efetPub?_calcVig(_efetPub):(document.getElementById('a-vig')?.value||p.form.vig||'');
   av('publicacao','EP','Processo publicado. Início da operação.');
-  // Notificar dono e interessados sobre publicação
-  const donoEmail=getDonoEmail(p);
-  const acao='Processo "'+p.nome+'" publicado! O POP está disponível no repositório.';
-  if(donoEmail && p.dono) enviarNotif(donoEmail, p.dono, acao, p.nome, '', usuarioLogado?.nome||'EP');
-  (p.interessados||[]).forEach(email=>{
-    if(email) enviarNotif(email, email, acao, p.nome, '', usuarioLogado?.nome||'EP');
-  });
+  const _pPub=p;
+  const _acaoPub='Processo "'+_pPub.nome+'" publicado! O POP está disponível no repositório.';
+  const _gestorUserPub=USUARIOS.find(u=>u.nome===_pPub.pat);
+  const _interCount=(_pPub.interessados||[]).filter(Boolean).length;
+  const _destPub=[
+    {id:'dono',label:'Dono do processo',nome:_pPub.dono,email:getDonoEmail(_pPub)},
+    {id:'gestor',label:'Gestor / Patrocinador',nome:_pPub.pat,email:_gestorUserPub?.email||''},
+  ];
+  if(_interCount) _destPub.push({id:'interessados',label:'Partes interessadas',nome:_interCount+' destinatário(s)',email:'_interessados_'});
+  setTimeout(()=>_abrirModalNotifInformativa(
+    'Notificar sobre publicação',
+    'Selecione quem deve receber o aviso de publicação do processo "'+_pPub.nome+'".',
+    _destPub,
+    alvos=>{
+      alvos.forEach(d=>{
+        if(d.id==='interessados'){
+          (_pPub.interessados||[]).forEach(email=>{if(email)enviarNotif(email,email,_acaoPub,_pPub.nome,'',usuarioLogado?.nome||'EP');});
+        } else {
+          enviarNotif(d.email,d.nome||d.email,_acaoPub,_pPub.nome,'',usuarioLogado?.nome||'EP');
+        }
+      });
+    }
+  ),300);
 }
 function salvarAnalise(){
   const p=curProc;
