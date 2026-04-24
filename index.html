@@ -4452,7 +4452,7 @@ function rAcaoRetro(){
   document.querySelectorAll('#tab-acao .card .btn-row').forEach(r=>r.style.display='none');
   if(etId==='esboco_asis'||etId==='det_valid_asis'||etId==='desenho_final') setTimeout(()=>initBpmnMod('asis',p),120);
   if(etId==='esboco_tobe'||etId==='det_valid_tobe') setTimeout(()=>initBpmnMod('tobe',p),120);
-  if(etId==='desenho_final'&&p.mod?.tobe_mermaid) setTimeout(()=>{ const ta=document.getElementById('tobe-mermaid-code'); if(ta) ta.textContent=p.mod?.tobe_mermaid||''; _atualizarRenderMermaid(); },250);
+  if(etId==='desenho_final'&&p.mod?.tobe_mermaid) setTimeout(()=>{ const ta=document.getElementById('tobe-mermaid-code'); if(ta){ ta.textContent=p.mod?.tobe_mermaid||''; _atualizarRenderMermaid(); } },250);
 }
 
 // ── salvarRetroativo: handlers por etapa (extraídos para manutenibilidade) ──
@@ -5230,7 +5230,7 @@ function toggleKpiVinculadoPop(idx){
   const p=curProc; if(!p) return;
   const vinculados=(kpis||[]).filter(k=>k.pid===p.id);
   const seen=new Set();
-  const unicos=vinculados.filter(k=>{const key=k.codigo||k.nome||'';if(seen.has(key))return false;seen.add(key);return true;});
+  const unicos=vinculados.filter(k=>{const key=k.codigo||k.nome||'';if(seen.has(key)){return false;}seen.add(key);return true;});
   const k=unicos[idx];
   if(!k) return;
   const key=k.codigo||k.nome||'';
@@ -7712,7 +7712,7 @@ function rForm(p){
     <div style="padding:1.2rem 1.5rem">
       <table class="pop-tbl" style="margin-bottom:1.2rem"><thead><tr><th>Revisão</th><th>Data</th><th>Descrição</th></tr></thead><tbody><tr><td>0</td><td>${now()}</td><td>Emissão inicial</td></tr></tbody></table>
       <table class="pop-tbl" style="margin-bottom:1.5rem"><thead><tr><th>Ação</th><th>Elaborado por</th><th>Revisado por</th><th>Aprovado por</th></tr></thead><tbody><tr><td>Nome</td><td>${(pd.ger&&pd.ger!==p.dono)?pd.ger:(p.resp_ep||'—')}</td><td>${p.dono||'—'}</td><td>${p.pat||'—'}</td></tr><tr><td>Função</td><td>Membro do EPP / CAGE</td><td>Dono do processo</td><td>Gestor responsável</td></tr></tbody></table>
-      ${(()=>{const _e=p.ent||{};const _fmtD=d=>d?d.split('-').reverse().join('/'):'—';if(!(_e.dt_inicio||_e.dt_prev||_e.dt_efetiva||_e.equipe||p.produto||_e.t_total||p.objetivo||_e.escopo))return'';const _lbl=(l,v,full)=>full?`<div style="margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--bdr);grid-column:1/-1"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink3);margin-bottom:3px">${l}</div><div style="font-size:12px;line-height:1.5;white-space:pre-wrap">${esc(v)}</div></div>`:`<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink3)">${l}</div><div style="font-weight:500">${esc(v)}</div></div>`;return`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">Identificação Temporal</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:12px">${[['Início',_fmtD(_e.dt_inicio)],['Previsão de entrega',_fmtD(_e.dt_prev)],['Entrega efetiva',_fmtD(_e.dt_efetiva)],['Produto',p.produto||''],['Tempo total',_e.t_total||''],['Equipe de trabalho',_e.equipe||'']].filter(([,v])=>v&&v!=='—').map(([l,v])=>_lbl(l,v,false)).join('')}${p.objetivo?_lbl('Objetivo do trabalho',p.objetivo,true):''}${_e.escopo?_lbl('Escopo do trabalho',_e.escopo,true):''}</div></div>`})()}
+      ${(()=>{const _e=p.ent||{};const _fmtD=d=>d?d.split('-').reverse().join('/'):'—';if(!(_e.dt_inicio||_e.dt_prev||_e.dt_efetiva||_e.equipe||p.produto||_e.t_total||p.objetivo||_e.escopo)){return'';}const _lbl=(l,v,full)=>full?`<div style="margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--bdr);grid-column:1/-1"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink3);margin-bottom:3px">${l}</div><div style="font-size:12px;line-height:1.5;white-space:pre-wrap">${esc(v)}</div></div>`:`<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink3)">${l}</div><div style="font-weight:500">${esc(v)}</div></div>`;return`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">Identificação Temporal</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:12px">${[['Início',_fmtD(_e.dt_inicio)],['Previsão de entrega',_fmtD(_e.dt_prev)],['Entrega efetiva',_fmtD(_e.dt_efetiva)],['Produto',p.produto||''],['Tempo total',_e.t_total||''],['Equipe de trabalho',_e.equipe||'']].filter(([,v])=>v&&v!=='—').map(([l,v])=>_lbl(l,v,false)).join('')}${p.objetivo?_lbl('Objetivo do trabalho',p.objetivo,true):''}${_e.escopo?_lbl('Escopo do trabalho',_e.escopo,true):''}</div></div>`})()}
       <div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">1.0 Objetivo</div><div style="font-size:12.5px;color:var(--ink2)">${pd.obj||p.objetivo||'—'}</div></div>
       ${pd.def?`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">1.1 Definições</div><div style="font-size:12.5px;color:var(--ink2);white-space:pre-wrap">${pd.def}</div></div>`:''}
       <div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">1.2 Entradas</div><div style="font-size:12.5px">${pd.ent||'—'}</div></div>
@@ -8726,6 +8726,12 @@ async function _atualizarRenderMermaid(codeOverride){
     const {svg}=await mermaid.render(uid,src);
     const svgDoc=new DOMParser().parseFromString(svg,'image/svg+xml');
     const svgNode=document.adoptNode(svgDoc.documentElement);
+    svgNode.querySelectorAll('script,foreignObject').forEach(el=>el.remove());
+    svgNode.querySelectorAll('*').forEach(el=>{
+      Array.from(el.attributes).forEach(a=>{
+        if(a.name.startsWith('on')||((a.name==='href'||a.name==='xlink:href')&&/^javascript:/i.test(a.value)))el.removeAttribute(a.name);
+      });
+    });
     renderEl.replaceChildren(svgNode);
     // Remove fixed width/height so SVG scales with container
     if(svgNode){svgNode.style.maxWidth='100%';svgNode.removeAttribute('height');svgNode.style.height='auto';}
