@@ -8726,6 +8726,12 @@ async function _atualizarRenderMermaid(codeOverride){
     const {svg}=await mermaid.render(uid,src);
     const svgDoc=new DOMParser().parseFromString(svg,'image/svg+xml');
     const svgNode=document.adoptNode(svgDoc.documentElement);
+    svgNode.querySelectorAll('script,foreignObject').forEach(el=>el.remove());
+    svgNode.querySelectorAll('*').forEach(el=>{
+      Array.from(el.attributes).forEach(a=>{
+        if(a.name.startsWith('on')||((a.name==='href'||a.name==='xlink:href')&&/^javascript:/i.test(a.value)))el.removeAttribute(a.name);
+      });
+    });
     renderEl.replaceChildren(svgNode);
     // Remove fixed width/height so SVG scales with container
     if(svgNode){svgNode.style.maxWidth='100%';svgNode.removeAttribute('height');svgNode.style.height='auto';}
