@@ -10409,14 +10409,17 @@ function kpiCard(k){
   const polaridade = k.polaridade || 'Maior é melhor';
   const unidade    = k.unidade ? ' '+k.unidade : '';
   const polIcon    = polaridade === 'Menor é melhor' ? '↓' : '↑';
-  const hasMeta    = k.meta > 0;
+  const hasMeta    = k.meta !== null && k.meta !== undefined && k.meta !== '';
 
   let pct = null, color, status, barW;
   if(hasMeta){
-    if(polaridade === 'Menor é melhor'){
-      pct = k.realizado > 0 ? Math.round((k.meta/k.realizado)*100) : (k.pct_realizado || 0);
+    const _r = Number(k.realizado), _m = Number(k.meta);
+    if(_r === 0 && _m === 0){
+      pct = 100;
+    } else if(polaridade === 'Menor é melhor'){
+      pct = _r > 0 ? Math.round((_m/_r)*100) : (k.pct_realizado || 0);
     } else {
-      pct = Math.round((k.realizado/k.meta)*100);
+      pct = _m > 0 ? Math.round((_r/_m)*100) : null;
     }
     const ok   = pct >= 100;
     const warn = pct >= 80 && pct < 100;
@@ -13890,7 +13893,7 @@ function gerarRelatorioIndPdf(){
   // ── Linhas da tabela ────────────────────────────────────────────────
   const rows = lista.map(k => {
     const und     = k.unidade ? ' '+k.unidade : '';
-    const hasMeta = Number(k.meta)>0;
+    const hasMeta = k.meta !== null && k.meta !== undefined && k.meta !== '';
     const pct     = calcPct(k);
     const st      = statusInfo(pct, hasMeta);
     // Fonte maior para extremos
@@ -13915,7 +13918,7 @@ function gerarRelatorioIndPdf(){
 
   // ── Totalizador rodapé ───────────────────────────────────────────────
   // Taxa de atingimento geral (sempre 0-100%, não distorcida por outliers)
-  const comMeta    = lista.filter(k=>Number(k.meta)>0);
+  const comMeta    = lista.filter(k=>k.meta !== null && k.meta !== undefined && k.meta !== '');
   const atingiramG = comMeta.filter(k=>{ const p=calcPct(k); return p!==null&&p>=100; }).length;
   const taxaGeral  = comMeta.length ? Math.round((atingiramG/comMeta.length)*100) : null;
   const destTotal  = lista.filter(k=>{ const p=calcPct(k); return p!==null&&p>=130; }).length;
