@@ -13921,8 +13921,6 @@ async function iaAnalisarIndicadores(){
     _lastIndAnalise = result;
     const pdfBtn = document.getElementById('ia-ind-pdf-btn');
     if(pdfBtn) pdfBtn.style.display = '';
-    const emailBtn = document.getElementById('ia-ind-email-btn');
-    if(emailBtn) emailBtn.style.display = '';
     el.innerHTML = `<div class="ai-result">
       <div class="ai-result-lbl">✦ Análise IA dos indicadores</div>
       <div style="line-height:1.7">${esc(result)}</div>
@@ -14202,34 +14200,6 @@ function injectIaPop(){
 }
 
 // Indicadores page — inject IA analysis button
-function enviarRelatorioIndEmail(){
-  if(!_lastIndAnalise){ toast('Execute a análise antes de enviar.','var(--amber)'); return; }
-  if(!ejsConfig.service||!ejsConfig.template||!ejsConfig.pubkey||typeof emailjs==='undefined'){
-    toast('Configure o EmailJS em Notificações → Credenciais.','var(--amber)'); return;
-  }
-  const gestores=(USUARIOS||[]).filter(u=>u.perfil==='gestor'&&u.email);
-  if(!gestores.length){ toast('Nenhum gestor com e-mail cadastrado.','var(--amber)'); return; }
-  const area=document.getElementById('ind-area-sel')?.value||'';
-  const ciclo=document.getElementById('ind-ciclo-sel')?.value||'';
-  const period=document.getElementById('ind-periodo-sel')?.value||'';
-  const intervalo=document.getElementById('ind-intervalo-sel')?.value||'';
-  const filtros=[area?'Área: '+area:'',ciclo?'Ciclo: '+ciclo:'',period?'Período: '+period:'',intervalo?'Intervalo: '+intervalo:''].filter(Boolean).join(' · ')||'Todos os indicadores';
-  const dtHoje=new Date().toLocaleDateString('pt-BR');
-  const assunto=`Análise dos Resultados — ${filtros}`;
-  const corpo=`Análise dos Resultados — ${filtros}\nData: ${dtHoje}\n\n${_lastIndAnalise}`;
-  let sent=0,errs=0;
-  const total=gestores.length;
-  gestores.forEach(u=>{
-    emailjs.send(ejsConfig.service,ejsConfig.template,{
-      to_name:u.nome,to_email:u.email,
-      from_name:'EP·CAGE — Indicadores',
-      processo:assunto,acao:corpo,prazo:'',
-      link:'https://sigaepp.web.app/',
-    }).then(()=>{ sent++; if(sent+errs===total) toast(`Análise enviada para ${sent} gestor(es).`); })
-      .catch(()=>{ errs++; if(sent+errs===total) toast(`Enviado: ${sent}. Falha: ${errs}.`,'var(--amber)'); });
-  });
-  toast(`Enviando para ${total} gestor(es)...`);
-}
 
 function injectIaIndicadores(){
   const el = document.getElementById('ind-c');
@@ -14242,7 +14212,6 @@ function injectIaIndicadores(){
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button type="button" id="ia-ind-btn" class="ai-btn" onclick="iaAnalisarIndicadores()">Analisar indicadores visíveis com IA</button>
       <button type="button" id="ia-ind-pdf-btn" class="btn btn-a" onclick="gerarRelatorioIndPdf()" style="display:none;font-size:12px;padding:5px 12px">⬇ Relatório PDF</button>
-      <button type="button" id="ia-ind-email-btn" class="btn" onclick="enviarRelatorioIndEmail()" style="display:none;font-size:12px;padding:5px 12px">📧 Enviar aos gestores</button>
       <span style="font-size:11px;color:var(--ink3)">Analisa os indicadores do filtro atual e gera um comentário executivo.</span>
     </div>
     <div id="ia-ind-result"></div>`;
