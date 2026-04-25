@@ -834,7 +834,6 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
         </div>
       </div>
       <div class="g2">
-        <div class="fg"><label class="fl" for="nkpi-meta">Meta</label><input class="fi" id="nkpi-meta" type="number" placeholder="80" oninput="calcPctReal()"></div>
         <div class="fg"><label class="fl" for="nkpi-ppe">PPE?</label>
           <select class="fi" id="nkpi-ppe"><option>Não</option><option>Sim</option></select>
         </div>
@@ -852,13 +851,20 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
         <div class="fg"><label class="fl" for="nkpi-real">Realizado</label><input class="fi" id="nkpi-real" type="number" placeholder="100" oninput="calcPctReal()"></div>
         <div class="fg"><label class="fl" for="nkpi-indice">% Índice</label><input class="fi" id="nkpi-indice" type="number" placeholder="80"></div>
       </div>
+      <div class="g2">
+        <div class="fg">
+          <label class="fl" for="nkpi-meta">Meta do período</label>
+          <input class="fi" id="nkpi-meta" type="number" placeholder="Ex: 80" oninput="calcPctReal()">
+          <div style="font-size:10px;color:var(--ink3);margin-top:2px">Pode ser diferente a cada período</div>
+        </div>
+        <div class="fg"><label class="fl" for="nkpi-pct-real">Desempenho (calculado)</label><input class="fi" id="nkpi-pct-real" readonly placeholder="Automático"></div>
+      </div>
       <div class="fg" style="margin-top:-2px">
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--ink3)">
           <input type="checkbox" id="nkpi-sem-dado" onchange="calcPctReal()">
           <span>Sem medição neste período (N/A) — exclui da análise de desempenho</span>
         </label>
       </div>
-      <div class="fg"><label class="fl" for="nkpi-pct-real">Desempenho (calculado)</label><input class="fi" id="nkpi-pct-real" readonly placeholder="Calculado automaticamente"></div>
       <div class="fg"><label class="fl" for="nkpi-analise">Análise</label>
         <textarea class="fi" id="nkpi-analise" style="min-height:70px" placeholder="Comentário sobre o resultado..."></textarea>
       </div>
@@ -10770,12 +10776,14 @@ function _kpiNavFlushCurrent(){
   const k = globalThis._kpiPeriodos[globalThis._kpiPeriodoIdx];
   if(!k) return;
   if(!globalThis._kpiPeriodEdits) globalThis._kpiPeriodEdits = {};
+  const metaRaw = Number.parseFloat(document.getElementById('nkpi-meta')?.value);
   globalThis._kpiPeriodEdits[k.id] = {
     periodo:   document.getElementById('nkpi-periodo')?.value.trim()  || '',
     realizado: Number.parseFloat(document.getElementById('nkpi-real')?.value)    || 0,
     indice:    Number.parseFloat(document.getElementById('nkpi-indice')?.value)  || 0,
     analise:   document.getElementById('nkpi-analise')?.value.trim()  || '',
     sem_dado:  !!(document.getElementById('nkpi-sem-dado')?.checked),
+    meta:      Number.isNaN(metaRaw) ? null : metaRaw,
   };
 }
 
@@ -10790,6 +10798,8 @@ function _kpiNavLoadCurrent(){
   fv('nkpi-real',     edits ? edits.realizado  : (k.realizado || ''));
   fv('nkpi-indice',   edits ? edits.indice     : (k.indice    || ''));
   fv('nkpi-analise',  edits ? edits.analise    : (k.analise   || ''));
+  const metaVal = edits ? edits.meta : k.meta;
+  fv('nkpi-meta', metaVal != null ? metaVal : '');
   const sdEl2 = document.getElementById('nkpi-sem-dado');
   if(sdEl2) sdEl2.checked = !!(edits ? edits.sem_dado : k.sem_dado);
   calcPctReal();
@@ -10883,7 +10893,6 @@ function salvarNovoKpi(){
       ciclo:        document.getElementById('nkpi-ciclo').value.trim(),
       unidade:      document.getElementById('nkpi-unidade').value.trim(),
       polaridade:   document.getElementById('nkpi-polaridade').value,
-      meta:         (()=>{ const v=Number.parseFloat(document.getElementById('nkpi-meta').value); return Number.isNaN(v)?null:v; })(),
       ppe:          document.getElementById('nkpi-ppe').value,
       pid:          _pid,
       cumulativo:   !!(document.getElementById('nkpi-cumulativo')?.checked),
@@ -10896,7 +10905,7 @@ function salvarNovoKpi(){
       // Promote gsheets→gsheets_editado and importado→importado_editado so next sync/import won't overwrite
       if(kpis[idx].origem === 'gsheets'){ kpis[idx].origem = 'gsheets_editado'; }
       if(kpis[idx].origem === 'importado'){ kpis[idx].origem = 'importado_editado'; }
-      // Apply any period-specific edits made while navigating
+      // Apply any period-specific edits made while navigating (meta is now per-period)
       const edits = (globalThis._kpiPeriodEdits||{})[p.id];
       if(edits){
         kpis[idx].periodo   = edits.periodo;
@@ -10904,6 +10913,7 @@ function salvarNovoKpi(){
         kpis[idx].indice    = edits.indice;
         kpis[idx].analise   = edits.analise;
         kpis[idx].sem_dado  = !!edits.sem_dado;
+        kpis[idx].meta      = edits.meta;
       }
       // Recalculate pct_realizado
       const pol  = kpis[idx].polaridade;
