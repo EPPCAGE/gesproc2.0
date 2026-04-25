@@ -1765,25 +1765,29 @@ function _enviarSenhaAcesso(email, nome, senha){
 }
 
 async function _criarUsuarioParaAtribuicao(email, nome, perfil){
-  const SENHA_TEMP = '123456';
+  const senhaTemp = gerarSenhaTemp();
   const palavras = (nome||email).trim().split(/\s+/).filter(Boolean);
   const iniciais = (palavras.length>=2 ? palavras[0][0]+palavras[palavras.length-1][0] : (palavras[0]||'?').slice(0,2)).toUpperCase();
+  let senhaEnviada = senhaTemp;
   if(fbReady()){
+    const {initializeApp, deleteApp, getAuth, createUserWithEmailAndPassword, FIREBASE_CONFIG} = fb();
+    const secApp = initializeApp(FIREBASE_CONFIG, 'sec_'+Date.now());
+    const secAuth = getAuth(secApp);
     try {
-      const {initializeApp, deleteApp, getAuth, createUserWithEmailAndPassword, FIREBASE_CONFIG} = fb();
-      const secApp = initializeApp(FIREBASE_CONFIG, 'sec_'+Date.now());
-      const secAuth = getAuth(secApp);
-      try {
-        await createUserWithEmailAndPassword(secAuth, email, SENHA_TEMP);
-      } catch(ce){
-        if(ce.code !== 'auth/email-already-in-use') console.warn('createUser:', ce.message);
-      } finally {
-        await deleteApp(secApp);
+      await createUserWithEmailAndPassword(secAuth, email, senhaTemp);
+    } catch(ce){
+      await deleteApp(secApp);
+      if(ce.code === 'auth/email-already-in-use'){
+        senhaEnviada = null; // já tem conta Auth — não enviar senha
+      } else {
+        throw ce; // erro real — sobe para o chamador
       }
-    } catch(e){ console.warn('secApp:', e.message); }
+    }
+    if(senhaEnviada !== null) await deleteApp(secApp);
   }
-  USUARIOS.push({email, nome: nome||email, perfil: perfil||'dono', iniciais, processos_vinculados:[], trocar_senha:true});
+  USUARIOS.push({email, nome: nome||email, perfil: perfil||'dono', iniciais, processos_vinculados:[], trocar_senha: senhaEnviada !== null});
   await fbSaveAll();
+  return senhaEnviada; // null se usuário já tinha conta Auth
 }
 
 function abrirModalTrocarSenha(){
@@ -3570,8 +3574,14 @@ async function confirmarAtribuirEtapa(etapaId){
   if(!paraEmail){toast('E-mail do destinatário não encontrado.','var(--amber)');return;}
 
   const usuarioExiste = !!USUARIOS.find(u=>u.email===paraEmail);
+  let senhaTemp = null;
   if(!usuarioExiste){
-    await _criarUsuarioParaAtribuicao(paraEmail, paraNome, para==='dono'?'dono':'gestor');
+    try {
+      senhaTemp = await _criarUsuarioParaAtribuicao(paraEmail, paraNome, para==='dono'?'dono':'gestor');
+    } catch(e){
+      toast('Não foi possível criar o acesso para '+paraNome+': '+(e.message||e.code||e),'var(--red)');
+      return;
+    }
   }
 
   if(!p.atribuicoes)p.atribuicoes={};
@@ -3585,9 +3595,10 @@ async function confirmarAtribuirEtapa(etapaId){
 
   const tarefaMsg='Tarefa pendente: "'+etLb(etapaId)+'" no processo "'+p.nome+'" — prazo: '+prazoFmt;
   if(!usuarioExiste){
-    enviarNotif(paraEmail,paraNome,
-      tarefaMsg+'\n\nSeu acesso ao EP·CAGE foi criado automaticamente.\nE-mail: '+paraEmail+'\nSenha temporária: 123456\n\nNo primeiro acesso você será solicitado(a) a definir uma nova senha.',
-      p.nome,prazoFmt,usuarioLogado?.nome||'EP');
+    const acessoInfo = senhaTemp
+      ? '\n\nSeu acesso ao EP·CAGE foi criado automaticamente.\nE-mail: '+paraEmail+'\nSenha temporária: '+senhaTemp+'\n\nNo primeiro acesso você será solicitado(a) a definir uma nova senha.'
+      : '\n\nVocê já possui acesso ao EP·CAGE. Use suas credenciais habituais para entrar.';
+    enviarNotif(paraEmail,paraNome,tarefaMsg+acessoInfo,p.nome,prazoFmt,usuarioLogado?.nome||'EP');
     toast('Etapa atribuída a '+paraNome+' — acesso criado e e-mail enviado.','var(--teal)');
   } else {
     enviarNotif(paraEmail,paraNome,tarefaMsg,p.nome,prazoFmt,usuarioLogado?.nome||'EP');
