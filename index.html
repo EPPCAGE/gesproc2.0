@@ -10335,6 +10335,10 @@ function rInd(){
     </div>`;
   } else if(sumEl){ sumEl.innerHTML = ''; }
 
+  // Remove painéis injetados para que sejam recriados com permissões do usuário atual
+  document.getElementById('ia-ind-panel')?.remove();
+  document.getElementById('ind-relatorios-panel')?.remove();
+
   const el = document.getElementById('ind-c');
   if(!lista.length){
     el.innerHTML = '<div class="ib ibb">Nenhum indicador. Importe a planilha ou clique em "+ Novo indicador".</div>';
