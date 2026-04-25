@@ -763,14 +763,8 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
     <span class="fbar-l ind-filtros-avancados">Período</span>
     <select class="fi ind-filtros-avancados" id="ind-periodo-sel" onchange="rInd()" style="max-width:140px"><option value="">Todos</option></select>
     <span class="fbar-l ind-filtros-avancados">Intervalo</span>
-    <select class="fi ind-filtros-avancados" id="ind-intervalo-sel" onchange="rInd()" style="max-width:130px">
+    <select class="fi ind-filtros-avancados" id="ind-intervalo-sel" onchange="rInd()" style="max-width:150px">
       <option value="">Todos</option>
-      <option value="T1">T1 (Jan–Mar)</option>
-      <option value="T2">T2 (Abr–Jun)</option>
-      <option value="T3">T3 (Jul–Set)</option>
-      <option value="T4">T4 (Out–Dez)</option>
-      <option value="S1">S1 (Jan–Jun)</option>
-      <option value="S2">S2 (Jul–Dez)</option>
     </select>
   </div>
   <div id="ind-summary" style="margin-bottom:.8rem"></div>
@@ -10266,27 +10260,71 @@ async function importarIndicadores(input){
     input.value = '';
 }
 
+function _kpiPeriodoToIntervalo(periodo){
+  // Returns { trims: ['T1/2025'], sems: ['S1/2025'] } for a given period string
+  const str = (periodo||'').toLowerCase();
+  const yMatch = str.match(/\d{4}/);
+  if(!yMatch) return {trims:[], sems:[]};
+  const y = yMatch[0];
+  const mMap = {jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
+  const mMatch = str.match(/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)/);
+  if(mMatch){
+    const n = mMap[mMatch[1]];
+    const t = n<=3?1:n<=6?2:n<=9?3:4;
+    const s = n<=6?1:2;
+    return {trims:[`T${t}/${y}`], sems:[`S${s}/${y}`]};
+  }
+  const tMatch = str.match(/^t([1-4])/);
+  if(tMatch){
+    const t = Number(tMatch[1]);
+    return {trims:[`T${t}/${y}`], sems:[`S${t<=2?1:2}/${y}`]};
+  }
+  const semMatch = str.match(/([12])[ºo°\s]*sem/);
+  if(semMatch){
+    const s = semMatch[1];
+    return {trims:[], sems:[`S${s}/${y}`]};
+  }
+  return {trims:[], sems:[]};
+}
+
 function populateIndFilters(){
-  const areaSel   = document.getElementById('ind-area-sel');
-  const cicloSel  = document.getElementById('ind-ciclo-sel');
-  const periSel   = document.getElementById('ind-periodo-sel');
-  const nomeSel   = document.getElementById('ind-nome-sel');
+  const areaSel      = document.getElementById('ind-area-sel');
+  const cicloSel     = document.getElementById('ind-ciclo-sel');
+  const periSel      = document.getElementById('ind-periodo-sel');
+  const nomeSel      = document.getElementById('ind-nome-sel');
+  const intervaloSel = document.getElementById('ind-intervalo-sel');
   if(!areaSel) return;
 
-  const curArea  = areaSel.value;
-  const curCiclo = cicloSel.value;
-  const curPeri  = periSel.value;
-  const curNome  = nomeSel ? nomeSel.value : '';
+  const curArea      = areaSel.value;
+  const curCiclo     = cicloSel.value;
+  const curPeri      = periSel.value;
+  const curNome      = nomeSel ? nomeSel.value : '';
+  const curIntervalo = intervaloSel ? intervaloSel.value : '';
 
   const areas   = [...new Set(kpis.map(k=>k.area).filter(Boolean))].sort();
   const ciclos  = [...new Set(kpis.map(k=>k.ciclo).filter(Boolean))].sort();
-  const periods = [...new Set(kpis.map(k=>k.periodo).filter(Boolean))].sort();
+  const periods = [...new Set(kpis.map(k=>k.periodo).filter(Boolean))].sort((a,b)=>periodoToNum(a)-periodoToNum(b));
   const nomes   = [...new Set(kpis.map(k=>k.nome).filter(Boolean))].sort();
 
   areaSel.innerHTML  = '<option value="">Todas as áreas</option>'  + areas.map(a=>`<option ${curArea===a?'selected':''}>${esc(a)}</option>`).join('');
   cicloSel.innerHTML = '<option value="">Todos os ciclos</option>' + ciclos.map(a=>`<option ${curCiclo===a?'selected':''}>${esc(a)}</option>`).join('');
   periSel.innerHTML  = '<option value="">Todos os períodos</option>' + periods.map(a=>`<option ${curPeri===a?'selected':''}>${esc(a)}</option>`).join('');
   if(nomeSel) nomeSel.innerHTML = '<option value="">Todos os indicadores</option>' + nomes.map(a=>`<option ${curNome===a?'selected':''}>${esc(a)}</option>`).join('');
+
+  // Intervalo: gera opções agrupadas por trimestre e semestre, diferenciando por ano
+  if(intervaloSel){
+    const trimsSet = new Set(), semsSet = new Set();
+    kpis.forEach(k=>{ const r=_kpiPeriodoToIntervalo(k.periodo); r.trims.forEach(t=>trimsSet.add(t)); r.sems.forEach(s=>semsSet.add(s)); });
+    const sortInt = v=>{ const [c,y]=v.split('/'); const n=c[0]==='T'?Number(c[1]):(Number(c[1])-1)*2+1; return Number(y)*10+n; };
+    const trims = [...trimsSet].sort((a,b)=>sortInt(a)-sortInt(b));
+    const sems  = [...semsSet].sort((a,b)=>sortInt(a)-sortInt(b));
+    const labelT = v=>{ const [c,y]=v.split('/'); const lbls={T1:'Jan–Mar',T2:'Abr–Jun',T3:'Jul–Set',T4:'Out–Dez'}; return `${c}/${y} (${lbls[c]})`; };
+    const labelS = v=>{ const [c,y]=v.split('/'); return `${c}/${y} (${c==='S1'?'Jan–Jun':'Jul–Dez'})`; };
+    let html = '<option value="">Todos</option>';
+    if(trims.length) html += `<optgroup label="— Trimestres">${trims.map(v=>`<option value="${v}"${curIntervalo===v?' selected':''}>${labelT(v)}</option>`).join('')}</optgroup>`;
+    if(sems.length)  html += `<optgroup label="— Semestres">${sems.map(v=>`<option value="${v}"${curIntervalo===v?' selected':''}>${labelS(v)}</option>`).join('')}</optgroup>`;
+    intervaloSel.innerHTML = html;
+  }
 }
 
 function _kpiGrpStatus(items){
@@ -10519,17 +10557,17 @@ function kpiApplyMetaFallback(items){
 }
 function _periodoInIntervalo(periodo, intervalo){
   if(!intervalo) return true;
-  const mMap = {jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
-  const m = (periodo||'').toLowerCase().match(/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)/);
-  if(!m) return false;
-  const n = mMap[m[1]];
-  if(intervalo==='T1') return n>=1&&n<=3;
-  if(intervalo==='T2') return n>=4&&n<=6;
-  if(intervalo==='T3') return n>=7&&n<=9;
-  if(intervalo==='T4') return n>=10&&n<=12;
-  if(intervalo==='S1') return n>=1&&n<=6;
-  if(intervalo==='S2') return n>=7&&n<=12;
-  return true;
+  // Formato com ano: "T1/2025", "S2/2026" — verifica code E ano
+  const slashIdx = intervalo.lastIndexOf('/');
+  const hasYear  = slashIdx > 0 && slashIdx === intervalo.length - 5;
+  const code     = hasYear ? intervalo.slice(0, slashIdx) : intervalo;
+  const filterY  = hasYear ? intervalo.slice(slashIdx + 1) : null;
+  // Extrai ano do período
+  const pY = ((periodo||'').match(/\d{4}/)||[''])[0];
+  if(filterY && pY !== filterY) return false;
+  // Determina os intervalos que o período pertence
+  const r = _kpiPeriodoToIntervalo(periodo);
+  return r.trims.some(t=>t.split('/')[0]===code) || r.sems.some(s=>s.split('/')[0]===code);
 }
 function periodoToNum(s){
   if(!s) return 0;
