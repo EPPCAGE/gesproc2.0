@@ -10574,25 +10574,29 @@ function createKpiChart(key, items){
     if(i.meta!==null&&i.meta!==undefined&&i.meta!==''){const m=Number.parseFloat(i.meta);return Number.isNaN(m)?null:m;}
     return null;
   });
-  const avgMetasData = withData.map(i=>(i.meta===null||i.meta===undefined||i.meta==='')?(i._metaFallback||null):null);
-  const allMetas = withData.map((_,idx)=>realMetasData[idx]??avgMetasData[idx]??null);
   const hasRealMeta = realMetasData.some(m=>m!==null);
-  const hasAvgFallback = avgMetasData.some(m=>m!==null);
   const und = unidade?' ('+unidade+')':'';
   const isCum = !!(items[0].cumulativo);
+
+  // Média histórica: calculada de todos os períodos medidos (parâmetro de referência, não meta)
+  // Exibida em todos os indicadores com ≥2 períodos
+  const avgVal = withData.length >= 2
+    ? Math.round((realizados.reduce((a,b)=>a+b,0)/realizados.length)*10)/10
+    : null;
 
   // Cumulative line (only when isCum) — same axis as bars
   let cumDatasets = [];
   if(isCum){
     let running=0;
     const cumData = realizados.map(r=>{ running+=r; return Math.round(running*100)/100; });
-    const metaVal = items[0].meta!=null && items[0].meta!=='' ? Number(items[0].meta) : null;
+    const metaVal = withData.find(i=>i.meta!=null&&i.meta!=='')?.meta;
+    const metaNum = metaVal!=null ? Number(metaVal) : null;
     cumDatasets = [
       { label:'Acumulado'+und, data:cumData, type:'line', order:0,
         borderColor:'rgba(16,185,129,0.9)', backgroundColor:'rgba(16,185,129,0.08)',
         fill:true, borderWidth:2.5, pointRadius:3 },
-      ...(metaVal!=null?[{ label:'Meta'+und,
-        data:new Array(realizados.length).fill(metaVal),
+      ...(metaNum!=null?[{ label:'Meta'+und,
+        data:new Array(realizados.length).fill(metaNum),
         type:'line', order:0,
         borderColor:'rgba(239,68,68,0.75)', backgroundColor:'transparent',
         borderWidth:2, borderDash:[6,4], pointRadius:0 }]:[]),
@@ -10605,13 +10609,17 @@ function createKpiChart(key, items){
       labels: withData.map(i=>i.periodo||'?'),
       datasets: [
         { label:'Realizado'+und, data:realizados, borderRadius:4, order:2,
-          backgroundColor: realizados.map((r,i)=>kpiBarColor(r,allMetas[i],polaridade)) },
+          // Cores: usa apenas a meta real do período — sem meta → barra sempre azul
+          backgroundColor: realizados.map((r,i)=>kpiBarColor(r,realMetasData[i],polaridade)) },
         ...(hasRealMeta&&!isCum?[{ label:'Meta'+und, data:realMetasData, type:'line', order:1,
           borderColor:'rgba(99,102,241,0.9)', backgroundColor:'transparent',
           borderWidth:2, borderDash:[5,4], pointRadius:3 }]:[]),
-        ...(hasAvgFallback&&!isCum?[{ label:'Média histórica'+und, data:avgMetasData, type:'line', order:1,
+        // Média histórica: sempre exibida como referência quando há ≥2 períodos
+        ...(avgVal!==null&&!isCum?[{ label:'Média histórica'+und,
+          data:new Array(realizados.length).fill(avgVal),
+          type:'line', order:1,
           borderColor:'rgba(251,146,60,0.85)', backgroundColor:'transparent',
-          borderWidth:1.5, borderDash:[3,3], pointRadius:2 }]:[]),
+          borderWidth:1.5, borderDash:[3,3], pointRadius:0 }]:[]),
         ...cumDatasets,
       ]
     },
