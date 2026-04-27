@@ -2296,7 +2296,7 @@ function enviarFaleConosco(){
   const body  = encodeURIComponent(
     `Tipo: ${tipo}\nRemetente: ${nome} <${email}>\n\n${msg}`
   );
-  window.location.href = `mailto:epp.cage@sefaz.rs.gov.br?subject=${subj}&body=${body}`;
+  globalThis.location.href = `mailto:epp.cage@sefaz.rs.gov.br?subject=${subj}&body=${body}`;
 }
 function resetFaleConosco(){
   document.getElementById('fc-tipo').value='';
@@ -2416,7 +2416,7 @@ function buildArqStatsHTML(){
   const pct=mx.nUnid>0?Math.round(mx.nMap/mx.nUnid*100):0;
   const eco=processos.reduce((s,p)=>{const r=(p.reunioes_acomp||[]).filter(r=>r.economia_h!=null);return s+(r.length?r[r.length-1].economia_h:0);},0);
   const ecoSign = eco > 0 ? '+' : '';
-  return `<div class="stat cb" style="grid-column:span 2">
+  return `<div class="stat cb">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <div><div class="stat-n">${pct}%</div><div class="stat-l">Processos mapeados</div></div>
         <div style="flex:1;min-width:120px">
@@ -2430,7 +2430,6 @@ function buildArqStatsHTML(){
     '<div class="stat ca"><div class="stat-n">'+mx.nMacros+'</div><div class="stat-l">Macroprocessos</div></div>'+
     '<div class="stat cb"><div class="stat-n">'+mx.nProc+'</div><div class="stat-l">Processos</div></div>'+
     '<div class="stat cg"><div class="stat-n">'+mx.nSub+'</div><div class="stat-l">Subprocessos</div></div>'+
-    '<div class="stat cr"><div class="stat-n">'+processos.filter(p=>p.prio==='Critica').length+'</div><div class="stat-l">Prioridade crítica</div></div>'+
     (eco===0?'': `<div class="stat cg" title="Soma da economia de horas/mês da última reavaliação de cada processo"><div class="stat-n">${ecoSign}${eco.toFixed(1)}h</div><div class="stat-l">Economia de horas/mês estimada</div></div>`);
 }
 
@@ -4747,7 +4746,7 @@ function _rAcaoPrazoBanner(p){
   return `<span style="font-size:12px;font-weight:600;color:${cor}">📅 Prazo: ${pzFmt}${label}</span>`;
 }
 function _rAcaoTarefaRespondidaHTML(jr){
-  const dtFmt=jr.dt?jr.dt.replace('T',' ').substring(0,16):'';
+  const dtFmt=jr.dt?jr.dt.replaceAll('T',' ').substring(0,16):'';
   return `<div class="card"><div class="ib" style="background:var(--amber-l,#fef3c7);border:1.5px solid var(--amber,#f59e0b);border-radius:8px;padding:1rem;margin-bottom:1rem;display:flex;align-items:flex-start;gap:.6rem">
     <span style="font-size:1.4rem">🔒</span>
     <div>
@@ -8086,7 +8085,7 @@ async function gerarPopPdf(){
     @media print{body{padding:0}.pop-pdf-bar{display:none!important}}
   </style>
   </head><body>${inner}${anexo}</body></html>`;
-  const w=window.open('','_blank');
+  const w=globalThis.open('','_blank');
   if(!w){toast('Pop-up bloqueado. Permita pop-ups para gerar o PDF.','var(--amber)');return;}
   w.document.write(fullHtml);
   w.document.close();
@@ -8119,7 +8118,7 @@ async function gerarPopPdfDireto(){
     @media print{body{padding:0}.pop-pdf-bar{display:none!important}}
   </style>
   </head><body>${inner}${anexo}</body></html>`;
-  const w=window.open('','_blank');
+  const w=globalThis.open('','_blank');
   if(!w){toast('Pop-up bloqueado. Permita pop-ups para gerar o PDF.','var(--amber)');return;}
   w.document.write(fullHtml);
   w.document.close();
@@ -9374,6 +9373,7 @@ function highlight(text, srch){
 function resultCardHTML(r, srch){
   const item = r.item;
   const proc = processos.find(pr=>pr.arq_id===item.id)||null;
+  const mapeado = isMapeado(item.id);
   const path = r.isSub ? `${r.macroNome} › ${r.procNome} › ${item.nome}` : `${r.macroNome} › ${item.nome}`;
 
   return `<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:.8rem 1rem;margin-bottom:.5rem">
@@ -9384,7 +9384,7 @@ function resultCardHTML(r, srch){
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0">
         ${item.natureza ? `<span class="badge bgr" style="font-size:10px">${highlight(item.natureza, srch)}</span>` : ''}
-        <span class="badge ${proc?'bg':'bgr'}" style="font-size:10px">${proc?'Mapeado':'Não mapeado'}</span>
+        <span class="badge ${mapeado?'bg':'bgr'}" style="font-size:10px">${mapeado?'Mapeado':'Não mapeado'}</span>
         ${proc ? `<button type="button" class="btn btn-p" style="font-size:10px;padding:2px 8px" onclick="abrirProc(${proc.id})">Abrir →</button>` : ''}
         ${isEP() ? `<button type="button" class="btn" style="font-size:10px;padding:2px 8px" onclick="editSubArqFull('${r.macroId}','${r.procId}','${item.id}')" aria-label="Editar item">✎</button>` : ''}
       </div>
@@ -9872,7 +9872,7 @@ async function importarArqExcel(input){
         }
 
         const sub = gv(row, cSub);
-        const subValido = sub && !/^n[ãa]o[\s\-_]*h[aá]/i.test(sub) && sub.toLowerCase()!=='nenhum' && sub.toLowerCase()!=='-' && sub.toLowerCase()!=='n/a';
+        const subValido = sub && !/^n[ãa]o[\s_-]*h[aá]/i.test(sub) && sub.toLowerCase()!=='nenhum' && sub.toLowerCase()!=='-' && sub.toLowerCase()!=='n/a';
         if(subValido && !p.subprocessos.some(s=>s.nome===sub)){
           p.subprocessos.push({
             id:'s'+arqIdC++, nome:sub,
@@ -10050,7 +10050,7 @@ function parseNumBR(v){
       ? s.replaceAll('.','').replaceAll(',','.')   // Brazilian: 1.234,56
       : s.replaceAll(',','');                       // US: 1,234.56
   } else if(hasComma){
-    s = s.replace(',','.');                    // 95,09 → 95.09
+    s = s.replaceAll(',','.');                 // 95,09 → 95.09
   }
   return Number.parseFloat(s) || 0;
 }
@@ -11316,7 +11316,7 @@ function simImport(){
 // ── BACKUP JSON ──────────────────────────────────────────────────────────────
 function exportarBackupJSON(){
   const agora = new Date();
-  const ts = agora.toISOString().replace('T',' ').slice(0,19);
+  const ts = agora.toISOString().replaceAll('T',' ').slice(0,19);
   const fileTs = agora.toISOString().slice(0,10);
   const backup = {
     _meta: {
@@ -12236,7 +12236,7 @@ async function gerarStatusReportPPT(){
   const dtFmt  = new Date().toLocaleDateString('pt-BR');
   const dtMesL = new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   const cicloLb= new Date().toLocaleDateString('pt-BR',{month:'short',year:'2-digit'})
-                   .replace(' de ','').replace('.','');
+                   .replaceAll(' de ','').replaceAll('.','');
 
   const doAno     = plano.filter(a=>a.ano===ano);
   const total     = doAno.length;
@@ -12604,7 +12604,7 @@ async function gerarStatusReportPPT(){
 
   // ── Download ─────────────────────────────────────────────────────────────────
   const fileLabel = new Date().toLocaleDateString('pt-BR',{month:'short',year:'2-digit'})
-    .replace(' de ','').replace('.','').toUpperCase();
+    .replaceAll(' de ','').replaceAll('.','').toUpperCase();
   await pptx.writeFile({fileName:`Status Report EP-CAGE ${fileLabel}.pptx`});
   toast('Status Report gerado com sucesso!','var(--green)');
 }
@@ -14041,7 +14041,10 @@ function _calcKpiPct(k){
   if(r===0 && k.meta!==null && k.meta!==undefined && k.meta!=='' && m===0) return 100;
   if(m<=0) return null;
   const isMenorMelhor = (k.polaridade||'Maior é melhor')==='Menor é melhor';
-  return isMenorMelhor ? (r>0 ? Math.round((m/r)*100) : 0) : Math.round((r/m)*100);
+  if(isMenorMelhor){
+    return r > 0 ? Math.round((m/r)*100) : 0;
+  }
+  return Math.round((r/m)*100);
 }
 
 function _buildKpiAreaCards(lista){
@@ -14224,7 +14227,7 @@ function gerarRelatorioIndPdf(){
   <span>Gerado pelo sistema SIGA 2.0 — EP·CAGE/Sefaz-RS</span>
   <span>${dtHoje}</span>
 </div>
-<script>setTimeout(()=>window.print(),500);</scri\u0070t>
+<script>setTimeout(()=>globalThis.print(),500);</scri\u0070t>
 </body></html>`;
   _lastRelatorioIndHtml    = _kpiHtml;
   _lastRelatorioIndFiltros = filtros;
@@ -14234,7 +14237,7 @@ function gerarRelatorioIndPdf(){
   }
   const _kpiBlob=new Blob([_kpiHtml],{type:'text/html;charset=utf-8'});
   const _kpiUrl=URL.createObjectURL(_kpiBlob);
-  const w=window.open(_kpiUrl,'_blank');
+  const w=globalThis.open(_kpiUrl,'_blank');
   if(w) w.addEventListener('load',()=>URL.revokeObjectURL(_kpiUrl),{once:true});
 }
 
@@ -14294,7 +14297,7 @@ function verRelatorioOficial(id){
   if(!r || !r.html){ toast('Relatório não encontrado.','var(--amber)'); return; }
   const blob = new Blob([r.html],{type:'text/html;charset=utf-8'});
   const url = URL.createObjectURL(blob);
-  const w = window.open(url,'_blank');
+  const w = globalThis.open(url,'_blank');
   if(w) w.addEventListener('load',()=>URL.revokeObjectURL(url),{once:true});
 }
 
