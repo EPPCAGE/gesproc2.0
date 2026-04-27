@@ -8634,18 +8634,40 @@ async function iaGerarTobeRelatorio(){
   const solucoes=_conf('solucoes_problemas').length?_conf('solucoes_problemas'):(p.ent?.analise?.solucoes_problemas||[]);
   const _lst=arr=>arr.length?arr.map(x=>'• '+(typeof x==='string'?x:x.desc||x)).join('\n'):'(nenhum)';
 
-  const payload={
-    processo: p.nome,
-    area: p.area||'—',
-    objetivo: p.objetivo||'—',
-    etapas_asis: etapas||(p.mod?.asIs?.substring(0,1500)||'(não informadas)'),
-    gargalos: _lst(gargalos),
-    retrabalhos: _lst(retrabalhos),
-    oportunidades: _lst(oportunidades),
-    solucoes: _lst(solucoes),
-  };
+  const payload=`Você é especialista em BPM e redesenho de processos da administração pública brasileira. Com base no fluxo AS IS e nas melhorias identificadas, gere um Relatório de Sugestões TO BE com recomendações concretas. Estruture em texto puro (sem markdown, sem asteriscos, sem #) com estas seções:
 
-  const result=await chamarIA('sugerir_tobe',payload,null);
+OBJETIVO DA OTIMIZAÇÃO:
+[objetivo em 1-2 frases]
+
+SUGESTÕES POR ETAPA:
+[para cada etapa relevante cite o nome e o que deve mudar. Ex: "Etapa 3 — Aprovação do chefe: eliminar; a aprovação pode ser delegada ao servidor responsável."]
+
+MUDANÇAS ESTRUTURAIS:
+[paralelizações, digitalizações, eliminações de retrabalho, automações]
+
+IMPACTO ESPERADO:
+[benefícios em tempo, custo, qualidade e conformidade]
+
+PROCESSO: ${p.nome}
+ÁREA: ${p.area||'—'}
+OBJETIVO: ${p.objetivo||'—'}
+
+ETAPAS DO FLUXO AS IS:
+${etapas||(p.mod?.asIs?.substring(0,1500)||'(não informadas)')}
+
+GARGALOS:
+${_lst(gargalos)}
+
+RETRABALHOS:
+${_lst(retrabalhos)}
+
+OPORTUNIDADES:
+${_lst(oportunidades)}
+
+SOLUÇÕES PROPOSTAS:
+${_lst(solucoes)}`;
+
+  const result=await chamarIA('assistente',payload,null);
   if(btn)btn.disabled=false;
 
   if(!result){
