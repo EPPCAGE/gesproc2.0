@@ -3894,7 +3894,6 @@ const ACOES = {
         </div>
 
         <div class="det-valid-bpmn">
-          <div class="card-t" style="margin-bottom:.5rem">Fluxo AS IS</div>
           ${bpmnEditorHTML('asis',p.mod.bpmnAsIs)}
         </div>
       </div>`;
@@ -5674,6 +5673,14 @@ async function renderBpmnToPng(xml) {
     const wrap = document.createElement('div');
     wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:1400px;height:700px;overflow:hidden;';
     document.body.appendChild(wrap);
+    const cleanup=(result=null)=>{
+      clearTimeout(tid);
+      try{viewer?.destroy();}catch{}
+      try{wrap.remove();}catch{}
+      resolve(result);
+    };
+    // Timeout de 20 s para evitar que a Promise fique pendente indefinidamente
+    const tid=setTimeout(()=>cleanup(null),20000);
     let viewer;
     try {
       viewer = new BpmnJS({ container: wrap });
@@ -5684,36 +5691,28 @@ async function renderBpmnToPng(xml) {
           const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
           const url = URL.createObjectURL(blob);
           img.onload = () => {
-            const c = document.createElement('canvas');
-            const sc = 2;
-            c.width = Math.max(img.width, 100) * sc;
-            c.height = Math.max(img.height, 50) * sc;
-            const ctx2d = c.getContext('2d');
-            ctx2d.fillStyle = '#ffffff'; ctx2d.fillRect(0, 0, c.width, c.height);
-            ctx2d.scale(sc, sc); ctx2d.drawImage(img, 0, 0);
             URL.revokeObjectURL(url);
-            try { viewer.destroy(); } catch(_e) { console.warn('BPMN viewer cleanup:', _e); }
-            wrap.remove();
-            resolve(c.toDataURL('image/png'));
+            try {
+              const c = document.createElement('canvas');
+              const sc = 2;
+              c.width = Math.max(img.width, 100) * sc;
+              c.height = Math.max(img.height, 50) * sc;
+              const ctx2d = c.getContext('2d');
+              ctx2d.fillStyle = '#ffffff'; ctx2d.fillRect(0, 0, c.width, c.height);
+              ctx2d.scale(sc, sc); ctx2d.drawImage(img, 0, 0);
+              cleanup(c.toDataURL('image/png'));
+            } catch {
+              // Canvas taint ou outro erro — resolve com null para não travar o PPT
+              cleanup(null);
+            }
           };
-          img.onerror = () => {
-            URL.revokeObjectURL(url);
-            try { viewer.destroy(); } catch(_e) { console.warn('BPMN viewer cleanup:', _e); }
-            wrap.remove();
-            resolve(null);
-          };
+          img.onerror = () => { URL.revokeObjectURL(url); cleanup(null); };
           img.src = url;
         })
-        .catch(() => {
-          try { viewer.destroy(); } catch(_e) { console.warn('BPMN viewer cleanup:', _e); }
-          try { wrap.remove(); } catch(_e) { console.warn('BPMN wrap cleanup:', _e); }
-          resolve(null);
-        });
+        .catch(() => cleanup(null));
     } catch(_e) {
       console.warn('BPMN render error:', _e);
-      if (viewer) try { viewer.destroy(); } catch(error_) { console.warn('BPMN viewer cleanup:', error_); }
-      try { wrap.remove(); } catch(error_) { console.warn('BPMN wrap cleanup:', error_); }
-      resolve(null);
+      cleanup(null);
     }
   });
 }
@@ -6662,9 +6661,9 @@ function popAtivCards(p){
     const isStructural=e.tipo==='Evento'||e.tipo==='Decisao'||e.tipo==='Decisão';
     const tipo=isStructural?normTipo(e.tipo)||e.tipo:(normTipo(d.tipo)||normTipo(e.tipo)||'Atividade');
     const desc=(d.desc!==undefined&&d.desc!=='')?d.desc:(e.desc||'');
-    // Eventos não têm executor real — só usa d.resp se explicitamente preenchido pelo usuário
+    // Preferir executor da etapa (fonte mais recente); só usar d.resp se executor está vazio
     const execDefault=isStructural?'':(e.executor||'');
-    const resp=(d.resp!==undefined&&d.resp!=='')?d.resp:execDefault;
+    const resp=execDefault||(d.resp||'');
     const modo=normModo(e.modo);
     const gw=e.vinculo_gw?.gw_ep_id?etapas.find(x=>x.id===e.vinculo_gw.gw_ep_id):null;
     const gwLabel=gw&&e.vinculo_gw.label?' · '+esc(e.vinculo_gw.label):'';
@@ -7768,17 +7767,19 @@ async function _bpmnGetSvg(which,p){
     try{const {svg}=await m.saveSVG();return svg;}catch{}
   }
   const xml=which==='asis'?p.mod?.bpmnAsIs:p.mod?.bpmnToBe;
-  if(!xml)return null;
+  if(!xml||typeof BpmnJS==='undefined')return null;
   return new Promise(resolve=>{
     const tmp=document.createElement('div');
-    tmp.style.cssText='position:fixed;left:-9999px;top:0;width:1600px;height:900px;opacity:0;pointer-events:none;z-index:-1;';
+    // Sem opacity:0 nem z-index negativo — BpmnJS precisa de container visível para renderizar
+    tmp.style.cssText='position:fixed;left:-9999px;top:0;width:1600px;height:900px;overflow:hidden;';
     document.body.appendChild(tmp);
+    const tid=setTimeout(()=>{try{viewer?.destroy();}catch{}tmp.remove();resolve(null);},20000);
     let viewer;
-    try{viewer=new BpmnJS({container:tmp});}catch{tmp.remove();return resolve(null);}
+    try{viewer=new BpmnJS({container:tmp});}catch{clearTimeout(tid);tmp.remove();return resolve(null);}
     viewer.importXML(xml)
       .then(()=>{viewer.get('canvas').zoom('fit-viewport');return viewer.saveSVG();})
-      .then(({svg})=>{try{viewer.destroy();}catch{}tmp.remove();resolve(svg);})
-      .catch(()=>{try{viewer.destroy();}catch{}tmp.remove();resolve(null);});
+      .then(({svg})=>{clearTimeout(tid);try{viewer.destroy();}catch{}tmp.remove();resolve(svg);})
+      .catch(()=>{clearTimeout(tid);try{viewer.destroy();}catch{}tmp.remove();resolve(null);});
   });
 }
 
