@@ -733,6 +733,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   <div class="ph"><div><div class="ph-t">Arquitetura de processos</div><div class="ph-s" id="arq-sub">Macroprocesso → Processo → Subprocesso</div></div>
   <div id="btn-arq-actions"></div></div>
   <div class="stats" id="arq-stats"></div>
+  <div id="arq-alertas-ep"></div>
 
   <!-- Filtros e busca -->
   <div class="fbar" style="flex-direction:column;align-items:stretch;gap:10px;margin-bottom:.9rem">
@@ -9288,6 +9289,7 @@ function rFaq(){
 
 function rArq(){
   aplicarPermissoes();
+  syncArquiteturaProcessos();
   rArqPopulateFilters();
   const el = document.getElementById('arq-content');
   if(!el) return;
@@ -9295,6 +9297,8 @@ function rArq(){
   // Cards de métricas no topo
   const arqStatsEl = document.getElementById('arq-stats');
   if(arqStatsEl) arqStatsEl.innerHTML = buildArqStatsHTML();
+  const arqAlertasEl = document.getElementById('arq-alertas-ep');
+  if(arqAlertasEl) arqAlertasEl.innerHTML = isEP() ? buildArqAlertasEPHTML() : '';
 
   if(!ARQUITETURA.length){
     el.innerHTML='<div class="ib ibb">Nenhum macroprocesso cadastrado. Importe uma planilha ou clique em "+ Macroprocesso".</div>';
@@ -9531,6 +9535,167 @@ function _metaFieldsProgBar(proc){
     `<span style="flex:1;height:4px;border-radius:2px;background:var(--bg3)"></span>`
   ).join('');
 }
+
+function syncArquiteturaProcessos(){
+  const byArqId = new Map(processos.filter(p=>p.arq_id).map(p=>[p.arq_id, p]));
+  ARQUITETURA.forEach(m=>{
+    m.processos.forEach(p=>{
+      if(p.subprocessos && p.subprocessos.length){
+        p.proc_id = null;
+        p.subprocessos.forEach(s=>{
+          const linked = byArqId.get(s.id);
+          s.proc_id = linked ? linked.id : null;
+        });
+      } else {
+        const linked = byArqId.get(p.id);
+        p.proc_id = linked ? linked.id : null;
+      }
+    });
+  });
+}
+
+function _normIntel(v=''){
+  return String(v||'').toLowerCase().normalize('NFD').replaceAll(/[\u0300-\u036f]/g,'').trim();
+}
+
+function _procPublicacoesVinculadas(proc){
+  const nome = _normIntel(proc.nome);
+  const arqId = _normIntel(proc.arq_id);
+  if(!nome && !arqId) return [];
+  return publicacoes.filter(pub=>{
+    const alvo = _normIntel([pub.titulo, pub.desc, pub.tags, pub.responsavel].filter(Boolean).join(' '));
+    return (nome && alvo.includes(nome)) || (arqId && alvo.includes(arqId));
+  });
+}
+
+function _procTrilhasVinculadas(proc){
+  return TRILHAS.filter(t=>(t.proc_ids||[]).includes(proc.id));
+}
+
+function _procPlanoVinculado(proc){
+  return plano.filter(a=>a.vinculo_id===proc.id || _normIntel(a.vinculo_nome)===_normIntel(proc.nome));
+}
+
+function _procIntelSnapshot(proc){
+  const riscos = proc.ent?.riscos || [];
+  const indicadores = kpis.filter(k => k.pid === proc.id);
+  const pubs = _procPublicacoesVinculadas(proc);
+  const trilhasProc = _procTrilhasVinculadas(proc);
+  const atividadesPlano = _procPlanoVinculado(proc);
+  const analise = proc.ent?.analise || {};
+  const temAnalise = !!((analise.gargalos||[]).length || (analise.oportunidades||[]).length || (analise.gaps||[]).length);
+  const temPop = !!(proc.form?.pop || proc.ent?.dt_efetiva || ['publicacao','acompanha','auditoria'].includes(proc.etapa));
+  const vencido = isVencido(proc);
+  const atividadesAbertas = atividadesPlano.filter(a=>!['concluida','concluida_em_dia','concluida_com_atraso'].includes(planoStatusEfetivo(a)));
+  const sinais = [
+    vencido ? {txt:'Prazo global vencido', cls:'br'} : null,
+    !indicadores.length ? {txt:'Sem indicador vinculado', cls:'ba'} : null,
+    !riscos.length ? {txt:'Sem riscos registrados', cls:'bgr'} : null,
+    !temAnalise ? {txt:'Análise inteligente pendente', cls:'bp'} : null,
+    !temPop ? {txt:'POP/publicação pendente', cls:'bb'} : null,
+    !trilhasProc.length ? {txt:'Sem trilha vinculada', cls:'bgr'} : null,
+    atividadesAbertas.length ? {txt:atividadesAbertas.length+' ação(ões) aberta(s) no PAT', cls:'ba'} : null
+  ].filter(Boolean);
+  const recomendacoes = [
+    !indicadores.length ? 'Vincular ao menos um indicador para acompanhar desempenho.' : null,
+    !riscos.length ? 'Registrar riscos operacionais antes de avançar para melhoria ou publicação.' : null,
+    !temAnalise ? 'Executar a análise inteligente para revelar gargalos, gaps e oportunidades.' : null,
+    !pubs.length && temPop ? 'Cadastrar a publicação correspondente em Metodologias e Publicações.' : null,
+    !trilhasProc.length ? 'Vincular uma trilha de capacitação para apoiar a sustentação do processo.' : null,
+    vencido ? 'Revisar prazo global ou justificar suspensão/cancelamento do mapeamento.' : null,
+    atividadesAbertas.length ? 'Atualizar as ações abertas do PAT relacionadas a este processo.' : null
+  ].filter(Boolean);
+  return {riscos, indicadores, pubs, trilhasProc, atividadesPlano, atividadesAbertas, analise, vencido, sinais, recomendacoes};
+}
+
+function buildArqAlertasEPHTML(){
+  const vinculados = processos.filter(p=>p.arq_id);
+  const itens = vinculados.map(proc=>({proc, intel:_procIntelSnapshot(proc)}))
+    .filter(x=>x.intel.sinais.length || x.intel.recomendacoes.length);
+
+  if(!itens.length){
+    return `<div class="ib ibg" style="margin-bottom:1rem;font-size:12px">Atenção requerida: nenhum alerta nos processos mapeados.</div>`;
+  }
+
+  const totalVencidos = itens.filter(x=>x.intel.vencido).length;
+  const semIndicador = itens.filter(x=>!x.intel.indicadores.length).length;
+  const semRisco = itens.filter(x=>!x.intel.riscos.length).length;
+  const semTrilha = itens.filter(x=>!x.intel.trilhasProc.length).length;
+  const patAberto = itens.filter(x=>x.intel.atividadesAbertas.length).length;
+  const resumo = [
+    totalVencidos ? totalVencidos+' vencido(s)' : null,
+    semIndicador ? semIndicador+' sem indicador' : null,
+    semRisco ? semRisco+' sem riscos' : null,
+    semTrilha ? semTrilha+' sem trilha' : null,
+    patAberto ? patAberto+' com PAT aberto' : null
+  ].filter(Boolean);
+
+  const rank = itens.sort((a,b)=>{
+    const peso = x => (x.intel.vencido?30:0) + (x.intel.atividadesAbertas.length?15:0) + x.intel.sinais.length*5 + x.intel.recomendacoes.length;
+    return peso(b) - peso(a);
+  }).slice(0,6);
+
+  return `<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);padding:1rem 1.1rem;margin:-.4rem 0 1rem;box-shadow:var(--sh)">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:.75rem">
+      <div>
+        <div style="font-family:var(--fh);font-size:14px;font-weight:700;color:var(--ink)">Atenção requerida</div>
+        <div style="font-size:11.5px;color:var(--ink3);margin-top:2px">${resumo.length?resumo.join(' · '):'Alertas contextuais dos processos mapeados'}</div>
+      </div>
+      <span class="badge ba" style="font-size:10px">${itens.length} processo${itens.length===1?'':'s'} com alerta</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px">
+      ${rank.map(({proc,intel})=>{
+        const unidade = getUnidadesMapeaveis().find(u=>u.arq_id===proc.arq_id);
+        const rec = intel.recomendacoes[0] || 'Revisar pendências do processo.';
+        return `<div style="border:1px solid var(--bdr);border-radius:var(--r);padding:.65rem .75rem;background:var(--surf2)">
+          <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:.35rem">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.35">${esc(proc.nome)}</div>
+              <div style="font-size:10.5px;color:var(--ink3);line-height:1.35">${esc(unidade?.macro||proc.macro||'')} ${unidade?.parentNome?'› '+esc(unidade.parentNome):''}</div>
+            </div>
+            <button type="button" class="btn btn-p" style="font-size:10px;padding:2px 8px;min-height:24px" onclick="abrirProc(${proc.id})">Abrir</button>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:.35rem">
+            ${intel.sinais.slice(0,3).map(s=>`<span class="badge ${s.cls}" style="font-size:9.5px">${esc(s.txt)}</span>`).join('')}
+          </div>
+          <div style="font-size:11px;color:var(--ink2);line-height:1.45">${esc(rec)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+function _procCentralInteligenciaHTML(proc){
+  const {riscos, indicadores, pubs, trilhasProc, atividadesPlano, atividadesAbertas, analise, vencido, sinais, recomendacoes} = _procIntelSnapshot(proc);
+  const topGargalos = (analise.gargalos||[]).slice(0,2);
+  const topOportunidades = (analise.oportunidades||[]).slice(0,2);
+  const statusPrazo = vencido
+    ? 'Vencido'
+    : (proc.ent?.dt_prev ? proc.ent.dt_prev.split('-').reverse().join('/') : 'Sem previsão');
+
+  return `<div style="margin-top:.75rem;padding:.75rem .85rem;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r)">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.65rem">
+      <div style="font-size:11px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em">Central de inteligência</div>
+      ${sinais.length ? sinais.slice(0,3).map(s=>`<span class="badge ${s.cls}" style="font-size:10px">${s.txt}</span>`).join('') : '<span class="badge bg" style="font-size:10px">Sem alertas imediatos</span>'}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:7px;font-size:11px">
+      <div><span style="font-weight:600;color:var(--ink2)">Etapa:</span> <span style="color:var(--ink3)">${etLb(proc.etapa)}</span></div>
+      <div><span style="font-weight:600;color:var(--ink2)">Prazo:</span> <span style="color:${vencido?'var(--red)':'var(--ink3)'}">${statusPrazo}</span></div>
+      <div><span style="font-weight:600;color:var(--ink2)">Indicadores:</span> <span style="color:var(--ink3)">${indicadores.length}</span></div>
+      <div><span style="font-weight:600;color:var(--ink2)">Riscos:</span> <span style="color:var(--ink3)">${riscos.length}</span></div>
+      <div><span style="font-weight:600;color:var(--ink2)">Publicações:</span> <span style="color:var(--ink3)">${pubs.length}</span></div>
+      <div><span style="font-weight:600;color:var(--ink2)">Trilhas:</span> <span style="color:var(--ink3)">${trilhasProc.length}</span></div>
+      <div><span style="font-weight:600;color:var(--ink2)">PAT:</span> <span style="color:var(--ink3)">${atividadesPlano.length}</span></div>
+    </div>
+    ${topGargalos.length?`<div style="margin-top:.55rem;font-size:11px"><span style="font-weight:600;color:var(--red)">Gargalos:</span> <span style="color:var(--ink3)">${topGargalos.map(esc).join(' · ')}</span></div>`:''}
+    ${topOportunidades.length?`<div style="margin-top:3px;font-size:11px"><span style="font-weight:600;color:var(--green)">Oportunidades:</span> <span style="color:var(--ink3)">${topOportunidades.map(esc).join(' · ')}</span></div>`:''}
+    ${recomendacoes.length?`<div style="margin-top:.65rem;padding-top:.6rem;border-top:1px dashed var(--bdr)">
+      <div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem">Recomendações contextuais</div>
+      <div style="display:flex;flex-direction:column;gap:3px">${recomendacoes.slice(0,4).map(r=>`<div style="font-size:11px;color:var(--ink2)">→ ${esc(r)}</div>`).join('')}</div>
+    </div>`:''}
+  </div>`;
+}
+
 function _metaFieldsMapeamentoHTML(item, proc){
   const ML_ = ['','Inicial','Repetível','Definido','Gerenciado','Otimizado'];
   const analise = proc.ent?.analise;
@@ -9560,6 +9725,7 @@ function _metaFieldsMapeamentoHTML(item, proc){
       ${proc.ent?.dt_prev?`<div><span style="font-weight:600;color:var(--ink2)">Previsão:</span> <span style="color:var(--ink3)">${proc.ent.dt_prev}</span></div>`:''}
       ${proc.produto?`<div><span style="font-weight:600;color:var(--ink2)">Produto:</span> <span style="color:var(--ink3)">${proc.produto}</span></div>`:''}
     </div>
+    ${_procCentralInteligenciaHTML(proc)}
     ${analise&&analise.gargalos?.length?`<div style="margin-top:.5rem;font-size:11px"><span style="font-weight:600;color:var(--red)">Gargalos:</span> <span style="color:var(--ink3)">${analise.gargalos.join(' · ')}</span></div>`:''}
     ${analise&&analise.oportunidades?.length?`<div style="margin-top:3px;font-size:11px"><span style="font-weight:600;color:var(--green)">Oportunidades:</span> <span style="color:var(--ink3)">${analise.oportunidades.slice(0,2).join(' · ')}${opElipsis}</span></div>`:''}
   </div>`;
