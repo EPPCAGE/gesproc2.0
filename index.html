@@ -696,7 +696,6 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   <div class="tabs" id="det-tabs">
     <div class="tab on" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('acao',this)">Ação atual</div>
     <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('ent',this)">Visão Geral</div>
-    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('mod',this)">Modelagem</div>
     <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('form',this)">Formalização</div>
     <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('mon',this)">Monitoramento</div>
     <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('anex',this)">Anexos</div>
@@ -705,7 +704,6 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   </div>
   <div id="tab-acao"  class="tab-p on"></div>
   <div id="tab-ent"   class="tab-p"></div>
-  <div id="tab-mod"   class="tab-p"></div>
   <div id="tab-form"  class="tab-p"></div>
   <div id="tab-mon"   class="tab-p"></div>
   <div id="tab-anex"  class="tab-p"></div>
@@ -4109,6 +4107,13 @@ const ACOES = {
         <div style="font-size:11px;color:var(--ink3);margin-top:2px">Gera o documento PDF completo do POP (fluxo, atividades, SIPOC, riscos e indicadores)</div>
       </div>
       <button type="button" class="btn btn-a" onclick="gerarPopPdfDireto()">⬇ Gerar PDF do POP</button>
+    </div>
+    <div style="margin-top:.6rem;padding:.8rem 1rem;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--ink)">🗺 Fluxograma do processo</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">Baixa o fluxograma desenhado em PNG (AS IS e TO BE, quando disponíveis)</div>
+      </div>
+      <button type="button" class="btn btn-a" onclick="baixarFluxogramas(this)">⬇ Baixar imagem do fluxograma</button>
     </div>
     <div class="btn-row">
       <button type="button" class="btn" onclick="salvarDadosPublicacao()">💾 Salvar dados</button>
@@ -8016,6 +8021,26 @@ async function gerarPopPdfDireto(){
   w.document.write(fullHtml);
   w.document.close();
   setTimeout(()=>w.print(),800);
+}
+async function baixarFluxogramas(btn){
+  const p=curProc;
+  if(!p){return;}
+  const orig=btn.textContent;
+  btn.disabled=true;btn.textContent='⏳ Preparando...';
+  try{
+    let pngAsIs=null;
+    if(p.arq_id){pngAsIs=await loadFluxoImg(p.arq_id);}
+    else if(p.mod?.bpmnAsIs){pngAsIs=await renderBpmnToPng(p.mod.bpmnAsIs);}
+    let pngToBe=null;
+    if(p.mod?.bpmnToBe){pngToBe=await renderBpmnToPng(p.mod.bpmnToBe);}
+    if(!pngAsIs&&!pngToBe){toast('Nenhum fluxograma disponível para este processo.','var(--amber)');return;}
+    const nome=(p.nome||'fluxo').replace(/[^\w\s\-]/g,'').trim().replace(/\s+/g,'_');
+    const dl=(href,filename)=>{const a=document.createElement('a');a.href=href;a.download=filename;document.body.appendChild(a);a.click();a.remove();};
+    if(pngAsIs){dl(pngAsIs,nome+'_AS_IS.png');}
+    if(pngToBe){await new Promise(r=>setTimeout(r,400));dl(pngToBe,nome+'_TO_BE.png');}
+    toast('Download iniciado.','var(--teal)');
+  }catch(e){console.warn('baixarFluxogramas:',e);toast('Erro ao gerar imagens.','var(--red)');}
+  finally{btn.disabled=false;btn.textContent=orig;}
 }
 function rMon(p){
   const inds=kpis.filter(d=>d.pid===p.id);
