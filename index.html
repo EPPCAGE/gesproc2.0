@@ -2298,7 +2298,7 @@ function enviarFaleConosco(){
   const body  = encodeURIComponent(
     `Tipo: ${tipo}\nRemetente: ${nome} <${email}>\n\n${msg}`
   );
-  window.location.href = `mailto:epp.cage@sefaz.rs.gov.br?subject=${subj}&body=${body}`;
+  globalThis.location.href = `mailto:epp.cage@sefaz.rs.gov.br?subject=${subj}&body=${body}`;
 }
 function resetFaleConosco(){
   document.getElementById('fc-tipo').value='';
@@ -4736,7 +4736,7 @@ function _rAcaoPrazoBanner(p){
   return `<span style="font-size:12px;font-weight:600;color:${cor}">📅 Prazo: ${pzFmt}${label}</span>`;
 }
 function _rAcaoTarefaRespondidaHTML(jr){
-  const dtFmt=jr.dt?jr.dt.replace('T',' ').substring(0,16):'';
+  const dtFmt=jr.dt?jr.dt.replaceAll('T',' ').substring(0,16):'';
   return `<div class="card"><div class="ib" style="background:var(--amber-l,#fef3c7);border:1.5px solid var(--amber,#f59e0b);border-radius:8px;padding:1rem;margin-bottom:1rem;display:flex;align-items:flex-start;gap:.6rem">
     <span style="font-size:1.4rem">🔒</span>
     <div>
@@ -8059,7 +8059,7 @@ async function gerarPopPdf(){
   let anexo='';
   try{anexo=await _popPdfAnexo(p);}catch(ex){console.warn('_popPdfAnexo:',ex);}
   if(btn){btn.disabled=false;btn.textContent='⬇ Gerar POP em PDF';}
-  const w=window.open('','_blank');
+  const w=globalThis.open('','_blank');
   if(!w){toast('Pop-up bloqueado. Permita pop-ups para gerar o PDF.','var(--amber)');return;}
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${nome}</title>
   <style>
@@ -9807,7 +9807,7 @@ async function importarArqExcel(input){
         }
 
         const sub = gv(row, cSub);
-        const subValido = sub && !/^n[ãa]o[\s\-_]*h[aá]/i.test(sub) && sub.toLowerCase()!=='nenhum' && sub.toLowerCase()!=='-' && sub.toLowerCase()!=='n/a';
+        const subValido = sub && !/^n[ãa]o[\s_-]*h[aá]/i.test(sub) && sub.toLowerCase()!=='nenhum' && sub.toLowerCase()!=='-' && sub.toLowerCase()!=='n/a';
         if(subValido && !p.subprocessos.some(s=>s.nome===sub)){
           p.subprocessos.push({
             id:'s'+arqIdC++, nome:sub,
@@ -9985,7 +9985,7 @@ function parseNumBR(v){
       ? s.replaceAll('.','').replaceAll(',','.')   // Brazilian: 1.234,56
       : s.replaceAll(',','');                       // US: 1,234.56
   } else if(hasComma){
-    s = s.replace(',','.');                    // 95,09 → 95.09
+    s = s.replaceAll(',','.');                 // 95,09 → 95.09
   }
   return Number.parseFloat(s) || 0;
 }
@@ -11251,7 +11251,7 @@ function simImport(){
 // ── BACKUP JSON ──────────────────────────────────────────────────────────────
 function exportarBackupJSON(){
   const agora = new Date();
-  const ts = agora.toISOString().replace('T',' ').slice(0,19);
+  const ts = agora.toISOString().replaceAll('T',' ').slice(0,19);
   const fileTs = agora.toISOString().slice(0,10);
   const backup = {
     _meta: {
@@ -12171,7 +12171,7 @@ async function gerarStatusReportPPT(){
   const dtFmt  = new Date().toLocaleDateString('pt-BR');
   const dtMesL = new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   const cicloLb= new Date().toLocaleDateString('pt-BR',{month:'short',year:'2-digit'})
-                   .replace(' de ','').replace('.','');
+                   .replaceAll(' de ','').replaceAll('.','');
 
   const doAno     = plano.filter(a=>a.ano===ano);
   const total     = doAno.length;
@@ -12539,7 +12539,7 @@ async function gerarStatusReportPPT(){
 
   // ── Download ─────────────────────────────────────────────────────────────────
   const fileLabel = new Date().toLocaleDateString('pt-BR',{month:'short',year:'2-digit'})
-    .replace(' de ','').replace('.','').toUpperCase();
+    .replaceAll(' de ','').replaceAll('.','').toUpperCase();
   await pptx.writeFile({fileName:`Status Report EP-CAGE ${fileLabel}.pptx`});
   toast('Status Report gerado com sucesso!','var(--green)');
 }
@@ -13976,7 +13976,10 @@ function _calcKpiPct(k){
   if(r===0 && k.meta!==null && k.meta!==undefined && k.meta!=='' && m===0) return 100;
   if(m<=0) return null;
   const isMenorMelhor = (k.polaridade||'Maior é melhor')==='Menor é melhor';
-  return isMenorMelhor ? (r>0 ? Math.round((m/r)*100) : 0) : Math.round((r/m)*100);
+  if(isMenorMelhor){
+    return r > 0 ? Math.round((m/r)*100) : 0;
+  }
+  return Math.round((r/m)*100);
 }
 
 function _buildKpiAreaCards(lista){
@@ -14159,7 +14162,7 @@ function gerarRelatorioIndPdf(){
   <span>Gerado pelo sistema SIGA 2.0 — EP·CAGE/Sefaz-RS</span>
   <span>${dtHoje}</span>
 </div>
-<script>setTimeout(()=>window.print(),500);</scri\u0070t>
+<script>setTimeout(()=>globalThis.print(),500);</scri\u0070t>
 </body></html>`;
   _lastRelatorioIndHtml    = _kpiHtml;
   _lastRelatorioIndFiltros = filtros;
@@ -14169,7 +14172,7 @@ function gerarRelatorioIndPdf(){
   }
   const _kpiBlob=new Blob([_kpiHtml],{type:'text/html;charset=utf-8'});
   const _kpiUrl=URL.createObjectURL(_kpiBlob);
-  const w=window.open(_kpiUrl,'_blank');
+  const w=globalThis.open(_kpiUrl,'_blank');
   if(w) w.addEventListener('load',()=>URL.revokeObjectURL(_kpiUrl),{once:true});
 }
 
@@ -14229,7 +14232,7 @@ function verRelatorioOficial(id){
   if(!r || !r.html){ toast('Relatório não encontrado.','var(--amber)'); return; }
   const blob = new Blob([r.html],{type:'text/html;charset=utf-8'});
   const url = URL.createObjectURL(blob);
-  const w = window.open(url,'_blank');
+  const w = globalThis.open(url,'_blank');
   if(w) w.addEventListener('load',()=>URL.revokeObjectURL(url),{once:true});
 }
 
