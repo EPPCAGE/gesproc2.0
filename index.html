@@ -696,7 +696,6 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   <div class="tabs" id="det-tabs">
     <div class="tab on" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('acao',this)">Ação atual</div>
     <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('ent',this)">Visão Geral</div>
-    <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('mod',this)">Modelagem</div>
     <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('form',this)">Formalização</div>
     <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('mon',this)">Monitoramento</div>
     <div class="tab" role="tab" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="stab('anex',this)">Anexos</div>
@@ -705,7 +704,6 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   </div>
   <div id="tab-acao"  class="tab-p on"></div>
   <div id="tab-ent"   class="tab-p"></div>
-  <div id="tab-mod"   class="tab-p"></div>
   <div id="tab-form"  class="tab-p"></div>
   <div id="tab-mon"   class="tab-p"></div>
   <div id="tab-anex"  class="tab-p"></div>
@@ -3904,7 +3902,6 @@ const ACOES = {
         </div>
 
         <div class="det-valid-bpmn">
-          <div class="card-t" style="margin-bottom:.5rem">Fluxo AS IS</div>
           ${bpmnEditorHTML('asis',p.mod.bpmnAsIs)}
         </div>
       </div>`;
@@ -4113,6 +4110,20 @@ const ACOES = {
       <div class="fg"><label class="fl">Link no repositório</label><input class="fi" id="a-link" placeholder="https://..." value="${p.form?.link_pub||''}"></div>
       <div class="fg"><label class="fl">Data de vigência <small style="font-weight:400;color:var(--ink3)">(2 anos após entrega)</small></label><input class="fi" type="date" id="a-vig" value="${p.form?.vig||''}" readonly style="background:var(--bg2);color:var(--ink3)"></div>
       <div class="fg"><label class="fl">Entrega efetiva</label><input class="fi" type="date" id="pub-efet" value="${p.ent?.dt_efetiva||''}" oninput="_onEfetChange(this.value)"></div>
+    </div>
+    <div style="margin-top:.6rem;padding:.8rem 1rem;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--ink)">📄 POP em PDF</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">Gera o documento PDF completo do POP (fluxo, atividades, SIPOC, riscos e indicadores)</div>
+      </div>
+      <button type="button" class="btn btn-a" onclick="gerarPopPdfDireto()">⬇ Gerar PDF do POP</button>
+    </div>
+    <div style="margin-top:.6rem;padding:.8rem 1rem;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--ink)">🗺 Fluxograma do processo</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">Baixa o fluxograma desenhado em PNG (AS IS e TO BE, quando disponíveis)</div>
+      </div>
+      <button type="button" class="btn btn-a" onclick="baixarFluxogramas(this)">⬇ Baixar imagem do fluxograma</button>
     </div>
     <div class="btn-row">
       <button type="button" class="btn" onclick="salvarDadosPublicacao()">💾 Salvar dados</button>
@@ -5684,6 +5695,14 @@ async function renderBpmnToPng(xml) {
     const wrap = document.createElement('div');
     wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:1400px;height:700px;overflow:hidden;';
     document.body.appendChild(wrap);
+    const cleanup=(result=null)=>{
+      clearTimeout(tid);
+      try{viewer?.destroy();}catch{}
+      try{wrap.remove();}catch{}
+      resolve(result);
+    };
+    // Timeout de 20 s para evitar que a Promise fique pendente indefinidamente
+    const tid=setTimeout(()=>cleanup(null),20000);
     let viewer;
     try {
       viewer = new BpmnJS({ container: wrap });
@@ -5694,36 +5713,28 @@ async function renderBpmnToPng(xml) {
           const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
           const url = URL.createObjectURL(blob);
           img.onload = () => {
-            const c = document.createElement('canvas');
-            const sc = 2;
-            c.width = Math.max(img.width, 100) * sc;
-            c.height = Math.max(img.height, 50) * sc;
-            const ctx2d = c.getContext('2d');
-            ctx2d.fillStyle = '#ffffff'; ctx2d.fillRect(0, 0, c.width, c.height);
-            ctx2d.scale(sc, sc); ctx2d.drawImage(img, 0, 0);
             URL.revokeObjectURL(url);
-            try { viewer.destroy(); } catch(_e) { console.warn('BPMN viewer cleanup:', _e); }
-            wrap.remove();
-            resolve(c.toDataURL('image/png'));
+            try {
+              const c = document.createElement('canvas');
+              const sc = 2;
+              c.width = Math.max(img.width, 100) * sc;
+              c.height = Math.max(img.height, 50) * sc;
+              const ctx2d = c.getContext('2d');
+              ctx2d.fillStyle = '#ffffff'; ctx2d.fillRect(0, 0, c.width, c.height);
+              ctx2d.scale(sc, sc); ctx2d.drawImage(img, 0, 0);
+              cleanup(c.toDataURL('image/png'));
+            } catch {
+              // Canvas taint ou outro erro — resolve com null para não travar o PPT
+              cleanup(null);
+            }
           };
-          img.onerror = () => {
-            URL.revokeObjectURL(url);
-            try { viewer.destroy(); } catch(_e) { console.warn('BPMN viewer cleanup:', _e); }
-            wrap.remove();
-            resolve(null);
-          };
+          img.onerror = () => { URL.revokeObjectURL(url); cleanup(null); };
           img.src = url;
         })
-        .catch(() => {
-          try { viewer.destroy(); } catch(_e) { console.warn('BPMN viewer cleanup:', _e); }
-          try { wrap.remove(); } catch(_e) { console.warn('BPMN wrap cleanup:', _e); }
-          resolve(null);
-        });
+        .catch(() => cleanup(null));
     } catch(_e) {
       console.warn('BPMN render error:', _e);
-      if (viewer) try { viewer.destroy(); } catch(error_) { console.warn('BPMN viewer cleanup:', error_); }
-      try { wrap.remove(); } catch(error_) { console.warn('BPMN wrap cleanup:', error_); }
-      resolve(null);
+      cleanup(null);
     }
   });
 }
@@ -6764,9 +6775,9 @@ function popAtivCards(p){
     const isStructural=e.tipo==='Evento'||e.tipo==='Decisao'||e.tipo==='Decisão';
     const tipo=isStructural?normTipo(e.tipo)||e.tipo:(normTipo(d.tipo)||normTipo(e.tipo)||'Atividade');
     const desc=(d.desc!==undefined&&d.desc!=='')?d.desc:(e.desc||'');
-    // Eventos não têm executor real — só usa d.resp se explicitamente preenchido pelo usuário
+    // Preferir executor da etapa (fonte mais recente); só usar d.resp se executor está vazio
     const execDefault=isStructural?'':(e.executor||'');
-    const resp=(d.resp!==undefined&&d.resp!=='')?d.resp:execDefault;
+    const resp=execDefault||(d.resp||'');
     const modo=normModo(e.modo);
     const gw=e.vinculo_gw?.gw_ep_id?etapas.find(x=>x.id===e.vinculo_gw.gw_ep_id):null;
     const gwLabel=gw&&e.vinculo_gw.label?' · '+esc(e.vinculo_gw.label):'';
@@ -7740,10 +7751,10 @@ function sModTab(id,el){
   if(id==='vm-tobe'||id==='sm-tobe'){setTimeout(()=>initBpmnMod('tobe',curProc),80);}
   if(id==='vm-asis'||id==='sm-asis'){if(!curProc?._hasBizagi)setTimeout(()=>initBpmnMod('asis',curProc),80);}
 }
-function rForm(p){
+function _rFormHtml(p){
   const pd=p.form?.pop;
-  if(!pd){document.getElementById('tab-form').innerHTML='<div class="ib iba">POP não construído ainda.</div>';return;}
-  document.getElementById('tab-form').innerHTML=`<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden">
+  if(!pd)return '<div class="ib iba">POP não construído ainda.</div>';
+  return `<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden">
     <div style="background:var(--ink);color:#fff;padding:1.2rem 1.5rem">
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:.8rem">
         <span style="background:rgba(255,255,255,.1);border-radius:5px;padding:3px 9px;font-family:var(--fh);font-size:11px">EPP</span>
@@ -7857,10 +7868,9 @@ function rForm(p){
       })()}
       ${p.form.apresent?`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">6.0 Aprovações</div><div style="font-size:12.5px">${p.form.apresent}</div></div>`:''}
     </div>
-  </div>
-  <div class="pop-pdf-bar" style="margin-top:1rem;text-align:right">
-    <button type="button" class="btn btn-a" onclick="gerarPopPdf()">⬇ Gerar POP em PDF</button>
-  </div>`;
+  </div>`;}
+function rForm(p){
+  document.getElementById('tab-form').innerHTML=_rFormHtml(p)+(p.form?.pop?`<div class="pop-pdf-bar" style="margin-top:1rem;text-align:right"><button type="button" class="btn btn-a" onclick="gerarPopPdf()">⬇ Gerar POP em PDF</button></div>`:'');
 }
 // ─── Retorna SVG string do diagrama BPMN; usa modeler carregado ou renderiza
 // o XML num container temporário invisível como fallback ─────────────────────
@@ -7870,17 +7880,19 @@ async function _bpmnGetSvg(which,p){
     try{const {svg}=await m.saveSVG();return svg;}catch{}
   }
   const xml=which==='asis'?p.mod?.bpmnAsIs:p.mod?.bpmnToBe;
-  if(!xml)return null;
+  if(!xml||typeof BpmnJS==='undefined')return null;
   return new Promise(resolve=>{
     const tmp=document.createElement('div');
-    tmp.style.cssText='position:fixed;left:-9999px;top:0;width:1600px;height:900px;opacity:0;pointer-events:none;z-index:-1;';
+    // Sem opacity:0 nem z-index negativo — BpmnJS precisa de container visível para renderizar
+    tmp.style.cssText='position:fixed;left:-9999px;top:0;width:1600px;height:900px;overflow:hidden;';
     document.body.appendChild(tmp);
+    const tid=setTimeout(()=>{try{viewer?.destroy();}catch{}tmp.remove();resolve(null);},20000);
     let viewer;
-    try{viewer=new BpmnJS({container:tmp});}catch{tmp.remove();return resolve(null);}
+    try{viewer=new BpmnJS({container:tmp});}catch{clearTimeout(tid);tmp.remove();return resolve(null);}
     viewer.importXML(xml)
       .then(()=>{viewer.get('canvas').zoom('fit-viewport');return viewer.saveSVG();})
-      .then(({svg})=>{try{viewer.destroy();}catch{}tmp.remove();resolve(svg);})
-      .catch(()=>{try{viewer.destroy();}catch{}tmp.remove();resolve(null);});
+      .then(({svg})=>{clearTimeout(tid);try{viewer.destroy();}catch{}tmp.remove();resolve(svg);})
+      .catch(()=>{clearTimeout(tid);try{viewer.destroy();}catch{}tmp.remove();resolve(null);});
   });
 }
 
@@ -8052,15 +8064,12 @@ async function gerarPopPdf(){
   if(!inner.trim())return;
   const p=curProc;
   const nome=esc(p?.nome||'POP');
-  // Mostra feedback visual enquanto processa BPMN
   const btn=el.querySelector('.pop-pdf-bar button');
   if(btn){btn.disabled=true;btn.textContent='⏳ Preparando...';}
   let anexo='';
   try{anexo=await _popPdfAnexo(p);}catch(ex){console.warn('_popPdfAnexo:',ex);}
   if(btn){btn.disabled=false;btn.textContent='⬇ Gerar POP em PDF';}
-  const w=globalThis.open('','_blank');
-  if(!w){toast('Pop-up bloqueado. Permita pop-ups para gerar o PDF.','var(--amber)');return;}
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${nome}</title>
+  const fullHtml=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${nome}</title>
   <style>
     :root{--blue:#1e6bfa;--ink:#1a1a2e;--ink2:#4a4a6a;--ink3:#8888aa;--bg2:#f4f5f8;--surf:#fff;--bdr:#e0e0f0;--r:6px;--rl:8px;--fh:'Segoe UI',Arial,sans-serif}
     *{box-sizing:border-box}
@@ -8075,9 +8084,65 @@ async function gerarPopPdf(){
     .bpmn-landscape{page:landscape-page;page-break-before:always}
     @media print{body{padding:0}.pop-pdf-bar{display:none!important}}
   </style>
-  </head><body>${inner}${anexo}</body></html>`);
+  </head><body>${inner}${anexo}</body></html>`;
+  const w=globalThis.open('','_blank');
+  if(!w){toast('Pop-up bloqueado. Permita pop-ups para gerar o PDF.','var(--amber)');return;}
+  w.document.write(fullHtml);
   w.document.close();
   setTimeout(()=>w.print(),800);
+}
+// Gera o PDF do POP a partir dos dados salvos — pode ser chamada de qualquer etapa
+async function gerarPopPdfDireto(){
+  const p=curProc;
+  if(!p){return;}
+  if(!p.form?.pop&&!(p.mod?.etapas_proc||[]).length){
+    toast('O POP ainda não foi preenchido.','var(--amber)');return;
+  }
+  const nome=esc(p?.nome||'POP');
+  const inner=_rFormHtml(p);
+  let anexo='';
+  try{anexo=await _popPdfAnexo(p);}catch(ex){console.warn('_popPdfAnexo:',ex);}
+  const fullHtml=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${nome}</title>
+  <style>
+    :root{--blue:#1e6bfa;--ink:#1a1a2e;--ink2:#4a4a6a;--ink3:#8888aa;--bg2:#f4f5f8;--surf:#fff;--bdr:#e0e0f0;--r:6px;--rl:8px;--fh:'Segoe UI',Arial,sans-serif}
+    *{box-sizing:border-box}
+    body{font-family:Arial,sans-serif;background:#fff;margin:0;padding:24px 28px;color:#1a1a2e}
+    table{width:100%;border-collapse:collapse;margin-bottom:10px}
+    th,td{border:1px solid #ddd;padding:5px 8px;text-align:left}
+    th{background:#f4f5f8;font-size:10px}
+    img{max-width:100%}
+    svg{max-width:100%;display:block}
+    @page{size:A4 portrait;margin:22mm 20mm}
+    @page landscape-page{size:A4 landscape;margin:15mm 18mm}
+    .bpmn-landscape{page:landscape-page;page-break-before:always}
+    @media print{body{padding:0}.pop-pdf-bar{display:none!important}}
+  </style>
+  </head><body>${inner}${anexo}</body></html>`;
+  const w=globalThis.open('','_blank');
+  if(!w){toast('Pop-up bloqueado. Permita pop-ups para gerar o PDF.','var(--amber)');return;}
+  w.document.write(fullHtml);
+  w.document.close();
+  setTimeout(()=>w.print(),800);
+}
+async function baixarFluxogramas(btn){
+  const p=curProc;
+  if(!p){return;}
+  const orig=btn.textContent;
+  btn.disabled=true;btn.textContent='⏳ Preparando...';
+  try{
+    let pngAsIs=null;
+    if(p.arq_id){pngAsIs=await loadFluxoImg(p.arq_id);}
+    else if(p.mod?.bpmnAsIs){pngAsIs=await renderBpmnToPng(p.mod.bpmnAsIs);}
+    let pngToBe=null;
+    if(p.mod?.bpmnToBe){pngToBe=await renderBpmnToPng(p.mod.bpmnToBe);}
+    if(!pngAsIs&&!pngToBe){toast('Nenhum fluxograma disponível para este processo.','var(--amber)');return;}
+    const nome=(p.nome||'fluxo').replace(/[^\w\s\-]/g,'').trim().replace(/\s+/g,'_');
+    const dl=(href,filename)=>{const a=document.createElement('a');a.href=href;a.download=filename;document.body.appendChild(a);a.click();a.remove();};
+    if(pngAsIs){dl(pngAsIs,nome+'_AS_IS.png');}
+    if(pngToBe){await new Promise(r=>setTimeout(r,400));dl(pngToBe,nome+'_TO_BE.png');}
+    toast('Download iniciado.','var(--teal)');
+  }catch(e){console.warn('baixarFluxogramas:',e);toast('Erro ao gerar imagens.','var(--red)');}
+  finally{btn.disabled=false;btn.textContent=orig;}
 }
 function rMon(p){
   const inds=kpis.filter(d=>d.pid===p.id);
