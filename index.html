@@ -126,6 +126,52 @@ body{font-family:var(--f);background:var(--bg);color:var(--ink);font-size:14px;l
 .stat.cb{border-top-color:var(--blue)}.stat.ct{border-top-color:var(--teal)}.stat.ca{border-top-color:var(--amber)}.stat.cr{border-top-color:var(--red)}.stat.cg{border-top-color:var(--green)}
 .stat-n{font-family:var(--fh);font-size:28px;font-weight:700;color:var(--ink);line-height:1}
 .stat-l{font-size:11px;color:var(--ink3);margin-top:4px;font-weight:500}
+.dash2-shell{display:flex;flex-direction:column;gap:1rem}
+.dash2-hero{background:linear-gradient(135deg,#f8f7f3 0%,#eef4fb 55%,#e7f4f0 100%);border:1px solid var(--bdr);border-radius:18px;padding:1.35rem 1.4rem;box-shadow:var(--sh);display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:16px}
+.dash2-hero-copy{display:flex;flex-direction:column;gap:12px}
+.dash2-eyebrow{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--blue)}
+.dash2-title{font-family:var(--fh);font-size:28px;line-height:1.05;color:var(--ink);max-width:12ch}
+.dash2-sub{font-size:13px;color:var(--ink2);max-width:58ch}
+.dash2-actions{display:flex;flex-wrap:wrap;gap:8px}
+.dash2-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:999px;border:1px solid var(--bdr2);background:rgba(255,255,255,.8);color:var(--ink);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f);transition:all .12s}
+.dash2-btn:hover{transform:translateY(-1px);box-shadow:var(--sh)}
+.dash2-btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.dash2-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dash2-summary-card{background:rgba(255,255,255,.82);border:1px solid rgba(200,197,187,.85);border-radius:14px;padding:.95rem 1rem}
+.dash2-summary-card.wide{grid-column:span 2}
+.dash2-summary-kicker{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:.45rem}
+.dash2-summary-value{font-family:var(--fh);font-size:26px;font-weight:700;line-height:1;color:var(--ink)}
+.dash2-summary-text{font-size:12px;color:var(--ink2);margin-top:.35rem}
+.dash2-priority{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.dash2-kpi{background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:1rem 1.05rem;box-shadow:var(--sh);cursor:pointer;transition:all .14s}
+.dash2-kpi:hover{transform:translateY(-1px);box-shadow:var(--sh2);border-color:var(--bdr2)}
+.dash2-kpi-label{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin-bottom:.55rem}
+.dash2-kpi-value{font-family:var(--fh);font-size:30px;font-weight:700;line-height:1;color:var(--ink)}
+.dash2-kpi-meta{font-size:12px;color:var(--ink2);margin-top:.45rem}
+.dash2-kpi.urgent{background:linear-gradient(180deg,#fff 0%,#fef1f1 100%);border-color:var(--red-b)}
+.dash2-kpi.focus{background:linear-gradient(180deg,#fff 0%,#eef4fb 100%);border-color:var(--blue-b)}
+.dash2-kpi.critical{background:linear-gradient(180deg,#fff 0%,#fdf4e4 100%);border-color:var(--amber-b)}
+.dash2-kpi.success{background:linear-gradient(180deg,#fff 0%,#e9f5ef 100%);border-color:var(--green-b)}
+.dash2-main{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(320px,.9fr);gap:12px}
+.dash2-card{background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:1.1rem 1.15rem;box-shadow:var(--sh)}
+.dash2-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:.9rem;flex-wrap:wrap}
+.dash2-card-title{font-family:var(--fh);font-size:15px;font-weight:600;color:var(--ink)}
+.dash2-card-sub{font-size:12px;color:var(--ink3);margin-top:2px}
+.dash2-link{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);cursor:pointer;border:none;background:none;font-family:var(--f)}
+.dash2-link:hover{text-decoration:underline}
+.dash2-attention{display:flex;flex-direction:column;gap:.9rem}
+.dash2-section-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:.45rem}
+.dash2-empty{padding:.85rem .95rem;border-radius:12px;background:var(--bg2);font-size:12px;color:var(--ink3)}
+.dash2-mini-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.dash2-mini{background:var(--bg2);border-radius:12px;padding:.8rem .85rem}
+.dash2-mini-value{font-family:var(--fh);font-size:22px;font-weight:700;line-height:1;color:var(--ink)}
+.dash2-mini-label{font-size:11px;color:var(--ink3);margin-top:.35rem}
+.dash2-ranked{display:flex;flex-direction:column;gap:8px}
+.dash2-ranked-row{display:flex;align-items:center;gap:10px;background:var(--bg2);border-radius:10px;padding:.55rem .7rem;font-size:12px}
+.dash2-ranked-row span:first-child{flex:1;color:var(--ink)}
+.dash2-tag{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.dash2-tag.red{background:var(--red-l);color:var(--red)}
+.dash2-tag.blue{background:var(--blue-l);color:var(--blue)}
 /* badges */
 .badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:6px;font-size:11px;font-weight:500;white-space:nowrap}
 .bt{background:var(--teal-l);color:var(--teal)}.bp{background:var(--purple-l);color:var(--purple)}
@@ -317,6 +363,13 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   .page{padding:0!important}
   .page>div{padding:.85rem!important}
   .stats{grid-template-columns:1fr 1fr}
+  .dash2-hero{grid-template-columns:1fr}
+  .dash2-title{font-size:23px;max-width:none}
+  .dash2-summary{grid-template-columns:1fr}
+  .dash2-summary-card.wide{grid-column:auto}
+  .dash2-priority{grid-template-columns:1fr 1fr}
+  .dash2-main{grid-template-columns:1fr}
+  .dash2-mini-stats{grid-template-columns:1fr 1fr}
   .g2,.g3,.g4{grid-template-columns:1fr}
   .pipeline-phases{grid-template-columns:1fr 1fr}
   .ph{flex-direction:column;align-items:flex-start;gap:.5rem}
@@ -391,6 +444,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
     <input class="login-input" id="login-email" type="email" placeholder="usuario@sefaz.rs.gov.br" onkeydown="if(event.key==='Enter')doLogin()">
     <label class="login-label" for="login-senha" style="margin-top:.9rem">Senha</label>
     <input class="login-input" id="login-senha" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <div id="login-mode-hint" style="display:none;font-size:11px;color:rgba(255,255,255,.45);margin-top:.55rem;line-height:1.5"></div>
     <button type="button" class="login-btn" onclick="doLogin()">Entrar</button>
     <div style="text-align:center;margin-top:.75rem">
       <button type="button" onclick="togglePrimeiroAcesso()" style="font-size:12px;color:rgba(255,255,255,.4);transition:color .12s;background:none;border:none;cursor:pointer;font-family:var(--f)" onmouseover="this.style.color='rgba(255,255,255,.7)'" onmouseout="this.style.color='rgba(255,255,255,.4)'">Primeiro acesso / Esqueci minha senha</button>
@@ -458,6 +512,10 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   <button type="button" class="nav-btn" onclick="go('dashboard',this)" id="nb-dash">
     <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".5"/></svg>
     Painel geral <span class="nav-cnt" id="nb-pend">0</span>
+  </button>
+  <button type="button" class="nav-btn" onclick="go('dashboard2',this)" id="nb-dash2">
+    <svg viewBox="0 0 16 16" fill="none"><path d="M2 12.5h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M3 10V6.8a1 1 0 011-1h1.5a1 1 0 011 1V10M7.5 10V4.8a1 1 0 011-1H10a1 1 0 011 1V10M12 10V8.3a1 1 0 011-1h0a1 1 0 011 1V10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Painel v2
   </button>
   <button type="button" class="nav-btn" onclick="go('processos',this)" id="nb-proc">
     <svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -545,6 +603,40 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
     <div><div class="card-t" style="margin-bottom:.6rem;color:var(--red)">⚠ Prazo vencido</div><div id="dash-vencidos"></div></div>
   </div>
   <div id="dash-analytics"></div>
+</div></div>
+
+<div id="page-dashboard2" class="page"><div style="padding:2rem">
+  <div class="dash2-shell">
+    <div class="dash2-hero">
+      <div class="dash2-hero-copy">
+        <div class="dash2-eyebrow">Painel executivo</div>
+        <div class="dash2-title">Uma leitura mais clara do que pede acao agora</div>
+        <div class="dash2-sub" id="dash2-dt"></div>
+        <div class="dash2-actions">
+          <div id="btn-novo-proc-dash2"></div>
+          <button type="button" class="dash2-btn" onclick="go('processos',document.getElementById('nb-proc'))">Ver processos</button>
+          <button type="button" class="dash2-btn" onclick="go('indicadores',document.getElementById('nb-ind'))">Indicadores</button>
+          <button type="button" class="dash2-btn" onclick="go('dashboard',document.getElementById('nb-dash'))">Comparar com atual</button>
+        </div>
+      </div>
+      <div class="dash2-summary" id="dash2-summary"></div>
+    </div>
+    <div class="dash2-priority" id="dash2-priority"></div>
+    <div class="dash2-main">
+      <div class="dash2-card">
+        <div class="dash2-card-head">
+          <div>
+            <div class="dash2-card-title">Centro operacional</div>
+            <div class="dash2-card-sub">Fluxo por fase e pontos que merecem decisao agora.</div>
+          </div>
+          <button type="button" class="dash2-link" onclick="go('processos',document.getElementById('nb-proc'))">Abrir processos</button>
+        </div>
+        <div class="pipeline-phases" id="dash2-pipe"></div>
+      </div>
+      <div class="dash2-attention" id="dash2-attention"></div>
+    </div>
+    <div class="dash2-card" id="dash2-insights"></div>
+  </div>
 </div></div>
 
 <div id="page-processos" class="page"><div style="padding:2rem">
@@ -1548,7 +1640,7 @@ async function doLogin(){
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const senha = document.getElementById('login-senha').value;
   if(!email){mostrarErrLogin('Informe seu e-mail.');return;}
-  if(!senha){mostrarErrLogin('Informe sua senha.');return;}
+  if(fbReady() && !senha){mostrarErrLogin('Informe sua senha.');return;}
 
   // Valida domínio
   const dominio = email.split('@')[1]||'';
@@ -1754,10 +1846,10 @@ function go(page,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
   document.getElementById('page-'+page).classList.add('on');
   if(btn)btn.classList.add('on');
-  ({fila:rFila,dashboard:rDash,processos:renderProcs,arq:rArq,faq:rFaq,indicadores:()=>{rInd();},notificacoes:()=>{rNotif();},auditoria:rAuditoria,publicacoes:()=>{rPub();},admin:renderAdmin,plano:rPlano,avisos:rAvisos,trilhas:rTrilhas}[page]||function(){})();
+  ({fila:rFila,dashboard:rDash,dashboard2:rDashV2,processos:renderProcs,arq:rArq,faq:rFaq,indicadores:()=>{rInd();},notificacoes:()=>{rNotif();},auditoria:rAuditoria,publicacoes:()=>{rPub();},admin:renderAdmin,plano:rPlano,avisos:rAvisos,trilhas:rTrilhas}[page]||function(){})();
   // Mobile: close drawer, update title
   if(globalThis.innerWidth<=720){mobClose();}
-  const ttl={fila:'Minhas tarefas',dashboard:'Painel geral',processos:'Processos',arq:'Arquitetura',faq:'Base de FAQs',indicadores:'Indicadores',plano:'PAT',notificacoes:'Notificações',auditoria:'Auditoria',publicacoes:'Publicações',admin:'Usuários',avisos:'Avisos',detalhe:'Processo',trilhas:'Trilhas de capacitação'};
+  const ttl={fila:'Minhas tarefas',dashboard:'Painel geral',dashboard2:'Painel v2',processos:'Processos',arq:'Arquitetura',faq:'Base de FAQs',indicadores:'Indicadores',plano:'PAT',notificacoes:'Notificações',auditoria:'Auditoria',publicacoes:'Publicações',admin:'Usuários',avisos:'Avisos',detalhe:'Processo',trilhas:'Trilhas de capacitação'};
   const el=document.getElementById('mob-page-title');if(el)el.textContent=ttl[page]||'SIGA 2.0';
 }
 function mobToggleDrawer(){
@@ -2204,6 +2296,10 @@ function _aplicarPermissoesNavBtns(){
   if(btnNovoDash) btnNovoDash.innerHTML = isEP()
     ? '<button type="button" class="btn btn-p" onclick="abrirNovoProc()">+ Novo processo</button>'
     : '';
+  const btnNovoDash2 = document.getElementById('btn-novo-proc-dash2');
+  if(btnNovoDash2) btnNovoDash2.innerHTML = isEP()
+    ? '<button type="button" class="dash2-btn primary" onclick="abrirNovoProc()">+ Novo processo</button>'
+    : '';
   const btnArq = document.getElementById('btn-arq-actions');
   if(btnArq) btnArq.innerHTML = isEP()
     ? `<div style="display:flex;gap:8px">
@@ -2240,6 +2336,8 @@ function aplicarPermissoes(){
   if(nbAud) nbAud.style.display = isEP() ? '' : 'none';
   const nbDash = document.getElementById('nb-dash');
   if(nbDash) nbDash.style.display = usuarioLogado?.perfil === 'dono' ? 'none' : '';
+  const nbDash2 = document.getElementById('nb-dash2');
+  if(nbDash2) nbDash2.style.display = usuarioLogado?.perfil === 'dono' ? 'none' : '';
   document.querySelectorAll('.ep-only').forEach(el=>{ el.style.display=isEP()?'':'none'; });
 }
 
@@ -2371,6 +2469,156 @@ function buildAnalyticsHTML(){
     ${topTempo.length?`<div><div class="sec-lbl" style="margin-bottom:.4rem">Etapas com maior tempo médio</div>
       ${topTempoRows}</div>`:''}
   </div>`;
+}
+function _dash2AttentionGroups(){
+  const vencidos=processos.filter(p=>isVencido(p));
+  const validacao=processos.filter(p=>['det_valid_asis','det_valid_tobe','complement','apresentacao'].includes(p.etapa));
+  const aguardando=processos.filter(p=>{
+    const et=ETAPAS.find(e=>e.id===p.etapa);
+    return et&&et.resp==='dono'&&p.status_ciclo!=='suspenso'&&p.status_ciclo!=='cancelado';
+  });
+  return {vencidos,validacao,aguardando};
+}
+function _dash2AttentionList(items, emptyMsg, urgent){
+  if(!items.length) return `<div class="dash2-empty">${emptyMsg}</div>`;
+  return items.slice(0,4).map(p=>`<div class="prc ${urgent?'urg':''}" onclick="abrirProc(${p.id})">
+    <div>
+      <div class="prc-t">${esc(p.nome)}</div>
+      <div class="prc-m">${esc(p.resp_ep||p.dono||'')} ${p.ent?.dt_prev?`<strong>Prev:</strong> ${(p.ent.dt_prev||'').split('-').reverse().join('/')}`:''}</div>
+    </div>
+    <div class="prc-r">${eBadge(p.etapa)}</div>
+  </div>`).join('');
+}
+function buildDash2AttentionHTML(){
+  const {vencidos,validacao,aguardando}=_dash2AttentionGroups();
+  return `<div class="dash2-card">
+    <div class="dash2-card-head">
+      <div>
+        <div class="dash2-card-title">Atencao imediata</div>
+        <div class="dash2-card-sub">Uma fila unica para risco, validacao e dependencia externa.</div>
+      </div>
+      <button type="button" class="dash2-link" onclick="go('fila',document.getElementById('nb-fila'))">Abrir tarefas</button>
+    </div>
+    <div>
+      <div class="dash2-section-label">Prazos vencidos</div>
+      ${_dash2AttentionList(vencidos,'Nenhum processo vencido no momento.',true)}
+    </div>
+    <div style="margin-top:.9rem">
+      <div class="dash2-section-label">Pendentes de validacao</div>
+      ${_dash2AttentionList(validacao,'Nenhuma aprovacao pendente.',false)}
+    </div>
+    <div style="margin-top:.9rem">
+      <div class="dash2-section-label">Aguardando terceiros</div>
+      ${_dash2AttentionList(aguardando,'Nenhum processo aguardando retorno externo.',false)}
+    </div>
+  </div>`;
+}
+function buildDash2InsightsHTML(){
+  if(!processos.length) return `<div class="dash2-card-title">Leitura gerencial</div><div class="dash2-empty" style="margin-top:.8rem">Ainda nao ha processos para analisar.</div>`;
+  const hoje=new Date();
+  const mesAtual=hoje.toISOString().slice(0,7);
+  const conclMes=processos.filter(p=>(p.ent?.dt_efetiva||'').slice(0,7)===mesAtual).length;
+  const desvios=processos.map(p=>_desviosPrazo(p)).filter(d=>d!==null);
+  const desvMedio=desvios.length?Math.round(desvios.reduce((a,b)=>a+b,0)/desvios.length):null;
+  const devEtapa={};
+  const tempoEtapa={};
+  const contEtapa={};
+  processos.forEach(p=>{
+    (p.hist||[]).forEach(h=>{
+      if(h.acao&&h.acao.includes('Retornado para ajustes')) devEtapa[h.step]=(devEtapa[h.step]||0)+1;
+    });
+    const dts=p.dt_etapas||{};
+    ETAPAS.forEach((et,i)=>{
+      if(i===0||!dts[et.id]) return;
+      const prev=ETAPAS[i-1];
+      if(!dts[prev.id]) return;
+      const dias=Math.round((new Date(dts[et.id].split('/').reverse().join('-'))-new Date(dts[prev.id].split('/').reverse().join('-')))/86400000);
+      if(dias>=0&&dias<365){
+        tempoEtapa[prev.id]=(tempoEtapa[prev.id]||0)+dias;
+        contEtapa[prev.id]=(contEtapa[prev.id]||0)+1;
+      }
+    });
+  });
+  const topDev=Object.entries(devEtapa).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const topTempo=Object.entries(tempoEtapa).map(([id,t])=>[id,Math.round(t/(contEtapa[id]||1))]).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const devolucoes=Object.values(devEtapa).reduce((a,b)=>a+b,0);
+  const desvioTxt=desvMedio==null?'Sem base suficiente':desvMedio>0?`Em media ${desvMedio} dias alem do prazo`:`Em media ${Math.abs(desvMedio)} dias antes do prazo`;
+  return `<div class="dash2-card-head">
+      <div>
+        <div class="dash2-card-title">Leitura gerencial</div>
+        <div class="dash2-card-sub">Resumo de prazo, retrabalho e gargalos sem competir com a operacao.</div>
+      </div>
+      <button type="button" class="dash2-link" onclick="go('indicadores',document.getElementById('nb-ind'))">Abrir indicadores</button>
+    </div>
+    <div class="dash2-mini-stats" style="margin-bottom:1rem">
+      <div class="dash2-mini"><div class="dash2-mini-value">${conclMes}</div><div class="dash2-mini-label">Concluidos no mes</div></div>
+      <div class="dash2-mini"><div class="dash2-mini-value">${devolucoes}</div><div class="dash2-mini-label">Devolucoes registradas</div></div>
+      <div class="dash2-mini"><div class="dash2-mini-value">${desvMedio==null?'-':(desvMedio>0?`+${desvMedio}`:desvMedio)+'d'}</div><div class="dash2-mini-label">${desvioTxt}</div></div>
+      <div class="dash2-mini"><div class="dash2-mini-value">${processos.filter(p=>isVencido(p)).length}</div><div class="dash2-mini-label">Processos vencidos</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <div class="dash2-section-label">Etapas com mais retrabalho</div>
+        <div class="dash2-ranked">${topDev.length?topDev.map(([id,n])=>`<div class="dash2-ranked-row"><span>${etLb(id)}</span><span class="dash2-tag red">${n} devolucoes</span></div>`).join(''):'<div class="dash2-empty">Sem devolucoes registradas.</div>'}</div>
+      </div>
+      <div>
+        <div class="dash2-section-label">Etapas mais lentas</div>
+        <div class="dash2-ranked">${topTempo.length?topTempo.map(([id,d])=>`<div class="dash2-ranked-row"><span>${etLb(id)}</span><span class="dash2-tag blue">${d} dias</span></div>`).join(''):'<div class="dash2-empty">Sem dados suficientes de tempo.</div>'}</div>
+      </div>
+    </div>`;
+}
+function rDashV2(){
+  aplicarPermissoes();
+  updCounts();
+  const mx=getMetricasArq();
+  const pct=mx.nUnid>0?Math.round(mx.nMap/mx.nUnid*100):0;
+  const {vencidos,validacao,aguardando}=_dash2AttentionGroups();
+  const tarefas=getTarefasUsr();
+  const hojeTxt=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const eco=processos.reduce((s,p)=>{const r=(p.reunioes_acomp||[]).filter(r=>r.economia_h!=null);return s+(r.length?r[r.length-1].economia_h:0);},0);
+  const conclMes=processos.filter(p=>(p.ent?.dt_efetiva||'').slice(0,7)===new Date().toISOString().slice(0,7)).length;
+  const cnt={};ETAPAS.forEach(e=>{cnt[e.id]=processos.filter(p=>p.etapa===e.id).length;});
+  document.getElementById('dash2-dt').textContent=`${hojeTxt} · visao de prioridades, fluxo e leitura gerencial em uma unica tela.`;
+  document.getElementById('dash2-summary').innerHTML=
+    `<div class="dash2-summary-card wide">
+      <div class="dash2-summary-kicker">Cobertura da arquitetura</div>
+      <div class="dash2-summary-value">${pct}%</div>
+      <div class="dash2-summary-text">${mx.nMap} de ${mx.nUnid} unidades mapeaveis com processos vinculados.</div>
+    </div>
+    <div class="dash2-summary-card">
+      <div class="dash2-summary-kicker">Estrutura ativa</div>
+      <div class="dash2-summary-value">${mx.nProc}</div>
+      <div class="dash2-summary-text">${mx.nMacros} macroprocessos e ${mx.nSub} subprocessos cadastrados.</div>
+    </div>
+    <div class="dash2-summary-card">
+      <div class="dash2-summary-kicker">Impacto estimado</div>
+      <div class="dash2-summary-value">${eco?`${eco>=0?'+':''}${eco.toFixed(1)}h`:'-'}</div>
+      <div class="dash2-summary-text">Economia mensal estimada com base na ultima reavaliacao de cada processo.</div>
+    </div>`;
+  document.getElementById('dash2-priority').innerHTML=
+    `<div class="dash2-kpi urgent" onclick="go('processos',document.getElementById('nb-proc'))">
+      <div class="dash2-kpi-label">Processos vencidos</div>
+      <div class="dash2-kpi-value">${vencidos.length}</div>
+      <div class="dash2-kpi-meta">${vencidos.length?'Ha risco de prazo em aberto.':'Nenhum atraso critico agora.'}</div>
+    </div>
+    <div class="dash2-kpi focus" onclick="go('fila',document.getElementById('nb-fila'))">
+      <div class="dash2-kpi-label">Aguardando sua acao</div>
+      <div class="dash2-kpi-value">${tarefas.length}</div>
+      <div class="dash2-kpi-meta">${tarefas.length?'Fila pessoal pronta para destravar.':'Sua fila esta limpa neste momento.'}</div>
+    </div>
+    <div class="dash2-kpi critical" onclick="go('processos',document.getElementById('nb-proc'))">
+      <div class="dash2-kpi-label">Prioridade critica</div>
+      <div class="dash2-kpi-value">${processos.filter(p=>p.prio==='Critica').length}</div>
+      <div class="dash2-kpi-meta">${validacao.length} processos pedem validacao e ${aguardando.length} aguardam terceiros.</div>
+    </div>
+    <div class="dash2-kpi success" onclick="go('indicadores',document.getElementById('nb-ind'))">
+      <div class="dash2-kpi-label">Concluidos no mes</div>
+      <div class="dash2-kpi-value">${conclMes}</div>
+      <div class="dash2-kpi-meta">Leitura rapida de entrega recente do escritorio.</div>
+    </div>`;
+  document.getElementById('dash2-pipe').innerHTML=buildPipelineHTML(cnt);
+  document.getElementById('dash2-attention').innerHTML=buildDash2AttentionHTML();
+  document.getElementById('dash2-insights').innerHTML=buildDash2InsightsHTML();
 }
 // ═══════════════════════════════════════════
 // Q024: UPLOAD DE EVIDÊNCIAS (reutilizável)
@@ -8294,9 +8542,10 @@ function procArqHTML(mid,p){
       <span style="font-size:13px;font-weight:600;color:var(--ink);flex:1">${p.nome}</span>
       <span style="font-size:11px;color:var(--ink3)">${p.area||''} · ${p.gerente||''}</span>
       ${_procArqStatusBadge(p, hasSubs, linked, pMapeadoBg, pMapeadoTxt, pMapeadoBorderColor, pMapeadoLabel)}
-      ${!hasSubs && (isEP()
+      ${!hasSubs ? (isEP()
         ? `<button type="button" class="badge" style="font-size:10px;background:${pCritico ? '#dc2626' : 'var(--bg3)'};color:${pCritico ? '#fff' : 'var(--ink3)'};padding:2px 6px;border-radius:4px;border:1px solid ${pCritico ? '#dc2626' : 'var(--bdr2)'};cursor:pointer" onclick="event.stopPropagation();toggleCriticoManual('${p.id}',event)">${pCritico ? '⚠ Crítico' : 'Não crítico'}</button>`
-        : `<span class="badge" style="font-size:10px;background:${pCritico ? '#dc2626' : 'var(--bg3)'};color:${pCritico ? '#fff' : 'var(--ink3)'};padding:2px 6px;border-radius:4px;border:1px solid ${pCritico ? '#dc2626' : 'var(--bdr2)'}">${pCritico ? '⚠ Crítico' : 'Não crítico'}</span>`)}
+        : `<span class="badge" style="font-size:10px;background:${pCritico ? '#dc2626' : 'var(--bg3)'};color:${pCritico ? '#fff' : 'var(--ink3)'};padding:2px 6px;border-radius:4px;border:1px solid ${pCritico ? '#dc2626' : 'var(--bdr2)'}">${pCritico ? '⚠ Crítico' : 'Não crítico'}</span>`)
+        : ''}
       ${isEP()?`<button type="button" class="btn" style="font-size:10px;padding:2px 7px" onclick="event.stopPropagation();novoSubArq('${mid}','${p.id}')">+ Sub</button>
       <button type="button" class="btn" style="font-size:10px;padding:2px 7px" onclick="event.stopPropagation();editProcArq('${mid}','${p.id}')">✎ Editar</button>
       <button type="button" class="btn" style="font-size:10px;padding:2px 7px;color:var(--red);border-color:var(--red-b)" onclick="event.stopPropagation();removerProcArq('${mid}','${p.id}')">× Apagar</button>`:''}
@@ -12207,6 +12456,22 @@ function fbStatusBadge(){
   span.style.color = fbReady() ? '#8DD5C8' : 'rgba(255,255,255,.25)';
   brand.appendChild(span);
 }
+function syncLoginModeUI(){
+  const hint=document.getElementById('login-mode-hint');
+  const senha=document.getElementById('login-senha');
+  if(!hint || !senha) return;
+  if(fbReady()){
+    hint.style.display='none';
+    senha.disabled=false;
+    senha.placeholder='••••••••';
+  } else {
+    hint.style.display='block';
+    hint.textContent='Modo local ativo: entre com um e-mail autorizado. A senha nao e validada sem Firebase.';
+    senha.disabled=true;
+    senha.value='';
+    senha.placeholder='Senha desabilitada no modo local';
+  }
+}
 
 // ═══════════════════════════════════════════
 // INIT
@@ -12282,6 +12547,7 @@ document.getElementById('login-screen').style.display='flex';
 
   updCounts();
   fbStatusBadge();
+  syncLoginModeUI();
   injectSaveBtn();
 })();
 
