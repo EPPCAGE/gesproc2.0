@@ -9435,12 +9435,7 @@ function resultCardHTML(r, srch){
         ${isEP() ? `<button type="button" class="btn" style="font-size:10px;padding:2px 8px" onclick="editSubArqFull('${r.macroId}','${r.procId}','${item.id}')" aria-label="Editar item">✎</button>` : ''}
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;font-size:11px">
-      ${item.area ? `<div><span style="font-weight:600;color:var(--ink2)">Área:</span> <span style="color:var(--ink3)">${highlight(item.area, srch)}</span></div>` : ''}
-      ${item.gerente ? `<div><span style="font-weight:600;color:var(--ink2)">Gerente:</span> <span style="color:var(--ink3)">${highlight(item.gerente, srch)}</span></div>` : ''}
-      ${item.objetivo_estrategico ? `<div style="grid-column:span 2"><span style="font-weight:600;color:var(--ink2)">Obj. estratégico:</span> <span style="color:var(--ink3)">${highlight(item.objetivo_estrategico, srch)}</span></div>` : ''}
-      ${item.objetivo ? `<div style="grid-column:span 3"><span style="font-weight:600;color:var(--ink2)">Objetivo:</span> <span style="color:var(--ink3)">${highlight(item.objetivo, srch)}</span></div>` : ''}
-    </div>
+    ${metaFieldsReadonly(item)}
   </div>`;
 }
 function macroArqHTML(m){
