@@ -754,7 +754,7 @@ function rListaAptosAuditoria(){
         <div class="prc-m"><strong>${esc(p.macro||'—')}</strong> · ${esc(p.area||'—')} · Dono: ${esc(p.dono||'—')}</div>
         <div style="font-size:11px;color:var(--ink3);margin-top:2px">
           <span class="badge bg" style="font-size:9px">Mapeado</span>
-          &nbsp;Etapa atual: <strong>${etLb(p.etapa)}</strong>
+          &nbsp;Etapa atual: <strong>${esc(etLb(p.etapa))}</strong>
           ${p.auditoria?.data?`&nbsp;· Última auditoria: ${esc(p.auditoria.data)}`:''}
         </div>
       </div>
@@ -1300,10 +1300,10 @@ function criarProcesso(){
     ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center';
     ov.innerHTML=`<div style="background:var(--surf);border-radius:14px;padding:2rem 1.8rem;max-width:420px;width:92%;box-shadow:0 12px 40px rgba(0,0,0,.25)">
       <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:.7rem">Notificar Dono do Processo?</div>
-      <div style="font-size:13px;color:var(--ink3);margin-bottom:1.2rem">Deseja enviar notificação e e-mail para <strong>${p.dono}</strong> informando que o mapeamento de <em>${p.nome}</em> foi iniciado?</div>
+      <div style="font-size:13px;color:var(--ink3);margin-bottom:1.2rem">Deseja enviar notificação e e-mail para <strong>${esc(p.dono)}</strong> informando que o mapeamento de <em>${esc(p.nome)}</em> foi iniciado?</div>
       <div class="btn-row">
         <button type="button" class="btn" onclick="this.closest('[style*=fixed]').remove()">Não agora</button>
-        <button type="button" class="btn btn-p" onclick="enviarNotif('${donoEmail}','${p.dono}','Mapeamento iniciado — aguarda questionário de maturidade','${p.nome}','','EP·CAGE');toast('Notificação enviada para ${p.dono}','var(--teal)');this.closest('[style*=fixed]').remove()">Sim, notificar →</button>
+        <button type="button" class="btn btn-p" onclick="enviarNotif(${JSON.stringify(donoEmail)},${JSON.stringify(p.dono)},'Mapeamento iniciado — aguarda questionário de maturidade',${JSON.stringify(p.nome)},'', 'EP·CAGE');toast('Notificação enviada para '+${JSON.stringify(p.dono)},'var(--teal)');this.closest('[style*=fixed]').remove()">Sim, notificar →</button>
       </div>
     </div>`;
     document.body.appendChild(ov);
@@ -1343,7 +1343,7 @@ function perguntarNotifDono(etapaProxId){
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center';
   ov.innerHTML=`<div style="background:var(--surf);border-radius:14px;padding:2rem 1.8rem;max-width:440px;width:92%;box-shadow:0 12px 40px rgba(0,0,0,.25)">
     <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:.5rem">📋 Tarefa encaminhada ao dono</div>
-    <div style="font-size:13px;color:var(--ink3);margin-bottom:1rem">A etapa <em><strong>${etLb(etapaProxId)}</strong></em> aguarda ação de <strong>${p.dono}</strong>. Defina o prazo para que o dono conclua esta tarefa.</div>
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:1rem">A etapa <em><strong>${etLb(etapaProxId)}</strong></em> aguarda ação de <strong>${esc(p.dono)}</strong>. Defina o prazo para que o dono conclua esta tarefa.</div>
     <div class="fg" style="margin-bottom:1.2rem">
       <label class="fl">Prazo para conclusão <span style="color:var(--red)">*</span></label>
       <input class="fi" type="date" id="prazo-dono-inp" value="${defaultPrazo}" min="${hoje}">
@@ -3582,7 +3582,8 @@ async function iaGerarRelatorioAuditoria(){
     } catch {
       const html = `<div class="ai-result"><div class="ai-result-lbl">✦ Relatório</div><div style="white-space:pre-wrap;font-size:12px">${esc(result)}</div></div>`;
       el.innerHTML = html;
-      p.auditoria.relatorio_html = html;
+      p.auditoria.relatorio_html = '';
+      p.auditoria.relatorio_texto = String(result||'');
     }
   }
   if(btn) btn.disabled = false;
@@ -9226,8 +9227,8 @@ function gerarRelatorioIndPdf(){
       <td>${k.codigo?'<strong>'+esc(k.codigo)+'</strong> — ':''}${esc(k.nome)}</td>
       <td style="font-size:10px;color:#6b7280">${esc(k.area||'—')}</td>
       <td style="font-size:10px;color:#6b7280">${esc(k.periodo||'—')}</td>
-      <td style="text-align:center">${hasMeta?k.meta+und:'—'}</td>
-      <td style="text-align:center;font-weight:600">${k.realizado}${und}</td>
+      <td style="text-align:center">${hasMeta?esc(String(k.meta)+und):'—'}</td>
+      <td style="text-align:center;font-weight:600">${esc(String(k.realizado)+und)}</td>
       <td style="text-align:center;${pctStyle}">${pct===null?'—':pct+'%'}</td>
       <td style="text-align:center"><span style="${badgeStyle}">${st.label}</span></td>
     </tr>`;
@@ -10896,7 +10897,7 @@ function projRenderReunioesPage() {
         </div>
         ${pendentes.map(r => `
           <div class="proj-reunion-item" style="display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;gap:8px;padding:.6rem 0;border-bottom:1px solid #eaecf3">
-            <div class="proj-reunion-check" onclick="projToggleReuniaoPage('${p.id}','${projEsc(r.id)}')"></div>
+            <div class="proj-reunion-check" onclick="projToggleReuniaoPage(${JSON.stringify(String(p.id))},${JSON.stringify(String(r.id))})"></div>
             <div>
               <div class="proj-reunion-text">${projEsc(r.nome)}</div>
               <div style="font-size:11px;color:#8893a7;margin-top:2px">
@@ -10906,8 +10907,8 @@ function projRenderReunioesPage() {
               ${r.observacoes ? `<div style="font-size:11px;color:#8893a7">📝 ${projEsc(r.observacoes)}</div>` : ''}
             </div>
             <span style="font-size:10px;padding:2px 7px;border-radius:5px;background:#e8f0ff;color:#00599c">Pendente</span>
-            <button type="button" class="proj-btn" style="font-size:11px;padding:3px 8px" onclick="projEditarReuniaoModal('${p.id}','${projEsc(r.id)}')">✏️</button>
-            <button type="button" class="proj-btn danger" style="font-size:11px;padding:3px 8px" onclick="projExcluirReuniao('${p.id}','${projEsc(r.id)}')">✕</button>
+            <button type="button" class="proj-btn" style="font-size:11px;padding:3px 8px" onclick="projEditarReuniaoModal(${JSON.stringify(String(p.id))},${JSON.stringify(String(r.id))})">✏️</button>
+            <button type="button" class="proj-btn danger" style="font-size:11px;padding:3px 8px" onclick="projExcluirReuniao(${JSON.stringify(String(p.id))},${JSON.stringify(String(r.id))})">✕</button>
           </div>
         `).join('')}
       </div>
@@ -11278,7 +11279,7 @@ function projRenderDetalhe(p) {
   el.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.4rem;flex-wrap:wrap">
       <button type="button" class="proj-btn" style="font-size:12px;padding:5px 11px" onclick="projGo('portfolio',document.getElementById('pnb-portfolio'))">← Portfólio</button>
-      <div style="font-size:28px;cursor:pointer;padding:2px 6px;border-radius:8px;border:1px dashed transparent;transition:all .2s" title="Alterar ícone" onclick="projShowEmojiPicker('${p.id}')" onmouseover="this.style.borderColor='#1A5DC8';this.style.background='#ebf1fc'" onmouseout="this.style.borderColor='transparent';this.style.background='none'">${p.icone_url ? '<img src="'+projEsc(p.icone_url)+'" style="width:32px;height:32px;object-fit:cover;border-radius:6px">' : (p.icone_emoji || '📁')}</div>
+      <div style="font-size:28px;cursor:pointer;padding:2px 6px;border-radius:8px;border:1px dashed transparent;transition:all .2s" title="Alterar ícone" onclick="projShowEmojiPicker(${JSON.stringify(String(p.id))})" onmouseover="this.style.borderColor='#1A5DC8';this.style.background='#ebf1fc'" onmouseout="this.style.borderColor='transparent';this.style.background='none'">${p.icone_url ? '<img src="'+projEsc(p.icone_url)+'" style="width:32px;height:32px;object-fit:cover;border-radius:6px">' : (p.icone_emoji || '📁')}</div>
       <div style="flex:1">
         <div style="font-family:'Syne',sans-serif;font-size:19px;font-weight:700;color:#1a2540">${projEsc(p.nome)}</div>
         <div style="font-size:12px;color:#8893a7;margin-top:2px">Gerente: ${projEsc(p.gerente)} ${p.patrocinador ? '· Patrocinador: '+projEsc(p.patrocinador) : ''}</div>
