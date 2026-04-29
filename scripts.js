@@ -10197,7 +10197,7 @@ function projRenderInicio() {
     <div class="proj-stat s-teal">
       <div class="proj-stat-n">${emExecucao.length}</div>
       <div class="proj-stat-l">Em Execução</div>
-      <div class="proj-stat-icon" style="background:#e0f9f7">⚡</div>
+      <div class="proj-stat-icon" style="background:var(--teal-l)">⚡</div>
     </div>
     <div class="proj-stat s-green">
       <div class="proj-stat-n">${concluidos.length}</div>
@@ -10284,7 +10284,7 @@ function projRocketUnifiedDrag(e, projId) {
         if(!proj.execucao) proj.execucao = { planner_link:'', percentual:0, reunioes:[] };
         proj.execucao.percentual = newPct;
         projSave();
-        projToast(`${proj.nome}: ${newPct}%`, '#00599c');
+        projToast(`${proj.nome}: ${newPct}%`, 'var(--blue)');
       }
     } else if(mode === 'v') {
       dragLaneEl.classList.remove('lane-dragging');
@@ -10418,7 +10418,7 @@ function projRenderProjItem(p) {
           <div class="proj-prog-bar" style="width:160px;display:inline-block">
             <div class="proj-prog-fill" style="width:${p.percentual||0}%"></div>
           </div>
-          <span style="font-size:11px;color:#8893a7;margin-left:6px">${p.percentual||0}%</span>
+          <span style="font-size:11px;color:var(--ink3);margin-left:6px">${p.percentual||0}%</span>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
@@ -10447,7 +10447,7 @@ function projRenderPortfolio() {
     const programasAtivos = _programas.filter(pg => pg.status !== 'cancelado');
 
     if(programasAtivos.length > 0) {
-      html += '<div style="font-family:\'Syne\',sans-serif;font-size:13px;font-weight:700;color:#1a2540;margin-bottom:.8rem;display:flex;align-items:center;gap:8px"><svg viewBox="0 0 16 16" fill="none" width="15" height="15"><path d="M2 4h12M2 8h12M2 12h8" stroke="#00599c" stroke-width="1.5" stroke-linecap="round"/><circle cx="13" cy="12" r="1.5" stroke="#00599c" stroke-width="1.4"/></svg>Programas</div>';
+      html += '<div style="font-family:\'Syne\',sans-serif;font-size:13px;font-weight:700;color:#1a2540;margin-bottom:.8rem;display:flex;align-items:center;gap:8px"><svg viewBox="0 0 16 16" fill="none" width="15" height="15"><path d="M2 4h12M2 8h12M2 12h8" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/><circle cx="13" cy="12" r="1.5" stroke="var(--blue)" stroke-width="1.4"/></svg>Programas</div>';
       programasAtivos.forEach(pg => {
         const projs = ativos.filter(p => String(p.programa_id) === String(pg.id));
         if(projs.length === 0) return;
@@ -10458,10 +10458,10 @@ function projRenderPortfolio() {
               <div style="flex:1;min-width:0">
                 <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#1a2540;display:flex;align-items:center;gap:8px">
                   📂 ${projEsc(pg.nome)}
-                  <span class="proj-list-badge" style="background:#e8f0ff;color:#00599c">Ativo</span>
+                  <span class="proj-list-badge" style="background:var(--blue-l);color:var(--blue)">Ativo</span>
                 </div>
                 ${pg.descricao ? `<div style="font-size:12px;color:#6b7385;margin-top:3px">${projEsc(pg.descricao)}</div>` : ''}
-                <div style="font-size:11px;color:#8893a7;margin-top:4px">${projs.length} projeto${projs.length>1?'s':''} · ${pct}% médio</div>
+                <div style="font-size:11px;color:var(--ink3);margin-top:4px">${projs.length} projeto${projs.length>1?'s':''} · ${pct}% médio</div>
               </div>
               <div class="proj-prog-bar" style="width:140px"><div class="proj-prog-fill" style="width:${pct}%"></div></div>
             </div>
@@ -10497,12 +10497,12 @@ function projRenderConcluidos() {
   const cancelados = _projetos.filter(p=>p.status==='cancelado');
   let html = '';
   if(concluidos.length > 0) {
-    html += '<div style="margin-bottom:1.6rem"><div style="font-family:\'Syne\',sans-serif;font-size:12px;font-weight:700;color:#8893a7;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.7rem;padding:.5rem 0;border-bottom:2px solid #eaecf3">Concluídos com Sucesso <span style="color:#00c4b4">(' + concluidos.length + ')</span></div>';
+    html += '<div style="margin-bottom:1.6rem"><div style="font-family:\'Syne\',sans-serif;font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.7rem;padding:.5rem 0;border-bottom:2px solid #eaecf3">Concluídos com Sucesso <span style="color:var(--teal)">(' + concluidos.length + ')</span></div>';
     html += concluidos.map(projRenderProjItem).join('');
     html += '</div>';
   }
   if(cancelados.length > 0) {
-    html += '<div style="margin-bottom:1.6rem"><div style="font-family:\'Syne\',sans-serif;font-size:12px;font-weight:700;color:#8893a7;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.7rem;padding:.5rem 0;border-bottom:2px solid #eaecf3">Cancelados <span style="color:#b91c1c">(' + cancelados.length + ')</span></div>';
+    html += '<div style="margin-bottom:1.6rem"><div style="font-family:\'Syne\',sans-serif;font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.7rem;padding:.5rem 0;border-bottom:2px solid #eaecf3">Cancelados <span style="color:#b91c1c">(' + cancelados.length + ')</span></div>';
     html += cancelados.map(projRenderProjItem).join('');
     html += '</div>';
   }
@@ -10613,14 +10613,14 @@ function projBuildStatusReportHTML() {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Status Report</title>
     <style>
       @page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#1a2540;margin:0;background:#fff}
-      .sr-cover{border-left:8px solid #00599c;padding:18px 22px;margin-bottom:18px;background:linear-gradient(90deg,#f0f6ff,#fff)}
-      .sr-kicker{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#00a89a}.sr-cover h1{margin:4px 0;font-size:25px;color:#00599c}.sr-date{font-size:12px;color:#5f6b80}
-      .sr-summary{display:flex;gap:10px;margin-bottom:16px}.sr-chip{border:1px solid #d9e5f5;border-radius:8px;padding:8px 12px;font-size:12px;background:#f8fbff}.sr-chip strong{font-size:18px;color:#00599c;display:block}
+      .sr-cover{border-left:8px solid var(--blue);padding:18px 22px;margin-bottom:18px;background:linear-gradient(90deg,#f0f6ff,#fff)}
+      .sr-kicker{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#00a89a}.sr-cover h1{margin:4px 0;font-size:25px;color:var(--blue)}.sr-date{font-size:12px;color:#5f6b80}
+      .sr-summary{display:flex;gap:10px;margin-bottom:16px}.sr-chip{border:1px solid #d9e5f5;border-radius:8px;padding:8px 12px;font-size:12px;background:#f8fbff}.sr-chip strong{font-size:18px;color:var(--blue);display:block}
       .sr-card{display:grid;grid-template-columns:1.45fr .9fr;gap:14px;border:1px solid #d9e2ef;border-radius:10px;padding:14px;margin-bottom:12px;break-inside:avoid;page-break-inside:avoid}
-      .sr-title-row{display:flex;align-items:center;gap:10px}.sr-icon{width:36px;height:36px;border-radius:9px;background:#e8f0ff;display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden}.sr-icon img{width:100%;height:100%;object-fit:cover}
+      .sr-title-row{display:flex;align-items:center;gap:10px}.sr-icon{width:36px;height:36px;border-radius:9px;background:var(--blue-l);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden}.sr-icon img{width:100%;height:100%;object-fit:cover}
       h2{font-size:15px;margin:0;color:#0f2746}.sr-sub{font-size:10.5px;color:#6b7588;margin-top:2px}.sr-pct{margin-left:auto;font-size:24px;font-weight:800;color:#00a89a}
-      .sr-progress{height:7px;border-radius:99px;background:#e7edf5;overflow:hidden;margin:12px 0}.sr-progress div{height:100%;background:linear-gradient(90deg,#00599c,#00c4b4)}
-      .sr-info{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sr-info div{font-size:12px;border-top:1px solid #edf2f7;padding-top:6px}.sr-info span,.sr-note span{display:block;font-size:9px;color:#00599c;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+      .sr-progress{height:7px;border-radius:99px;background:#e7edf5;overflow:hidden;margin:12px 0}.sr-progress div{height:100%;background:linear-gradient(90deg,var(--blue),var(--teal))}
+      .sr-info{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sr-info div{font-size:12px;border-top:1px solid #edf2f7;padding-top:6px}.sr-info span,.sr-note span{display:block;font-size:9px;color:var(--blue);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
       .sr-note{border-left:3px solid #f59e0b;padding-left:12px}.sr-note p{font-size:12px;line-height:1.45;margin:0;color:#334155}
       .sr-empty{font-size:13px;color:#6b7588;padding:18px;border:1px solid #d9e2ef;border-radius:10px}
       @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none!important}}
@@ -10662,7 +10662,7 @@ function projExportReunioesRealizadasPDF() {
     </tr>
   `).join('');
   const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Reuniões Realizadas</title>
-    <style>@page{size:A4;margin:14mm}body{font-family:Arial,Helvetica,sans-serif;color:#1a2540}.head{border-left:8px solid #00599c;padding:14px 18px;background:#f0f6ff;margin-bottom:16px}.k{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#00a89a;font-weight:700}h1{margin:4px 0;color:#00599c;font-size:24px}.sub{font-size:12px;color:#5f6b80}table{width:100%;border-collapse:collapse;font-size:11.5px}th{background:#00599c;color:#fff;text-align:left;padding:8px}td{border-bottom:1px solid #d9e2ef;padding:7px;vertical-align:top}tr:nth-child(even) td{background:#f8fbff}.empty{padding:18px;border:1px solid #d9e2ef;border-radius:8px;color:#5f6b80}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
+    <style>@page{size:A4;margin:14mm}body{font-family:Arial,Helvetica,sans-serif;color:#1a2540}.head{border-left:8px solid var(--blue);padding:14px 18px;background:#f0f6ff;margin-bottom:16px}.k{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#00a89a;font-weight:700}h1{margin:4px 0;color:var(--blue);font-size:24px}.sub{font-size:12px;color:#5f6b80}table{width:100%;border-collapse:collapse;font-size:11.5px}th{background:var(--blue);color:#fff;text-align:left;padding:8px}td{border-bottom:1px solid #d9e2ef;padding:7px;vertical-align:top}tr:nth-child(even) td{background:#f8fbff}.empty{padding:18px;border:1px solid #d9e2ef;border-radius:8px;color:#5f6b80}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
     </head><body><div class="head"><div class="k">CAGE-RS · Escritório de Projetos e Processos</div><h1>Reuniões Realizadas</h1><div class="sub">${label} · ${realizadas.length} reunião(ões)</div></div>
     ${realizadas.length ? `<table><thead><tr><th>Data</th><th>Projeto</th><th>Reunião</th><th>Participantes</th><th>Observações</th></tr></thead><tbody>${rows}</tbody></table>` : '<div class="empty">Nenhuma reunião realizada encontrada para o mês/ano selecionado.</div>'}
     <script>setTimeout(function(){window.print();},350);</script></body></html>`;
@@ -10879,7 +10879,7 @@ function projRenderReunioesPage() {
         <div class="proj-card" style="margin-bottom:1rem">
           <div class="proj-card-t" style="cursor:pointer" onclick="projGoReunioesProj('${p.id}')">
             <svg viewBox="0 0 16 16" fill="none" width="14" height="14"><rect x="1" y="3" width="14" height="12" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 1v4M11 1v4M1 7h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-            <a href="javascript:void(0)" style="color:#00599c;text-decoration:underline">${projEsc(p.nome)}</a>
+            <a href="javascript:void(0)" style="color:var(--blue);text-decoration:underline">${projEsc(p.nome)}</a>
             <span style="font-size:10.5px;font-weight:400;color:#16a34a;margin-left:4px">✓ Todas as reuniões realizadas</span>
           </div>
         </div>
@@ -10892,7 +10892,7 @@ function projRenderReunioesPage() {
       <div class="proj-card" style="margin-bottom:1rem">
         <div class="proj-card-t" style="cursor:pointer" onclick="projGoReunioesProj('${p.id}')">
           <svg viewBox="0 0 16 16" fill="none" width="14" height="14"><rect x="1" y="3" width="14" height="12" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 1v4M11 1v4M1 7h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-          <a href="javascript:void(0)" style="color:#00599c;text-decoration:underline">${projEsc(p.nome)}</a>
+          <a href="javascript:void(0)" style="color:var(--blue);text-decoration:underline">${projEsc(p.nome)}</a>
           <span style="font-size:10.5px;font-weight:400;color:#d97706;margin-left:4px">(${pendentes.length} pendente${pendentes.length>1?'s':''})</span>
         </div>
         ${pendentes.map(r => `
@@ -10900,11 +10900,11 @@ function projRenderReunioesPage() {
             <div class="proj-reunion-check" onclick="projToggleReuniaoPage(${JSON.stringify(String(p.id))},${JSON.stringify(String(r.id))})"></div>
             <div>
               <div class="proj-reunion-text">${projEsc(r.nome)}</div>
-              <div style="font-size:11px;color:#8893a7;margin-top:2px">
+              <div style="font-size:11px;color:var(--ink3);margin-top:2px">
                 ${r.data ? '📅 '+projFormatDate(r.data) + (r.participantes?' · ':'') : ''}
                 ${r.participantes ? '👥 '+projEsc(r.participantes) : ''}
               </div>
-              ${r.observacoes ? `<div style="font-size:11px;color:#8893a7">📝 ${projEsc(r.observacoes)}</div>` : ''}
+              ${r.observacoes ? `<div style="font-size:11px;color:var(--ink3)">📝 ${projEsc(r.observacoes)}</div>` : ''}
             </div>
             <span style="font-size:10px;padding:2px 7px;border-radius:5px;background:#e8f0ff;color:#00599c">Pendente</span>
             <button type="button" class="proj-btn" style="font-size:11px;padding:3px 8px" onclick="projEditarReuniaoModal(${JSON.stringify(String(p.id))},${JSON.stringify(String(r.id))})">✏️</button>
@@ -10982,13 +10982,13 @@ function projRenderReuniaoItem(projId, r, isDone) {
       </div>
       <div>
         <div class="proj-reunion-text">${projEsc(r.nome)}</div>
-        <div style="font-size:11px;color:#8893a7;margin-top:2px">
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">
           ${r.data ? '📅 '+projFormatDate(r.data) + (r.participantes?' · ':'') : ''}
           ${r.participantes ? '👥 '+projEsc(r.participantes) : ''}
         </div>
-        ${r.observacoes ? `<div style="font-size:11px;color:#8893a7">📝 ${projEsc(r.observacoes)}</div>` : ''}
+        ${r.observacoes ? `<div style="font-size:11px;color:var(--ink3)">📝 ${projEsc(r.observacoes)}</div>` : ''}
       </div>
-      <span style="font-size:10px;padding:2px 7px;border-radius:5px;${isDone?'background:#e0f9f7;color:#007a6d':'background:#e8f0ff;color:#00599c'}">${isDone?'Realizada':'Pendente'}</span>
+      <span style="font-size:10px;padding:2px 7px;border-radius:5px;${isDone?'background:var(--teal-l);color:var(--teal)':'background:var(--blue-l);color:var(--blue)'}">${isDone?'Realizada':'Pendente'}</span>
       <button type="button" class="proj-btn" style="font-size:11px;padding:3px 8px" onclick="projEditarReuniaoModal('${projId}','${projEsc(r.id)}')">✏️</button>
       <button type="button" class="proj-btn danger" style="font-size:11px;padding:3px 8px" onclick="projExcluirReuniao('${projId}','${projEsc(r.id)}')">✕</button>
     </div>
@@ -11184,8 +11184,8 @@ function projRenderMemorial(p) {
   if(!el) return;
   const conc = p.conclusao || {};
   const isSuccess = p.status === 'concluido';
-  const statusColor = isSuccess ? '#00c4b4' : '#b91c1c';
-  const statusBg = isSuccess ? '#e0f9f7' : '#fde8e8';
+  const statusColor = isSuccess ? 'var(--teal)' : '#b91c1c';
+  const statusBg = isSuccess ? 'var(--teal-l)' : '#fde8e8';
   const statusIcon = isSuccess ? '✅' : '🚫';
   const statusLabel = isSuccess ? 'Concluído com Sucesso' : 'Cancelado';
 
@@ -11196,14 +11196,14 @@ function projRenderMemorial(p) {
       <button type="button" class="proj-btn" style="font-size:12px;padding:5px 11px" onclick="projGo('portfolio',document.getElementById('pnb-portfolio'))">← Portfólio</button>
       <div style="flex:1">
         <div style="font-family:'Syne',sans-serif;font-size:19px;font-weight:700;color:#1a2540">${projEsc(p.nome)}</div>
-        <div style="font-size:12px;color:#8893a7;margin-top:2px">Gerente: ${projEsc(p.gerente)} ${p.patrocinador ? '· Patrocinador: '+projEsc(p.patrocinador) : ''}</div>
+        <div style="font-size:12px;color:var(--ink3);margin-top:2px">Gerente: ${projEsc(p.gerente)} ${p.patrocinador ? '· Patrocinador: '+projEsc(p.patrocinador) : ''}</div>
       </div>
       <span style="background:${statusBg};color:${statusColor};padding:4px 14px;border-radius:8px;font-size:12px;font-weight:700">${statusIcon} ${statusLabel}</span>
       <button type="button" class="proj-btn" style="font-size:12px;padding:5px 11px" onclick="projRenderDetalhe(_projetos.find(p=>String(p.id)===_projCurrentId))">📋 Ver Workflow</button>
     </div>
 
     <!-- Banner principal -->
-    <div style="background:linear-gradient(135deg,${isSuccess?'#00599c,#00c4b4':'#4a1a1a,#7f1d1d'});border-radius:18px;padding:2rem 2.2rem;margin-bottom:1.4rem;position:relative;overflow:hidden">
+    <div style="background:linear-gradient(135deg,${isSuccess?'var(--blue),var(--teal)':'#4a1a1a,#7f1d1d'});border-radius:18px;padding:2rem 2.2rem;margin-bottom:1.4rem;position:relative;overflow:hidden">
       <div style="position:absolute;right:-20px;top:-20px;font-size:100px;opacity:.08">${statusIcon}</div>
       <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem">Projeto ${statusLabel}</div>
       <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:700;color:#fff;margin-bottom:.4rem">${projEsc(p.nome)}</div>
@@ -11235,7 +11235,7 @@ function projRenderMemorial(p) {
       <div class="proj-card" style="margin-bottom:1.4rem">
         <div class="proj-card-t">🔗 Resultados e Notícias</div>
         <div style="display:flex;flex-direction:column;gap:6px">
-          ${links.map((l,i) => `<a href="${projEsc(l.trim())}" target="_blank" style="font-size:12.5px;color:#00599c;text-decoration:none;display:flex;align-items:center;gap:6px"><span style="background:#e8f0ff;border-radius:5px;padding:1px 7px;font-size:10.5px;font-weight:600;color:#00599c">${i+1}</span>${projEsc(l.trim())}</a>`).join('')}
+          ${links.map((l,i) => `<a href="${projEsc(l.trim())}" target="_blank" style="font-size:12.5px;color:var(--blue);text-decoration:none;display:flex;align-items:center;gap:6px"><span style="background:var(--blue-l);border-radius:5px;padding:1px 7px;font-size:10.5px;font-weight:600;color:var(--blue)">${i+1}</span>${projEsc(l.trim())}</a>`).join('')}
         </div>
       </div>
     ` : ''}
@@ -11244,8 +11244,8 @@ function projRenderMemorial(p) {
     ${(p.ideacao?.descricao || p.ideacao?.objetivo_smart) ? `
       <div class="proj-card" style="margin-bottom:1.4rem">
         <div class="proj-card-t">📋 Resumo do Projeto</div>
-        ${p.ideacao?.descricao ? `<div style="margin-bottom:.7rem"><div style="font-size:10px;font-weight:700;color:#8893a7;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Descrição</div><div style="font-size:13px;color:#3a4560">${projEsc(p.ideacao.descricao)}</div></div>` : ''}
-        ${p.ideacao?.objetivo_smart ? `<div><div style="font-size:10px;font-weight:700;color:#8893a7;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Objetivo</div><div style="font-size:13px;color:#3a4560">${projEsc(p.ideacao.objetivo_smart)}</div></div>` : ''}
+        ${p.ideacao?.descricao ? `<div style="margin-bottom:.7rem"><div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Descrição</div><div style="font-size:13px;color:#3a4560">${projEsc(p.ideacao.descricao)}</div></div>` : ''}
+        ${p.ideacao?.objetivo_smart ? `<div><div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Objetivo</div><div style="font-size:13px;color:#3a4560">${projEsc(p.ideacao.objetivo_smart)}</div></div>` : ''}
       </div>
     ` : ''}
   `;
@@ -11282,7 +11282,7 @@ function projRenderDetalhe(p) {
       <div style="font-size:28px;cursor:pointer;padding:2px 6px;border-radius:8px;border:1px dashed transparent;transition:all .2s" title="Alterar ícone" onclick="projShowEmojiPicker(${JSON.stringify(String(p.id))})" onmouseover="this.style.borderColor='#1A5DC8';this.style.background='#ebf1fc'" onmouseout="this.style.borderColor='transparent';this.style.background='none'">${p.icone_url ? '<img src="'+projEsc(p.icone_url)+'" style="width:32px;height:32px;object-fit:cover;border-radius:6px">' : (p.icone_emoji || '📁')}</div>
       <div style="flex:1">
         <div style="font-family:'Syne',sans-serif;font-size:19px;font-weight:700;color:#1a2540">${projEsc(p.nome)}</div>
-        <div style="font-size:12px;color:#8893a7;margin-top:2px">Gerente: ${projEsc(p.gerente)} ${p.patrocinador ? '· Patrocinador: '+projEsc(p.patrocinador) : ''}</div>
+        <div style="font-size:12px;color:var(--ink3);margin-top:2px">Gerente: ${projEsc(p.gerente)} ${p.patrocinador ? '· Patrocinador: '+projEsc(p.patrocinador) : ''}</div>
       </div>
       <span class="proj-list-badge ${projFaseBadgeClass(p.status,p.fase_atual)}" style="font-size:12px;padding:4px 12px">${projFaseText(p)}</span>
       ${p.status==='ativo' ? '<span id="proj-fase-buttons" data-pid="' + p.id + '"></span>' : ''}
@@ -11518,7 +11518,7 @@ function projPopulateVinculacoes() {
   var ol = document.getElementById('aprov-obj-list');
   if(ol) {
     ol.innerHTML = (proj.objetivos_estrategicos||[]).map(function(o,i){
-      return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:4px 8px;background:#e0f9f7;border-radius:6px;font-size:12px;color:#1a2540"><span style="flex:1">'+projEsc(o)+'</span><button type="button" style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:14px;padding:0 4px" onclick="projRemoverObj('+i+')">✕</button></div>';
+      return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:4px 8px;background:var(--teal-l);border-radius:6px;font-size:12px;color:#1a2540"><span style="flex:1">'+projEsc(o)+'</span><button type="button" style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:14px;padding:0 4px" onclick="projRemoverObj('+i+')">✕</button></div>';
     }).join('');
   }
   var os = document.getElementById('aprov-obj-sel');
@@ -11554,13 +11554,13 @@ function projTabIdeacao(p) {
 
     <!-- Slider: Canvas Manual / HTML Importado -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;padding:.6rem 1rem;background:#f8f9fb;border-radius:10px;border:1px solid #e5e8ef">
-      <span style="font-size:12px;font-weight:600;color:${canvasMode==='manual'?'#00599c':'#8893a7'}">Canvas Manual</span>
+      <span style="font-size:12px;font-weight:600;color:${canvasMode==='manual'?'var(--blue)':'var(--ink3)'}">Canvas Manual</span>
       <label style="position:relative;width:44px;height:24px;cursor:pointer">
         <input type="checkbox" id="canvas-mode-toggle" ${canvasMode==='html'?'checked':''} onchange="projToggleCanvasMode()" style="opacity:0;width:0;height:0">
-        <span style="position:absolute;inset:0;background:${canvasMode==='html'?'#00599c':'#ccc'};border-radius:24px;transition:.3s"></span>
+        <span style="position:absolute;inset:0;background:${canvasMode==='html'?'var(--blue)':'#ccc'};border-radius:24px;transition:.3s"></span>
         <span style="position:absolute;top:2px;left:${canvasMode==='html'?'22px':'2px'};width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
       </label>
-      <span style="font-size:12px;font-weight:600;color:${canvasMode==='html'?'#00599c':'#8893a7'}">HTML Importado</span>
+      <span style="font-size:12px;font-weight:600;color:${canvasMode==='html'?'var(--blue)':'var(--ink3)'}">HTML Importado</span>
     </div>
 
     <!-- Canvas HTML mode -->
@@ -11574,7 +11574,7 @@ function projTabIdeacao(p) {
         </div>
         ${ide.canvas_html ? `
           <div class="proj-eap-embed">
-            <div style="padding:.6rem .8rem;background:#e0f9f7;border-bottom:1px solid #e5e8ef;font-size:11px;font-weight:600;color:#007a6d">Pré-visualização do Canvas</div>
+            <div style="padding:.6rem .8rem;background:var(--teal-l);border-bottom:1px solid #e5e8ef;font-size:11px;font-weight:600;color:var(--teal)">Pré-visualização do Canvas</div>
             <div style="padding:1rem;overflow-x:auto">${ide.canvas_html}</div>
           </div>
         ` : ''}
@@ -11594,14 +11594,14 @@ function projTabIdeacao(p) {
       <div class="proj-canvas-grid">
         <!-- Col 1: Por que fazer? -->
         <div class="proj-canvas-col">
-          <div class="proj-canvas-col-header" style="background:#e0f9f7;color:#007a6d">Por que fazer?</div>
+          <div class="proj-canvas-col-header" style="background:var(--teal-l);color:var(--teal)">Por que fazer?</div>
           ${projCanvasCell(1,'DESCRIÇÃO','O que é o projeto?','canvas-descricao',ide.descricao||'')}
           ${projCanvasCell(2,'OBJETIVO SMART','Específico, mensurável, alcançável, realista e temporal','canvas-objetivo_smart',ide.objetivo_smart||'')}
           ${projCanvasCell(3,'BENEFÍCIOS','O que o projeto vai gerar?','canvas-beneficios',ide.beneficios||'')}
         </div>
         <!-- Col 2: O que deve ter? -->
         <div class="proj-canvas-col">
-          <div class="proj-canvas-col-header" style="background:#e8f0ff;color:#00599c">O que deve ter?</div>
+          <div class="proj-canvas-col-header" style="background:var(--blue-l);color:var(--blue)">O que deve ter?</div>
           ${projCanvasCell(4,'REQUISITOS','O que é imprescindível?','canvas-requisitos',ide.requisitos||'')}
           ${projCanvasCell(5,'PREMISSAS','Quais as suposições do que deve acontecer?','canvas-premissas',ide.premissas||'')}
           ${projCanvasCell(6,'RESTRIÇÕES','Quais as limitações do projeto?','canvas-restricoes',ide.restricoes||'')}
@@ -11698,13 +11698,13 @@ function projTabPlanejamento(p) {
 
       <!-- Slider: EAP Nova em HTML / Link para EAP antiga -->
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;padding:.6rem 1rem;background:#f8f9fb;border-radius:10px;border:1px solid #e5e8ef">
-        <span style="font-size:12px;font-weight:600;color:${eapMode==='html'?'#00599c':'#8893a7'}">EAP Nova em HTML</span>
+        <span style="font-size:12px;font-weight:600;color:${eapMode==='html'?'var(--blue)':'var(--ink3)'}">EAP Nova em HTML</span>
         <label style="position:relative;width:44px;height:24px;cursor:pointer">
           <input type="checkbox" id="eap-mode-toggle" ${eapMode==='link'?'checked':''} onchange="projToggleEapMode()" style="opacity:0;width:0;height:0">
-          <span style="position:absolute;inset:0;background:${eapMode==='link'?'#00599c':'#ccc'};border-radius:24px;transition:.3s"></span>
+          <span style="position:absolute;inset:0;background:${eapMode==='link'?'var(--blue)':'#ccc'};border-radius:24px;transition:.3s"></span>
           <span style="position:absolute;top:2px;left:${eapMode==='link'?'22px':'2px'};width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
         </label>
-        <span style="font-size:12px;font-weight:600;color:${eapMode==='link'?'#00599c':'#8893a7'}">Link para EAP antiga</span>
+        <span style="font-size:12px;font-weight:600;color:${eapMode==='link'?'var(--blue)':'var(--ink3)'}">Link para EAP antiga</span>
       </div>
 
       <!-- EAP Link mode -->
@@ -11720,13 +11720,13 @@ function projTabPlanejamento(p) {
       <div id="eap-html-mode" style="display:${eapMode==='html'?'block':'none'}">
         <!-- Sub-slider: Upload / Texto -->
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;padding:.5rem .8rem;background:#f0f4ff;border-radius:8px;border:1px solid #e5e8ef">
-          <span style="font-size:11px;font-weight:600;color:${eapSubMode==='upload'?'#00599c':'#8893a7'}">Upload</span>
+          <span style="font-size:11px;font-weight:600;color:${eapSubMode==='upload'?'var(--blue)':'var(--ink3)'}">Upload</span>
           <label style="position:relative;width:36px;height:20px;cursor:pointer">
             <input type="checkbox" id="eap-sub-toggle" ${eapSubMode==='texto'?'checked':''} onchange="projToggleEapSub()" style="opacity:0;width:0;height:0">
-            <span style="position:absolute;inset:0;background:${eapSubMode==='texto'?'#00599c':'#ccc'};border-radius:20px;transition:.3s"></span>
+            <span style="position:absolute;inset:0;background:${eapSubMode==='texto'?'var(--blue)':'#ccc'};border-radius:20px;transition:.3s"></span>
             <span style="position:absolute;top:2px;left:${eapSubMode==='texto'?'18px':'2px'};width:16px;height:16px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
           </label>
-          <span style="font-size:11px;font-weight:600;color:${eapSubMode==='texto'?'#00599c':'#8893a7'}">Texto</span>
+          <span style="font-size:11px;font-weight:600;color:${eapSubMode==='texto'?'var(--blue)':'var(--ink3)'}">Texto</span>
         </div>
 
         <!-- Upload sub-mode -->
@@ -11756,7 +11756,7 @@ function projTabPlanejamento(p) {
         <!-- Preview da EAP -->
         ${plan.eap_html ? `
           <div class="proj-eap-embed" style="margin-top:.8rem">
-            <div style="padding:.6rem .8rem;background:#f0f4ff;border-bottom:1px solid #e5e8ef;font-size:11px;font-weight:600;color:#00599c">Pré-visualização da EAP</div>
+            <div style="padding:.6rem .8rem;background:#f0f4ff;border-bottom:1px solid #e5e8ef;font-size:11px;font-weight:600;color:var(--blue)">Pré-visualização da EAP</div>
             <div style="padding:1rem;overflow-x:auto">${plan.eap_html}</div>
           </div>
         ` : ''}
@@ -11975,24 +11975,24 @@ function projTabExecucao(p) {
         <label class="proj-fl">% de Conclusão do Projeto</label>
         <div style="display:flex;align-items:center;gap:10px">
           ${pctMode === 'manual' ? `
-            <input type="range" id="exec-percentual" min="0" max="100" step="1" value="${displayPct}" style="flex:1;accent-color:#00599c" oninput="document.getElementById('exec-pct-val').textContent=this.value+'%'" onchange="projSalvarExecucao()">
+            <input type="range" id="exec-percentual" min="0" max="100" step="1" value="${displayPct}" style="flex:1;accent-color:var(--blue)" oninput="document.getElementById('exec-pct-val').textContent=this.value+'%'" onchange="projSalvarExecucao()">
           ` : `
-            <div style="flex:1;height:8px;background:#e5e8ef;border-radius:4px;overflow:hidden"><div style="height:100%;width:${derivedPct}%;background:#00599c;border-radius:4px;transition:width .3s"></div></div>
+            <div style="flex:1;height:8px;background:#e5e8ef;border-radius:4px;overflow:hidden"><div style="height:100%;width:${derivedPct}%;background:var(--blue);border-radius:4px;transition:width .3s"></div></div>
             <input type="hidden" id="exec-percentual" value="${derivedPct}">
           `}
-          <span id="exec-pct-val" style="font-size:16px;font-weight:700;color:#00599c;min-width:46px">${displayPct}%</span>
+          <span id="exec-pct-val" style="font-size:16px;font-weight:700;color:var(--blue);min-width:46px">${displayPct}%</span>
         </div>
       </div>
 
       <!-- Item 7: Slider manual / derivado -->
       <div style="display:flex;align-items:center;gap:12px;margin:.8rem 0;padding:.5rem .8rem;background:#f0f4ff;border-radius:8px;border:1px solid #e5e8ef">
-        <span style="font-size:11px;font-weight:600;color:${pctMode==='manual'?'#00599c':'#8893a7'}">Manual</span>
+        <span style="font-size:11px;font-weight:600;color:${pctMode==='manual'?'var(--blue)':'var(--ink3)'}">Manual</span>
         <label style="position:relative;width:36px;height:20px;cursor:pointer">
           <input type="checkbox" id="exec-pct-mode-toggle" ${pctMode==='derivado'?'checked':''} onchange="projTogglePctMode()" style="opacity:0;width:0;height:0">
-          <span style="position:absolute;inset:0;background:${pctMode==='derivado'?'#00599c':'#ccc'};border-radius:20px;transition:.3s"></span>
+          <span style="position:absolute;inset:0;background:${pctMode==='derivado'?'var(--blue)':'#ccc'};border-radius:20px;transition:.3s"></span>
           <span style="position:absolute;top:2px;left:${pctMode==='derivado'?'18px':'2px'};width:16px;height:16px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
         </label>
-        <span style="font-size:11px;font-weight:600;color:${pctMode==='derivado'?'#00599c':'#8893a7'}">Derivado do Planner SIGA</span>
+        <span style="font-size:11px;font-weight:600;color:${pctMode==='derivado'?'var(--blue)':'var(--ink3)'}">Derivado do Planner SIGA</span>
       </div>
 
       <div class="proj-btn-row" style="margin-bottom:0">
@@ -12009,13 +12009,13 @@ function projTabExecucao(p) {
 
       <!-- Slider: Planner antigo / SIGA -->
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;padding:.6rem 1rem;background:#f8f9fb;border-radius:10px;border:1px solid #e5e8ef">
-        <span style="font-size:12px;font-weight:600;color:${cronMode==='planner'?'#00599c':'#8893a7'}">Cronograma antigo no Planner</span>
+        <span style="font-size:12px;font-weight:600;color:${cronMode==='planner'?'var(--blue)':'var(--ink3)'}">Cronograma antigo no Planner</span>
         <label style="position:relative;width:44px;height:24px;cursor:pointer">
           <input type="checkbox" id="exec-cron-toggle" ${cronMode==='siga'?'checked':''} onchange="projToggleCronMode()" style="opacity:0;width:0;height:0">
-          <span style="position:absolute;inset:0;background:${cronMode==='siga'?'#00599c':'#ccc'};border-radius:24px;transition:.3s"></span>
+          <span style="position:absolute;inset:0;background:${cronMode==='siga'?'var(--blue)':'#ccc'};border-radius:24px;transition:.3s"></span>
           <span style="position:absolute;top:2px;left:${cronMode==='siga'?'22px':'2px'};width:20px;height:20px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
         </label>
-        <span style="font-size:12px;font-weight:600;color:${cronMode==='siga'?'#00599c':'#8893a7'}">Cronograma pelo SIGA</span>
+        <span style="font-size:12px;font-weight:600;color:${cronMode==='siga'?'var(--blue)':'var(--ink3)'}">Cronograma pelo SIGA</span>
       </div>
 
       <!-- Planner antigo -->
@@ -12031,8 +12031,8 @@ function projTabExecucao(p) {
       <div id="exec-cron-siga" style="display:${cronMode==='siga'?'block':'none'}">
         <!-- Dashboard -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem">
-          <div style="background:#e8f0ff;padding:.8rem;border-radius:8px;text-align:center">
-            <div style="font-size:22px;font-weight:700;color:#00599c">${displayPct}%</div>
+          <div style="background:var(--blue-l);padding:.8rem;border-radius:8px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:var(--blue)">${displayPct}%</div>
             <div style="font-size:10px;color:#5a6782">Conclusão</div>
           </div>
           <div style="background:#fef3cd;padding:.8rem;border-radius:8px;text-align:center">
@@ -12134,13 +12134,13 @@ function projTabExecucao(p) {
               </div>
               <div>
                 <div class="proj-reunion-text">${projEsc(r.nome)}</div>
-                <div style="font-size:11px;color:#8893a7;margin-top:2px">
+                <div style="font-size:11px;color:var(--ink3);margin-top:2px">
                   ${r.data ? projFormatDate(r.data) + ' · ' : ''}
                   ${r.participantes ? '👥 '+projEsc(r.participantes) : ''}
                 </div>
-                ${r.observacoes ? `<div style="font-size:11px;color:#8893a7">📝 ${projEsc(r.observacoes)}</div>` : ''}
+                ${r.observacoes ? `<div style="font-size:11px;color:var(--ink3)">📝 ${projEsc(r.observacoes)}</div>` : ''}
               </div>
-              <span style="font-size:10px;padding:2px 7px;border-radius:5px;${r.realizada?'background:#e0f9f7;color:#007a6d':'background:#e8f0ff;color:#00599c'}">${r.realizada?'Realizada':'Pendente'}</span>
+              <span style="font-size:10px;padding:2px 7px;border-radius:5px;${r.realizada?'background:var(--teal-l);color:var(--teal)':'background:var(--blue-l);color:var(--blue)'}">${r.realizada?'Realizada':'Pendente'}</span>
               <button type="button" class="proj-btn danger" style="font-size:11px;padding:3px 8px" onclick="projExcluirReuniaoExec('${projEsc(r.id)}')">✕</button>
             </div>
           `).join('')}
@@ -12208,7 +12208,7 @@ function projRenderTarefasRows(tarefas, depth, parentIdx) {
       <td style="padding:5px 8px;text-align:center;border-bottom:1px solid #eaecf3;${strike}${overdue?';color:#dc2626;font-weight:600':''}"><input type="date" value="${t.dt_fim||''}" onchange="projUpdateTarefa('${path}','dt_fim',this.value)" style="font-size:11px;border:1px solid ${overdue?'#fca5a5':'#ddd'};border-radius:4px;padding:2px 4px;width:100%"></td>
       <td style="padding:5px 8px;border-bottom:1px solid #eaecf3;${strike}"><input type="text" value="${projEsc(t.responsavel||'')}" onchange="projUpdateTarefa('${path}','responsavel',this.value)" style="font-size:11px;border:1px solid #ddd;border-radius:4px;padding:2px 4px;width:100%" placeholder="—"></td>
       <td style="padding:5px 8px;text-align:center;border-bottom:1px solid #eaecf3;${strike}">
-        ${hasSubs ? `<span style="font-size:11px;font-weight:600;color:#00599c">${pct}%</span>` :
+        ${hasSubs ? `<span style="font-size:11px;font-weight:600;color:var(--blue)">${pct}%</span>` :
           `<input type="number" min="0" max="100" value="${pct}" onchange="projUpdateTarefa('${path}','conclusao',parseInt(this.value)||0)" style="font-size:11px;border:1px solid #ddd;border-radius:4px;padding:2px 4px;width:50px;text-align:center">`}
       </td>
       <td style="padding:5px 4px;text-align:center;border-bottom:1px solid #eaecf3">
@@ -12451,11 +12451,11 @@ function projTabConclusao(p) {
         </div>
       </div>
       <div class="proj-fg">
-        <label class="proj-fl">História do Projeto <span style="font-size:10px;color:#8893a7">(opcional — conte como foi o projeto)</span></label>
+        <label class="proj-fl">História do Projeto <span style="font-size:10px;color:var(--ink3)">(opcional — conte como foi o projeto)</span></label>
         <textarea class="proj-fi" id="conc-historia" rows="5" placeholder="Conte a história e trajetória do projeto, principais marcos, aprendizados...">${projEsc(conc.historia||'')}</textarea>
       </div>
       <div class="proj-fg">
-        <label class="proj-fl">Links de Notícias / Resultados <span style="font-size:10px;color:#8893a7">(opcional — um por linha)</span></label>
+        <label class="proj-fl">Links de Notícias / Resultados <span style="font-size:10px;color:var(--ink3)">(opcional — um por linha)</span></label>
         <textarea class="proj-fi" id="conc-links" rows="3" placeholder="https://noticia1.gov.br&#10;https://noticia2.gov.br">${projEsc(conc.links_noticias||'')}</textarea>
       </div>
       <div class="proj-form-section" style="background:#f8fbff;margin-top:1rem">
@@ -12487,14 +12487,14 @@ function projTabConclusao(p) {
         <div class="proj-fg">
           <label class="proj-fl">Anexo de imagens</label>
           <input type="file" class="proj-fi" accept="image/*" multiple onchange="projUploadConclusaoImagens(this)">
-          ${(conc.imagens||[]).length ? `<div class="proj-v9-attach-grid">${(conc.imagens||[]).map((img,i)=>`<div><img src="${projEsc(img.data)}" alt="${projEsc(img.nome||'Imagem')}"><button type="button" class="proj-btn danger" style="font-size:10px;padding:2px 6px;margin-top:3px;width:100%" onclick="projRemoveConclusaoImagem(${i})">Remover</button></div>`).join('')}</div>` : '<div style="font-size:11px;color:#8893a7;margin-top:4px">Nenhuma imagem anexada.</div>'}
+          ${(conc.imagens||[]).length ? `<div class="proj-v9-attach-grid">${(conc.imagens||[]).map((img,i)=>`<div><img src="${projEsc(img.data)}" alt="${projEsc(img.nome||'Imagem')}"><button type="button" class="proj-btn danger" style="font-size:10px;padding:2px 6px;margin-top:3px;width:100%" onclick="projRemoveConclusaoImagem(${i})">Remover</button></div>`).join('')}</div>` : '<div style="font-size:11px;color:var(--ink3);margin-top:4px">Nenhuma imagem anexada.</div>'}
         </div>
       </div>
       <div class="proj-btn-row">
         <button type="button" class="proj-btn teal" onclick="projSalvarConclusao()">💾 Salvar</button>
         ${p.status !== 'concluido' && p.status !== 'cancelado' ? `
           <button type="button" class="proj-btn primary" onclick="projFinalizarProjeto()">🏁 Encerrar Projeto</button>
-        ` : `<div style="font-size:12.5px;color:#00c4b4;font-weight:600;align-self:center">✓ Projeto encerrado</div>`}
+        ` : `<div style="font-size:12.5px;color:var(--teal);font-weight:600;align-self:center">✓ Projeto encerrado</div>`}
       </div>
     </div>
   `;
@@ -12544,7 +12544,7 @@ function projFinalizarProjeto() {
     proj.status = tipo === 'sucesso' ? 'concluido' : 'cancelado';
     proj.fase_atual = 'conclusao';
     projSave();
-    projToast('Projeto encerrado!', '#00c4b4');
+    projToast('Projeto encerrado!', 'var(--teal)');
     projAbrirDetalhe(_projCurrentId, false);
   });
 }
@@ -12646,10 +12646,10 @@ function progRenderPage() {
     const projs = _projetos.filter(p => String(p.programa_id) === String(pg.id));
     const pct = progPercentualMedio(pg.id);
     const statusBadge = pg.status === 'concluido'
-      ? '<span class="proj-list-badge" style="background:#e0f9f7;color:#007a6d">🏆 Concluído</span>'
+      ? '<span class="proj-list-badge" style="background:var(--teal-l);color:var(--teal)">🏆 Concluído</span>'
       : pg.status === 'cancelado'
         ? '<span class="proj-list-badge" style="background:#fde8e8;color:#7f1d1d">✕ Cancelado</span>'
-        : '<span class="proj-list-badge" style="background:#e8f0ff;color:#00599c">Ativo</span>';
+        : '<span class="proj-list-badge" style="background:var(--blue-l);color:var(--blue)">Ativo</span>';
 
     return `
       <div style="border:1.5px solid #e5e8ef;border-radius:12px;background:#fff;padding:1.1rem;margin-bottom:.9rem">
@@ -12660,14 +12660,14 @@ function progRenderPage() {
               ${statusBadge}
             </div>
             ${pg.descricao ? `<div style="font-size:12px;color:#6b7385;margin-top:4px">${projEsc(pg.descricao)}</div>` : ''}
-            <div style="font-size:11px;color:#8893a7;margin-top:5px;display:flex;gap:12px;flex-wrap:wrap">
+            <div style="font-size:11px;color:var(--ink3);margin-top:5px;display:flex;gap:12px;flex-wrap:wrap">
               <span>📁 ${projs.length} projeto${projs.length !== 1 ? 's' : ''}</span>
               ${pg.gerente ? `<span>👤 ${projEsc(pg.gerente)}</span>` : ''}
               ${pg.patrocinador ? `<span>📝 ${projEsc(pg.patrocinador)}</span>` : ''}
             </div>
             <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
               <div class="proj-prog-bar" style="width:180px"><div class="proj-prog-fill" style="width:${pct}%"></div></div>
-              <span style="font-size:11px;color:#8893a7">${pct}% médio</span>
+              <span style="font-size:11px;color:var(--ink3)">${pct}% médio</span>
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px">
@@ -12681,7 +12681,7 @@ function progRenderPage() {
 
   const renderGrp = (label, list) => list.length === 0 ? '' : `
     <div style="margin-bottom:1.4rem">
-      <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#8893a7;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.7rem;padding:.5rem 0;border-bottom:2px solid #eaecf3">${label} <span style="color:#00599c">(${list.length})</span></div>
+      <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.7rem;padding:.5rem 0;border-bottom:2px solid #eaecf3">${label} <span style="color:var(--blue)">(${list.length})</span></div>
       ${list.map(renderProg).join('')}
     </div>
   `;
@@ -12823,27 +12823,27 @@ function progAbrirDetalhe(id) {
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.2rem;padding:.9rem;background:#f8faff;border-radius:10px;border:1px solid #e5e8ef">
         <div>
-          <div style="font-size:10.5px;color:#8893a7;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Gerente</div>
+          <div style="font-size:10.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;font-weight:600">Gerente</div>
           <div style="font-size:13px;color:#1a2540;margin-top:2px">${projEsc(pg.gerente)||'—'}</div>
         </div>
         <div>
-          <div style="font-size:10.5px;color:#8893a7;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Patrocinador</div>
+          <div style="font-size:10.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;font-weight:600">Patrocinador</div>
           <div style="font-size:13px;color:#1a2540;margin-top:2px">${projEsc(pg.patrocinador)||'—'}</div>
         </div>
         <div>
-          <div style="font-size:10.5px;color:#8893a7;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Status</div>
+          <div style="font-size:10.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;font-weight:600">Status</div>
           <div style="font-size:13px;color:#1a2540;margin-top:2px">${pg.status==='concluido'?'🏆 Concluído':pg.status==='cancelado'?'✕ Cancelado':'✓ Ativo'}</div>
         </div>
         <div>
-          <div style="font-size:10.5px;color:#8893a7;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Progresso médio</div>
+          <div style="font-size:10.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;font-weight:600">Progresso médio</div>
           <div style="margin-top:4px;display:flex;align-items:center;gap:8px">
             <div class="proj-prog-bar" style="flex:1"><div class="proj-prog-fill" style="width:${pct}%"></div></div>
-            <span style="font-size:12px;color:#00599c;font-weight:600">${pct}%</span>
+            <span style="font-size:12px;color:var(--blue);font-weight:600">${pct}%</span>
           </div>
         </div>
       </div>
 
-      <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#1a2540;margin-bottom:.7rem">Projetos deste programa <span style="color:#00599c">(${projs.length})</span></div>
+      <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#1a2540;margin-bottom:.7rem">Projetos deste programa <span style="color:var(--blue)">(${projs.length})</span></div>
 
       ${projs.length === 0 ? `
         <div style="text-align:center;padding:1.5rem;color:#b0b8cc;background:#f8faff;border-radius:10px;border:1px dashed #d5deed">
@@ -12865,7 +12865,7 @@ function progAbrirDetalhe(id) {
               <div class="proj-prog-bar" style="width:160px;display:inline-block">
                 <div class="proj-prog-fill" style="width:${p.percentual||0}%"></div>
               </div>
-              <span style="font-size:11px;color:#8893a7;margin-left:6px">${p.percentual||0}%</span>
+              <span style="font-size:11px;color:var(--ink3);margin-left:6px">${p.percentual||0}%</span>
             </div>
           </div>
           <span class="proj-list-badge ${projFaseBadgeClass(p.status,p.fase_atual)}">${projFaseText(p)}</span>
@@ -13072,10 +13072,10 @@ function projOptionsFromProjetos(projects,getter){return [...new Set(projects.ma
 function projGetDashFiltro(){return {patrocinador:document.getElementById('proj-f-patrocinador')?.value||'',objetivo:document.getElementById('proj-f-objetivo')?.value||'',macro:document.getElementById('proj-f-macro')?.value||'',divisao:document.getElementById('proj-f-divisao')?.value||''};}
 function projFiltrarProjetosV9(projects){const f=projGetDashFiltro();return projects.filter(p=>{const d=projDimensoesProjeto(p);return(!f.patrocinador||d.patrocinador===f.patrocinador)&&(!f.objetivo||d.objetivo===f.objetivo)&&(!f.macro||d.macro===f.macro)&&(!f.divisao||d.divisao===f.divisao);});}
 function projGroupCount(projects,getter){const map={};projects.forEach(p=>{const k=getter(p)||'Não informado';map[k]=(map[k]||0)+1;});return Object.entries(map).map(([label,count])=>({label,count})).sort((a,b)=>b.count-a.count).slice(0,8);}
-function projChartBars(title,items){const max=Math.max(1,...items.map(i=>i.count));return `<div class="proj-v9-chart-card"><div class="proj-card-t">${title}</div><div class="proj-v9-bars">${items.length?items.map(i=>`<div class="proj-v9-bar-row"><span title="${projEsc(i.label)}">${projEsc(i.label)}</span><div class="proj-v9-bar"><div style="width:${Math.max(6,Math.round(i.count/max*100))}%"></div></div><strong>${i.count}</strong></div>`).join(''):'<div style="font-size:12px;color:#8893a7">Sem dados.</div>'}</div></div>`;}
+function projChartBars(title,items){const max=Math.max(1,...items.map(i=>i.count));return `<div class="proj-v9-chart-card"><div class="proj-card-t">${title}</div><div class="proj-v9-bars">${items.length?items.map(i=>`<div class="proj-v9-bar-row"><span title="${projEsc(i.label)}">${projEsc(i.label)}</span><div class="proj-v9-bar"><div style="width:${Math.max(6,Math.round(i.count/max*100))}%"></div></div><strong>${i.count}</strong></div>`).join(''):'<div style="font-size:12px;color:var(--ink3)">Sem dados.</div>'}</div></div>`;}
 function projTarefasAtrasadasProjeto(p){const today=new Date().toISOString().slice(0,10);return projFlattenTasks(p.execucao?.tarefas||[]).filter(t=>!(t._children&&t._children.length)&&!t.concluida&&t.dt_fim&&t.dt_fim<today);}
-function projRenderDashV9(){const all=(_projetos||[]).filter(p=>p.status==='ativo');const cur=projGetDashFiltro();const opts={patrocinador:projOptionsFromProjetos(all,p=>projDimensoesProjeto(p).patrocinador),objetivo:projOptionsFromProjetos(all,p=>projDimensoesProjeto(p).objetivo),macro:projOptionsFromProjetos(all,p=>projDimensoesProjeto(p).macro),divisao:projOptionsFromProjetos(all,p=>projDimensoesProjeto(p).divisao)};const sel=(id,label,arr,val)=>`<div class="proj-fg" style="margin:0"><label class="proj-fl">${label}</label><select class="proj-fi" id="${id}" onchange="projRenderDashV9()"><option value="">Todos</option>${arr.map(v=>`<option value="${projEsc(v)}" ${v===val?'selected':''}>${projEsc(v)}</option>`).join('')}</select></div>`;const filtrados=projFiltrarProjetosV9(all);const filtrosEl=document.getElementById('proj-dash-filtros');if(filtrosEl)filtrosEl.innerHTML=`<div class="proj-v9-filter-card"><div class="proj-card-t">Filtros</div><div class="proj-v9-filter-grid">${sel('proj-f-patrocinador','Patrocinador',opts.patrocinador,cur.patrocinador)}${sel('proj-f-objetivo','Objetivo Estratégico',opts.objetivo,cur.objetivo)}${sel('proj-f-macro','Macroprocesso',opts.macro,cur.macro)}${sel('proj-f-divisao','Divisão',opts.divisao,cur.divisao)}</div></div>`;const alertasEl=document.getElementById('proj-dash-alertas');if(alertasEl){const comAtraso=filtrados.map(p=>({p,tarefas:projTarefasAtrasadasProjeto(p)})).filter(x=>x.tarefas.length);alertasEl.innerHTML=`<div class="proj-v9-alert-card"><div class="proj-card-t">Painel de Alertas</div>${comAtraso.length?comAtraso.map(({p,tarefas})=>`<div class="proj-v9-alert-project"><div style="display:flex;justify-content:space-between;gap:10px"><strong>${projIconHtml(p)} ${projEsc(p.nome)}</strong><span style="font-size:11px;color:#dc2626;font-weight:800">${tarefas.length} atrasada(s)</span></div>${tarefas.slice(0,6).map(t=>`<div class="proj-v9-alert-task"><span>${projEsc(t.nome)}</span><span>${projEsc(t.responsavel||'')}</span><strong>${projFormatDate(t.dt_fim)}</strong></div>`).join('')}</div>`).join(''):'<div style="font-size:12px;color:#8893a7">Nenhum projeto com tarefas atrasadas nos filtros atuais.</div>'}</div>`;}const graficosEl=document.getElementById('proj-dash-graficos');if(graficosEl){const indTotal=filtrados.reduce((acc,p)=>acc+(p.execucao?.indicadores||[]).length,0);graficosEl.innerHTML=`<div class="proj-v9-chart-card"><div class="proj-card-t">Dashboard Executivo</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><div><strong>${filtrados.length}</strong><span> Projetos</span></div><div><strong>${Math.round(filtrados.reduce((a,p)=>a+(p.percentual||0),0)/(filtrados.length||1))}%</strong><span> Média</span></div><div><strong>${indTotal}</strong><span> Indicadores</span></div><div><strong>${filtrados.filter(p=>projTarefasAtrasadasProjeto(p).length).length}</strong><span> Com atraso</span></div></div></div><div class="proj-v9-chart-grid">${projChartBars('Projetos por Subprocesso',projGroupCount(filtrados,p=>p.subprocesso||p.nome))}${projChartBars('Projetos por Patrocinador',projGroupCount(filtrados,p=>p.patrocinador))}${projChartBars('Projetos por Indicadores',projGroupCount(filtrados,p=>(p.execucao?.indicadores||[]).length?'Com indicadores':'Sem indicadores'))}</div>`;}}
-function projRenderIndicadoresExecucao(p){const inds=p.execucao?.indicadores||[];return `<div style="display:flex;flex-direction:column;gap:8px">${inds.length?inds.map((i,idx)=>`<div class="proj-v9-ind-grid"><input class="proj-fi" value="${projEsc(i.nome||'')}" onchange="projUpdateIndicador(${idx},'nome',this.value)" placeholder="Indicador"><input class="proj-fi" type="number" value="${projEsc(String(i.meta||''))}" onchange="projUpdateIndicador(${idx},'meta',this.value)" placeholder="Meta"><input class="proj-fi" type="number" value="${projEsc(String(i.atual||''))}" onchange="projUpdateIndicador(${idx},'atual',this.value)" placeholder="Atual"><select class="proj-fi" onchange="projUpdateIndicador(${idx},'status',this.value)"><option ${i.status==='Em acompanhamento'?'selected':''}>Em acompanhamento</option><option ${i.status==='Atingido'?'selected':''}>Atingido</option><option ${i.status==='Atenção'?'selected':''}>Atenção</option></select><button type="button" class="proj-btn danger" onclick="projRemoveIndicador(${idx})">×</button></div>`).join(''):'<div style="font-size:12px;color:#8893a7">Nenhum indicador registrado para este projeto.</div>'}<div><button type="button" class="proj-btn primary" style="font-size:11px;padding:5px 12px" onclick="projAddIndicador()">+ Indicador</button></div></div>`;}
+function projRenderDashV9(){const all=(_projetos||[]).filter(p=>p.status==='ativo');const cur=projGetDashFiltro();const opts={patrocinador:projOptionsFromProjetos(all,p=>projDimensoesProjeto(p).patrocinador),objetivo:projOptionsFromProjetos(all,p=>projDimensoesProjeto(p).objetivo),macro:projOptionsFromProjetos(all,p=>projDimensoesProjeto(p).macro),divisao:projOptionsFromProjetos(all,p=>projDimensoesProjeto(p).divisao)};const sel=(id,label,arr,val)=>`<div class="proj-fg" style="margin:0"><label class="proj-fl">${label}</label><select class="proj-fi" id="${id}" onchange="projRenderDashV9()"><option value="">Todos</option>${arr.map(v=>`<option value="${projEsc(v)}" ${v===val?'selected':''}>${projEsc(v)}</option>`).join('')}</select></div>`;const filtrados=projFiltrarProjetosV9(all);const filtrosEl=document.getElementById('proj-dash-filtros');if(filtrosEl)filtrosEl.innerHTML=`<div class="proj-v9-filter-card"><div class="proj-card-t">Filtros</div><div class="proj-v9-filter-grid">${sel('proj-f-patrocinador','Patrocinador',opts.patrocinador,cur.patrocinador)}${sel('proj-f-objetivo','Objetivo Estratégico',opts.objetivo,cur.objetivo)}${sel('proj-f-macro','Macroprocesso',opts.macro,cur.macro)}${sel('proj-f-divisao','Divisão',opts.divisao,cur.divisao)}</div></div>`;const alertasEl=document.getElementById('proj-dash-alertas');if(alertasEl){const comAtraso=filtrados.map(p=>({p,tarefas:projTarefasAtrasadasProjeto(p)})).filter(x=>x.tarefas.length);alertasEl.innerHTML=`<div class="proj-v9-alert-card"><div class="proj-card-t">Painel de Alertas</div>${comAtraso.length?comAtraso.map(({p,tarefas})=>`<div class="proj-v9-alert-project"><div style="display:flex;justify-content:space-between;gap:10px"><strong>${projIconHtml(p)} ${projEsc(p.nome)}</strong><span style="font-size:11px;color:#dc2626;font-weight:800">${tarefas.length} atrasada(s)</span></div>${tarefas.slice(0,6).map(t=>`<div class="proj-v9-alert-task"><span>${projEsc(t.nome)}</span><span>${projEsc(t.responsavel||'')}</span><strong>${projFormatDate(t.dt_fim)}</strong></div>`).join('')}</div>`).join(''):'<div style="font-size:12px;color:var(--ink3)">Nenhum projeto com tarefas atrasadas nos filtros atuais.</div>'}</div>`;}const graficosEl=document.getElementById('proj-dash-graficos');if(graficosEl){const indTotal=filtrados.reduce((acc,p)=>acc+(p.execucao?.indicadores||[]).length,0);graficosEl.innerHTML=`<div class="proj-v9-chart-card"><div class="proj-card-t">Dashboard Executivo</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><div><strong>${filtrados.length}</strong><span> Projetos</span></div><div><strong>${Math.round(filtrados.reduce((a,p)=>a+(p.percentual||0),0)/(filtrados.length||1))}%</strong><span> Média</span></div><div><strong>${indTotal}</strong><span> Indicadores</span></div><div><strong>${filtrados.filter(p=>projTarefasAtrasadasProjeto(p).length).length}</strong><span> Com atraso</span></div></div></div><div class="proj-v9-chart-grid">${projChartBars('Projetos por Subprocesso',projGroupCount(filtrados,p=>p.subprocesso||p.nome))}${projChartBars('Projetos por Patrocinador',projGroupCount(filtrados,p=>p.patrocinador))}${projChartBars('Projetos por Indicadores',projGroupCount(filtrados,p=>(p.execucao?.indicadores||[]).length?'Com indicadores':'Sem indicadores'))}</div>`;}}
+function projRenderIndicadoresExecucao(p){const inds=p.execucao?.indicadores||[];return `<div style="display:flex;flex-direction:column;gap:8px">${inds.length?inds.map((i,idx)=>`<div class="proj-v9-ind-grid"><input class="proj-fi" value="${projEsc(i.nome||'')}" onchange="projUpdateIndicador(${idx},'nome',this.value)" placeholder="Indicador"><input class="proj-fi" type="number" value="${projEsc(String(i.meta||''))}" onchange="projUpdateIndicador(${idx},'meta',this.value)" placeholder="Meta"><input class="proj-fi" type="number" value="${projEsc(String(i.atual||''))}" onchange="projUpdateIndicador(${idx},'atual',this.value)" placeholder="Atual"><select class="proj-fi" onchange="projUpdateIndicador(${idx},'status',this.value)"><option ${i.status==='Em acompanhamento'?'selected':''}>Em acompanhamento</option><option ${i.status==='Atingido'?'selected':''}>Atingido</option><option ${i.status==='Atenção'?'selected':''}>Atenção</option></select><button type="button" class="proj-btn danger" onclick="projRemoveIndicador(${idx})">×</button></div>`).join(''):'<div style="font-size:12px;color:var(--ink3)">Nenhum indicador registrado para este projeto.</div>'}<div><button type="button" class="proj-btn primary" style="font-size:11px;padding:5px 12px" onclick="projAddIndicador()">+ Indicador</button></div></div>`;}
 function projAddIndicador(){projLoad();const proj=_projetos.find(p=>String(p.id)===_projCurrentId);if(!proj)return;if(!proj.execucao)proj.execucao={planner_link:'',percentual:0,reunioes:[],tarefas:[]};if(!proj.execucao.indicadores)proj.execucao.indicadores=[];proj.execucao.indicadores.push({nome:'Novo indicador',meta:'',atual:'',status:'Em acompanhamento'});projSave();projDetalheTab('execucao',document.querySelector('#proj-detalhe-tabs .proj-tab:nth-child(4)'));}
 function projUpdateIndicador(idx,field,value){projLoad();const proj=_projetos.find(p=>String(p.id)===_projCurrentId);if(!proj?.execucao?.indicadores?.[idx])return;proj.execucao.indicadores[idx][field]=value;projSave();}
 function projRemoveIndicador(idx){projLoad();const proj=_projetos.find(p=>String(p.id)===_projCurrentId);if(!proj?.execucao?.indicadores)return;proj.execucao.indicadores.splice(idx,1);projSave();projDetalheTab('execucao',document.querySelector('#proj-detalhe-tabs .proj-tab:nth-child(4)'));}
@@ -13084,7 +13084,7 @@ function projExportCronogramaXLSX(){projLoad();const proj=_projetos.find(p=>Stri
 function projUploadConclusaoImagens(inputEl){const files=Array.from(inputEl.files||[]);if(!files.length)return;projLoad();const proj=_projetos.find(p=>String(p.id)===_projCurrentId);if(!proj)return;if(!proj.conclusao)proj.conclusao={};if(!proj.conclusao.imagens)proj.conclusao.imagens=[];let pending=files.length;files.forEach(file=>{if(!file.type.startsWith('image/')){pending--;return;}const reader=new FileReader();reader.onload=e=>{proj.conclusao.imagens.push({nome:file.name,data:e.target.result});pending--;if(pending<=0){projSave();projDetalheTab('conclusao',document.querySelector('#proj-detalhe-tabs .proj-tab:nth-child(5)'));}};reader.readAsDataURL(file);});}
 function projRemoveConclusaoImagem(idx){projLoad();const proj=_projetos.find(p=>String(p.id)===_projCurrentId);if(!proj?.conclusao?.imagens)return;proj.conclusao.imagens.splice(idx,1);projSave();projDetalheTab('conclusao',document.querySelector('#proj-detalhe-tabs .proj-tab:nth-child(5)'));}
 function projRenderStatusReport(){projLoad();progLoad();const el=document.getElementById('proj-status-report-content');if(!el)return;const ativos=_projetos.filter(p=>p.status==='ativo');const grupos={};ativos.forEach(p=>{const g=projProgramaNome(p);if(!grupos[g])grupos[g]=[];grupos[g].push(p);});el.innerHTML=`<div class="proj-ib proj-ib-blue">Status Report Executivo agrupado por programa. O campo abaixo de cada projeto será usado como <strong>Sumário Executivo</strong> no PDF.</div><div class="proj-status-grid">${Object.entries(grupos).map(([prog,items])=>`<div><div class="proj-v9-program-title">${projEsc(prog)}</div>${items.map(p=>{const pct=Math.max(0,Math.min(100,p.percentual||0));return `<div class="proj-status-card"><div class="proj-status-head"><div class="proj-status-icon">${p.icone_url?`<img src="${projEsc(p.icone_url)}" alt="">`:projEsc(p.icone_emoji||'▣')}</div><div style="flex:1"><div class="proj-status-name">${projEsc(p.nome)}</div><div class="proj-status-meta">Patrocinador: ${projEsc(p.patrocinador||'Não informado')} · Gerente: ${projEsc(p.gerente||'Não informado')}</div></div><div class="proj-status-pct">${pct}%</div></div><div class="proj-status-bar"><div style="width:${pct}%"></div></div><div class="proj-fg" style="margin:.8rem 0 0"><label class="proj-fl">Sumário Executivo</label><textarea class="proj-fi proj-status-note" data-proj-id="${projEsc(String(p.id))}" rows="3" onchange="projSalvarStatusReportObs('${projEsc(String(p.id))}',this.value)">${projEsc(p.status_report_obs||'')}</textarea></div></div>`;}).join('')}</div>`).join('')}</div>`;}
-function projBuildStatusReportHTML(){progLoad();const ativos=_projetos.filter(p=>p.status==='ativo');const data=new Date().toLocaleDateString('pt-BR');const grupos={};ativos.forEach(p=>{const g=projProgramaNome(p);if(!grupos[g])grupos[g]=[];grupos[g].push(p);});const groupsHtml=Object.entries(grupos).map(([prog,items])=>`<h2 class="sr-program">${projEsc(prog)}</h2>${items.map(p=>{const pct=Math.max(0,Math.min(100,p.percentual||0));const obs=projEsc(p.status_report_obs||'Sem sumário executivo registrado.').replace(/\n/g,'<br>');return `<section class="sr-card"><div class="sr-card-main"><div class="sr-title-row"><div class="sr-icon">${p.icone_url?`<img src="${projEsc(p.icone_url)}" alt="">`:projEsc(p.icone_emoji||'▣')}</div><div><h3>${projEsc(p.nome)}</h3><div class="sr-sub">Projeto em andamento · ${projEsc(projFaseText(p))}</div></div><div class="sr-pct">${pct}%</div></div><div class="sr-progress"><div style="width:${pct}%"></div></div><div class="sr-info"><div><span>Patrocinador</span>${projEsc(p.patrocinador||'Não informado')}</div><div><span>Gerente</span>${projEsc(p.gerente||'Não informado')}</div><div><span>Gerente substituto</span>${projEsc(p.gerente_substituto||'Não informado')}</div><div><span>% de conclusão</span>${pct}%</div></div></div><aside class="sr-note"><span>Sumário Executivo</span><p>${obs}</p></aside></section>`}).join('')}`).join('');return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Status Report Executivo</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#1a2540;margin:0;background:#fff}.sr-cover{border-left:8px solid #00599c;padding:18px 22px;margin-bottom:18px;background:linear-gradient(90deg,#eaf4ff,#fff)}.sr-brand{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#00599c}.sr-brand b{color:#00a89a}.sr-cover h1{margin:4px 0;font-size:26px;color:#0f2746}.sr-date{font-size:12px;color:#5f6b80}.sr-summary{display:flex;gap:10px;margin-bottom:16px}.sr-chip{border:1px solid #d9e5f5;border-radius:8px;padding:8px 12px;font-size:12px;background:#f8fbff}.sr-chip strong{font-size:18px;color:#00599c;display:block}.sr-program{font-size:16px;color:#00599c;border-bottom:2px solid #00a89a;padding-bottom:5px;margin:18px 0 10px}.sr-card{display:grid;grid-template-columns:1.45fr .9fr;gap:14px;border:1px solid #d9e2ef;border-radius:10px;padding:14px;margin-bottom:12px;break-inside:avoid}.sr-title-row{display:flex;align-items:center;gap:10px}.sr-icon{width:36px;height:36px;border-radius:9px;background:#e8f0ff;display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden}.sr-icon img{width:100%;height:100%;object-fit:cover}h3{font-size:15px;margin:0;color:#0f2746}.sr-sub{font-size:10.5px;color:#6b7588;margin-top:2px}.sr-pct{margin-left:auto;font-size:24px;font-weight:800;color:#00a89a}.sr-progress{height:7px;border-radius:99px;background:#e7edf5;overflow:hidden;margin:12px 0}.sr-progress div{height:100%;background:linear-gradient(90deg,#00599c,#00c4b4)}.sr-info{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sr-info div{font-size:12px;border-top:1px solid #edf2f7;padding-top:6px}.sr-info span,.sr-note span{display:block;font-size:9px;color:#00599c;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}.sr-note{border-left:3px solid #f59e0b;padding-left:12px}.sr-note p{font-size:12px;line-height:1.45;margin:0;color:#334155}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header class="sr-cover"><div class="sr-brand">CAGE-RS · <b>Escritório de Projetos e Processos</b></div><h1>Status Report Executivo</h1><div class="sr-date">Emitido em ${data}</div></header><div class="sr-summary"><div class="sr-chip"><strong>${ativos.length}</strong>Projetos em andamento</div><div class="sr-chip"><strong>${ativos.length?Math.round(ativos.reduce((a,p)=>a+(p.percentual||0),0)/ativos.length):0}%</strong>Média de conclusão</div><div class="sr-chip"><strong>${Object.keys(grupos).length}</strong>Programas</div></div>${groupsHtml||'<div>Nenhum projeto em andamento encontrado.</div>'}<script>setTimeout(function(){window.print();},350);<\/script></body></html>`;}// ── Init ao carregar ──────────────────────────────────────────────
+function projBuildStatusReportHTML(){progLoad();const ativos=_projetos.filter(p=>p.status==='ativo');const data=new Date().toLocaleDateString('pt-BR');const grupos={};ativos.forEach(p=>{const g=projProgramaNome(p);if(!grupos[g])grupos[g]=[];grupos[g].push(p);});const groupsHtml=Object.entries(grupos).map(([prog,items])=>`<h2 class="sr-program">${projEsc(prog)}</h2>${items.map(p=>{const pct=Math.max(0,Math.min(100,p.percentual||0));const obs=projEsc(p.status_report_obs||'Sem sumário executivo registrado.').replace(/\n/g,'<br>');return `<section class="sr-card"><div class="sr-card-main"><div class="sr-title-row"><div class="sr-icon">${p.icone_url?`<img src="${projEsc(p.icone_url)}" alt="">`:projEsc(p.icone_emoji||'▣')}</div><div><h3>${projEsc(p.nome)}</h3><div class="sr-sub">Projeto em andamento · ${projEsc(projFaseText(p))}</div></div><div class="sr-pct">${pct}%</div></div><div class="sr-progress"><div style="width:${pct}%"></div></div><div class="sr-info"><div><span>Patrocinador</span>${projEsc(p.patrocinador||'Não informado')}</div><div><span>Gerente</span>${projEsc(p.gerente||'Não informado')}</div><div><span>Gerente substituto</span>${projEsc(p.gerente_substituto||'Não informado')}</div><div><span>% de conclusão</span>${pct}%</div></div></div><aside class="sr-note"><span>Sumário Executivo</span><p>${obs}</p></aside></section>`}).join('')}`).join('');return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Status Report Executivo</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#1a2540;margin:0;background:#fff}.sr-cover{border-left:8px solid var(--blue);padding:18px 22px;margin-bottom:18px;background:linear-gradient(90deg,#eaf4ff,#fff)}.sr-brand{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--blue)}.sr-brand b{color:#00a89a}.sr-cover h1{margin:4px 0;font-size:26px;color:#0f2746}.sr-date{font-size:12px;color:#5f6b80}.sr-summary{display:flex;gap:10px;margin-bottom:16px}.sr-chip{border:1px solid #d9e5f5;border-radius:8px;padding:8px 12px;font-size:12px;background:#f8fbff}.sr-chip strong{font-size:18px;color:var(--blue);display:block}.sr-program{font-size:16px;color:var(--blue);border-bottom:2px solid #00a89a;padding-bottom:5px;margin:18px 0 10px}.sr-card{display:grid;grid-template-columns:1.45fr .9fr;gap:14px;border:1px solid #d9e2ef;border-radius:10px;padding:14px;margin-bottom:12px;break-inside:avoid}.sr-title-row{display:flex;align-items:center;gap:10px}.sr-icon{width:36px;height:36px;border-radius:9px;background:var(--blue-l);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden}.sr-icon img{width:100%;height:100%;object-fit:cover}h3{font-size:15px;margin:0;color:#0f2746}.sr-sub{font-size:10.5px;color:#6b7588;margin-top:2px}.sr-pct{margin-left:auto;font-size:24px;font-weight:800;color:#00a89a}.sr-progress{height:7px;border-radius:99px;background:#e7edf5;overflow:hidden;margin:12px 0}.sr-progress div{height:100%;background:linear-gradient(90deg,var(--blue),var(--teal))}.sr-info{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sr-info div{font-size:12px;border-top:1px solid #edf2f7;padding-top:6px}.sr-info span,.sr-note span{display:block;font-size:9px;color:var(--blue);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}.sr-note{border-left:3px solid #f59e0b;padding-left:12px}.sr-note p{font-size:12px;line-height:1.45;margin:0;color:#334155}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header class="sr-cover"><div class="sr-brand">CAGE-RS · <b>Escritório de Projetos e Processos</b></div><h1>Status Report Executivo</h1><div class="sr-date">Emitido em ${data}</div></header><div class="sr-summary"><div class="sr-chip"><strong>${ativos.length}</strong>Projetos em andamento</div><div class="sr-chip"><strong>${ativos.length?Math.round(ativos.reduce((a,p)=>a+(p.percentual||0),0)/ativos.length):0}%</strong>Média de conclusão</div><div class="sr-chip"><strong>${Object.keys(grupos).length}</strong>Programas</div></div>${groupsHtml||'<div>Nenhum projeto em andamento encontrado.</div>'}<script>setTimeout(function(){window.print();},350);<\/script></body></html>`;}// ── Init ao carregar ──────────────────────────────────────────────
 // ── Ajustes v9.1: indicadores, memorial e report executivo ───────
 const PROJ_CAGE_REPORT_LOGO = 'file:///C:/Users/ewwoy/OneDrive/Imagens/04091256_2280_GD.png';
 
@@ -13212,8 +13212,8 @@ function projChartBars(title, items, opts) {
       const open = !!window._projDashOpenGroups[chartKey + ':' + idx];
       const width = typeof i.widthPct === 'number' ? Math.max(2, Math.min(100, i.widthPct)) : Math.max(6, Math.round((i.count||0)/max*100));
       const value = i.displayValue || i.count || 0;
-      return `<div class="proj-v9-bar-row" title="${projEsc(tip)}" onclick="projToggleDashGroup('${chartKey}',${idx})"><span title="${projEsc(tip)}">${projEsc(i.label)}</span><div class="proj-v9-bar"><div style="width:${width}%"></div></div><strong>${projEsc(value)}</strong>${open ? `<div class="proj-v10-chart-projects">${projDashProjectList(i.projectObjs||[]) || '<span style="font-size:10.5px;color:#8893a7">Sem projetos vinculados.</span>'}</div>` : ''}</div>`;
-    }).join('') : '<div style="font-size:12px;color:#8893a7">Sem dados.</div>'
+      return `<div class="proj-v9-bar-row" title="${projEsc(tip)}" onclick="projToggleDashGroup('${chartKey}',${idx})"><span title="${projEsc(tip)}">${projEsc(i.label)}</span><div class="proj-v9-bar"><div style="width:${width}%"></div></div><strong>${projEsc(value)}</strong>${open ? `<div class="proj-v10-chart-projects">${projDashProjectList(i.projectObjs||[]) || '<span style="font-size:10.5px;color:var(--ink3)">Sem projetos vinculados.</span>'}</div>` : ''}</div>`;
+    }).join('') : '<div style="font-size:12px;color:var(--ink3)">Sem dados.</div>'
   }${unlinkedHtml}</div></div>`;
 }
 
@@ -13268,8 +13268,8 @@ function projIndicadoresMetaChart(rows) {
       const pctReal = meta ? (atual / meta) * 100 : 0;
       const pct = Math.max(0, Math.min(100, pctReal));
       const pctLabel = meta ? Math.round(pctReal) : 0;
-      return `<div class="proj-v9-meta-row" title="${projEsc(r.p.nome)}: ${atual} / ${meta}"><div class="proj-v9-meta-name">${projEsc(r.ind.nome||'Indicador')}<div style="font-size:10.5px;color:#8893a7">${projEsc(r.p.nome||'')}</div></div><div class="proj-v9-meta-wrap"><div class="proj-v9-meta-target">${projEsc(meta)}</div><div class="proj-v9-meta-track"><div class="proj-v9-meta-fill" style="width:${pct}%"></div></div><div class="proj-v9-meta-current" style="left:${pct}%">${projEsc(atual)}</div><div class="proj-v9-meta-pct">${pctLabel}%</div></div></div>`;
-    }).join('') : '<div style="font-size:12px;color:#8893a7">Nenhum indicador encontrado para os filtros atuais.</div>'
+      return `<div class="proj-v9-meta-row" title="${projEsc(r.p.nome)}: ${atual} / ${meta}"><div class="proj-v9-meta-name">${projEsc(r.ind.nome||'Indicador')}<div style="font-size:10.5px;color:var(--ink3)">${projEsc(r.p.nome||'')}</div></div><div class="proj-v9-meta-wrap"><div class="proj-v9-meta-target">${projEsc(meta)}</div><div class="proj-v9-meta-track"><div class="proj-v9-meta-fill" style="width:${pct}%"></div></div><div class="proj-v9-meta-current" style="left:${pct}%">${projEsc(atual)}</div><div class="proj-v9-meta-pct">${pctLabel}%</div></div></div>`;
+    }).join('') : '<div style="font-size:12px;color:var(--ink3)">Nenhum indicador encontrado para os filtros atuais.</div>'
   }</div></div>`;
 }
 
@@ -13291,7 +13291,7 @@ function projRenderDashV9() {
   const alertasEl = document.getElementById('proj-dash-alertas');
   if(alertasEl) {
     const comAtraso = filtrados.map(p => ({ p, tarefas:projTarefasAtrasadasProjeto(p) })).filter(x => x.tarefas.length);
-    alertasEl.innerHTML = `<div class="proj-v9-alert-card"><div class="proj-card-t">Painel de Alertas</div>${comAtraso.length ? comAtraso.map(({p,tarefas}) => `<div class="proj-v9-alert-project"><div style="display:flex;justify-content:space-between;gap:10px"><strong>${projIconHtml(p)} ${projEsc(p.nome)}</strong><span style="font-size:11px;color:#dc2626;font-weight:800">${tarefas.length} atrasada(s)</span></div>${tarefas.slice(0,6).map(t => `<div class="proj-v9-alert-task"><span>${projEsc(t.nome)}</span><span>${projEsc(t.responsavel||'')}</span><strong>${projFormatDate(t.dt_fim)}</strong></div>`).join('')}</div>`).join('') : '<div style="font-size:12px;color:#8893a7">Nenhum projeto com tarefas atrasadas nos filtros atuais.</div>'}</div>`;
+    alertasEl.innerHTML = `<div class="proj-v9-alert-card"><div class="proj-card-t">Painel de Alertas</div>${comAtraso.length ? comAtraso.map(({p,tarefas}) => `<div class="proj-v9-alert-project"><div style="display:flex;justify-content:space-between;gap:10px"><strong>${projIconHtml(p)} ${projEsc(p.nome)}</strong><span style="font-size:11px;color:#dc2626;font-weight:800">${tarefas.length} atrasada(s)</span></div>${tarefas.slice(0,6).map(t => `<div class="proj-v9-alert-task"><span>${projEsc(t.nome)}</span><span>${projEsc(t.responsavel||'')}</span><strong>${projFormatDate(t.dt_fim)}</strong></div>`).join('')}</div>`).join('') : '<div style="font-size:12px;color:var(--ink3)">Nenhum projeto com tarefas atrasadas nos filtros atuais.</div>'}</div>`;
   }
 
   const graficosEl = document.getElementById('proj-dash-graficos');
@@ -13299,8 +13299,8 @@ function projRenderDashV9() {
     const inds = projIndicadoresLista(filtrados);
     const macrosSemProjeto = projUnlinkedValues(_macroprocessos, all, p => projDimensoesProjeto(p).macros);
     const objetivosSemProjeto = projUnlinkedValues(_objetivosEstrategicos, all, p => projDimensoesProjeto(p).objetivos);
-    const indResumo = inds.slice(0,8).map(({p,ind}) => `<div class="proj-v9-mini-ind"><div><strong>${projEsc(ind.nome||'Indicador')}</strong><div style="font-size:11px;color:#8893a7">${projEsc(p.nome)}</div></div><div>${projEsc(projIndicadorResumo(ind))}</div></div>`).join('');
-    graficosEl.innerHTML = `<div class="proj-v9-chart-card"><div class="proj-card-t">Resumo de Indicadores</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><div><strong>${filtrados.length}</strong><span> Projetos</span></div><div><strong>${Math.round(filtrados.reduce((a,p)=>a+(p.percentual||0),0)/(filtrados.length||1))}%</strong><span> Média</span></div><div><strong>${inds.length}</strong><span> Indicadores</span></div><div><strong>${filtrados.filter(p=>projTarefasAtrasadasProjeto(p).length).length}</strong><span> Com atraso</span></div></div>${indResumo ? `<div class="proj-v9-mini-list">${indResumo}</div>` : '<div style="font-size:12px;color:#8893a7;margin-top:.7rem">Nenhum indicador cadastrado nos filtros atuais.</div>'}</div><div class="proj-v9-chart-grid">${projChartBars('Projetos por Macroprocesso', projGroupCountWithProjects(filtrados, p => projDimensoesProjeto(p).macros), {unlinkedLabel:'Ver Macroprocessos sem Projeto vinculado', unlinkedItems:macrosSemProjeto, unlinkedKey:'macroprocessos-sem-projeto'})}${projChartBars('Projetos por Objetivo Estratégico', projGroupCountWithProjects(filtrados, p => projDimensoesProjeto(p).objetivos), {unlinkedLabel:'Ver Objetivos Estratégicos sem Projeto vinculado', unlinkedItems:objetivosSemProjeto, unlinkedKey:'objetivos-sem-projeto'})}${projChartBars('Projetos por Patrocinador', projGroupCountWithProjects(filtrados, p => projDimensoesProjeto(p).patrocinador))}${projChartBars('Projetos por Indicadores', projIndicadoresDashItems(inds))}</div>`;
+    const indResumo = inds.slice(0,8).map(({p,ind}) => `<div class="proj-v9-mini-ind"><div><strong>${projEsc(ind.nome||'Indicador')}</strong><div style="font-size:11px;color:var(--ink3)">${projEsc(p.nome)}</div></div><div>${projEsc(projIndicadorResumo(ind))}</div></div>`).join('');
+    graficosEl.innerHTML = `<div class="proj-v9-chart-card"><div class="proj-card-t">Resumo de Indicadores</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><div><strong>${filtrados.length}</strong><span> Projetos</span></div><div><strong>${Math.round(filtrados.reduce((a,p)=>a+(p.percentual||0),0)/(filtrados.length||1))}%</strong><span> Média</span></div><div><strong>${inds.length}</strong><span> Indicadores</span></div><div><strong>${filtrados.filter(p=>projTarefasAtrasadasProjeto(p).length).length}</strong><span> Com atraso</span></div></div>${indResumo ? `<div class="proj-v9-mini-list">${indResumo}</div>` : '<div style="font-size:12px;color:var(--ink3);margin-top:.7rem">Nenhum indicador cadastrado nos filtros atuais.</div>'}</div><div class="proj-v9-chart-grid">${projChartBars('Projetos por Macroprocesso', projGroupCountWithProjects(filtrados, p => projDimensoesProjeto(p).macros), {unlinkedLabel:'Ver Macroprocessos sem Projeto vinculado', unlinkedItems:macrosSemProjeto, unlinkedKey:'macroprocessos-sem-projeto'})}${projChartBars('Projetos por Objetivo Estratégico', projGroupCountWithProjects(filtrados, p => projDimensoesProjeto(p).objetivos), {unlinkedLabel:'Ver Objetivos Estratégicos sem Projeto vinculado', unlinkedItems:objetivosSemProjeto, unlinkedKey:'objetivos-sem-projeto'})}${projChartBars('Projetos por Patrocinador', projGroupCountWithProjects(filtrados, p => projDimensoesProjeto(p).patrocinador))}${projChartBars('Projetos por Indicadores', projIndicadoresDashItems(inds))}</div>`;
   }
 }
 
@@ -13317,7 +13317,7 @@ function projRenderIndicadoresPage() {
   const projetosOpts = projetos.map(p => `<option value="${projEsc(String(p.id))}" ${String(p.id)===fProj?'selected':''}>${projEsc(p.nome)}</option>`).join('');
   const macroOpts = projOptionsFromProjetos(projetos, p => projDimensoesProjeto(p).macros).map(v => `<option value="${projEsc(v)}" ${v===fArea?'selected':''}>${projEsc(v)}</option>`).join('');
   const chart = projIndicadoresMetaChart(rows);
-  const table = rows.length ? `<table class="proj-v9-table"><thead><tr><th>Projeto</th><th>Indicador</th><th>Meta</th><th>Resultado</th><th>Unidade</th><th></th></tr></thead><tbody>${rows.map(r => `<tr><td>${projEsc(r.p.nome)}</td><td><input class="proj-fi" value="${projEsc(r.ind.nome||'')}" onchange="projUpdateIndicadorGlobal('${projEsc(String(r.p.id))}',${r.idx},'nome',this.value)"></td><td><input class="proj-fi" type="number" step="0.01" value="${projEsc(r.ind.meta||'')}" onchange="projUpdateIndicadorGlobal('${projEsc(String(r.p.id))}',${r.idx},'meta',this.value)"></td><td><input class="proj-fi" type="number" step="0.01" value="${projEsc(r.ind.resultado ?? r.ind.atual ?? '')}" onchange="projUpdateIndicadorGlobal('${projEsc(String(r.p.id))}',${r.idx},'resultado',this.value)"></td><td><input class="proj-fi" value="${projEsc(r.ind.unidade||'')}" onchange="projUpdateIndicadorGlobal('${projEsc(String(r.p.id))}',${r.idx},'unidade',this.value)"></td><td><button type="button" class="proj-btn danger" style="font-size:11px;padding:4px 8px" onclick="projRemoveIndicadorGlobal('${projEsc(String(r.p.id))}',${r.idx})">Remover</button></td></tr>`).join('')}</tbody></table>` : '<div class="proj-v9-chart-card" style="font-size:12px;color:#8893a7">Nenhum indicador encontrado para os filtros atuais.</div>';
+  const table = rows.length ? `<table class="proj-v9-table"><thead><tr><th>Projeto</th><th>Indicador</th><th>Meta</th><th>Resultado</th><th>Unidade</th><th></th></tr></thead><tbody>${rows.map(r => `<tr><td>${projEsc(r.p.nome)}</td><td><input class="proj-fi" value="${projEsc(r.ind.nome||'')}" onchange="projUpdateIndicadorGlobal('${projEsc(String(r.p.id))}',${r.idx},'nome',this.value)"></td><td><input class="proj-fi" type="number" step="0.01" value="${projEsc(r.ind.meta||'')}" onchange="projUpdateIndicadorGlobal('${projEsc(String(r.p.id))}',${r.idx},'meta',this.value)"></td><td><input class="proj-fi" type="number" step="0.01" value="${projEsc(r.ind.resultado ?? r.ind.atual ?? '')}" onchange="projUpdateIndicadorGlobal('${projEsc(String(r.p.id))}',${r.idx},'resultado',this.value)"></td><td><input class="proj-fi" value="${projEsc(r.ind.unidade||'')}" onchange="projUpdateIndicadorGlobal('${projEsc(String(r.p.id))}',${r.idx},'unidade',this.value)"></td><td><button type="button" class="proj-btn danger" style="font-size:11px;padding:4px 8px" onclick="projRemoveIndicadorGlobal('${projEsc(String(r.p.id))}',${r.idx})">Remover</button></td></tr>`).join('')}</tbody></table>` : '<div class="proj-v9-chart-card" style="font-size:12px;color:var(--ink3)">Nenhum indicador encontrado para os filtros atuais.</div>';
   el.innerHTML = `<div class="proj-v9-filter-card"><div class="proj-card-t">Filtros e edição</div><div class="proj-v9-filter-grid"><div class="proj-fg" style="margin:0"><label class="proj-fl">Projeto</label><select class="proj-fi" id="proj-ind-filter-proj" onchange="projRenderIndicadoresPage()"><option value="">Todos</option>${projetosOpts}</select></div><div class="proj-fg" style="margin:0"><label class="proj-fl">Macroprocesso</label><select class="proj-fi" id="proj-ind-filter-area" onchange="projRenderIndicadoresPage()"><option value="">Todos</option>${macroOpts}</select></div><div class="proj-fg" style="margin:0"><label class="proj-fl">Adicionar em projeto</label><select class="proj-fi" id="proj-ind-add-proj"><option value="">Selecione</option>${projetosOpts}</select></div><div style="display:flex;align-items:end"><button type="button" class="proj-btn primary" onclick="projAddIndicadorProjetoGlobal()">+ Indicador</button></div></div></div><div class="proj-v9-bi-grid"><div>${chart}</div><div class="proj-v9-chart-card"><div class="proj-card-t">Indicadores cadastrados</div>${table}</div></div>`;
 }
 
@@ -13382,7 +13382,7 @@ function projTabConclusao(p) {
   const conc = p.conclusao || {};
   const selectedSuccess = conc.tipo === 'sucesso';
   const selectedCancel = conc.tipo === 'cancelamento';
-  return `<div class="proj-form-section"><div class="proj-form-section-title">Fase 5: Conclusão</div><div class="proj-ib proj-ib-blue">Registre o encerramento oficial, o Memorial do Projeto, as notícias e os aprendizados.</div><div class="proj-fg"><label class="proj-fl">Tipo de Conclusão<span>*</span></label><div class="proj-conclusao-tipo"><div class="proj-conclusao-card ${selectedSuccess?'selected-success':''}" onclick="projSelecionarTipoConclusao('sucesso')"><div class="proj-conclusao-icon">OK</div><div class="proj-conclusao-label">Conclusão com Sucesso</div><div class="proj-conclusao-desc">Projeto entregue conforme planejado</div></div><div class="proj-conclusao-card ${selectedCancel?'selected-cancel':''}" onclick="projSelecionarTipoConclusao('cancelamento')"><div class="proj-conclusao-icon">X</div><div class="proj-conclusao-label">Cancelamento</div><div class="proj-conclusao-desc">Projeto encerrado sem conclusão das entregas</div></div></div></div><div class="proj-g2"><div class="proj-fg"><label class="proj-fl">Data de Conclusão/Cancelamento</label><input type="date" class="proj-fi" id="conc-data" value="${projEsc(conc.dt_conclusao||'')}"></div><div class="proj-fg"><label class="proj-fl">Link para o Termo de Aceite</label><input type="url" class="proj-fi" id="conc-termo" value="${projEsc(conc.link_termo_aceite||'')}" placeholder="https://..."></div></div><div class="proj-fg"><label class="proj-fl">História do Projeto</label><textarea class="proj-fi" id="conc-historia" rows="5" placeholder="Conte a história e trajetória do projeto, principais marcos, aprendizados...">${projEsc(conc.historia||'')}</textarea></div><div class="proj-fg"><label class="proj-fl">Links de Notícias / Resultados <span style="font-size:10px;color:#8893a7">(um por linha)</span></label><textarea class="proj-fi" id="conc-links" rows="3" placeholder="https://noticia1.gov.br&#10;https://noticia2.gov.br">${projEsc(conc.links_noticias||'')}</textarea></div><div class="proj-form-section" style="background:#fff;margin-top:1rem"><div class="proj-form-section-title">Anexos de Imagens do Memorial</div><div class="proj-fg"><input type="file" class="proj-fi" accept="image/*" multiple onchange="projUploadConclusaoImagens(this)">${(conc.imagens||[]).length ? `<div class="proj-v9-attach-grid">${(conc.imagens||[]).map((img,i)=>`<div><img src="${projEsc(img.data)}" alt="${projEsc(img.nome||'Imagem')}"><button type="button" class="proj-btn danger" style="font-size:10px;padding:2px 6px;margin-top:3px;width:100%" onclick="projRemoveConclusaoImagem(${i})">Remover</button></div>`).join('')}</div>` : '<div style="font-size:11px;color:#8893a7;margin-top:4px">Nenhuma imagem anexada.</div>'}</div></div><div class="proj-form-section" style="background:#f8fbff;margin-top:1rem"><div class="proj-form-section-title">Reunião de Lições Aprendidas</div><div class="proj-g2"><div class="proj-fg"><label class="proj-fl">Data da reunião</label><input type="date" class="proj-fi" id="conc-lic-data" value="${projEsc(conc.licoes_data||'')}"></div><div class="proj-fg"><label class="proj-fl">Participantes</label><input type="text" class="proj-fi" id="conc-lic-part" value="${projEsc(conc.licoes_participantes||'')}" placeholder="Nomes dos participantes"></div></div><div class="proj-g3"><div class="proj-fg"><label class="proj-fl">O que deu certo?</label><textarea class="proj-fi" id="conc-lic-certo" rows="4">${projEsc(conc.licoes_certo||'')}</textarea></div><div class="proj-fg"><label class="proj-fl">O que pode melhorar?</label><textarea class="proj-fi" id="conc-lic-melhorar" rows="4">${projEsc(conc.licoes_melhorar||'')}</textarea></div><div class="proj-fg"><label class="proj-fl">Sugestões / ideias</label><textarea class="proj-fi" id="conc-lic-ideias" rows="4">${projEsc(conc.licoes_ideias||'')}</textarea></div></div></div><div class="proj-btn-row"><button type="button" class="proj-btn teal" onclick="projSalvarConclusao()">Salvar</button>${p.status !== 'concluido' && p.status !== 'cancelado' ? `<button type="button" class="proj-btn primary" onclick="projFinalizarProjeto()">Encerrar Projeto</button>` : `<div style="font-size:12.5px;color:#00c4b4;font-weight:600;align-self:center">Projeto encerrado</div>`}</div></div>`;
+  return `<div class="proj-form-section"><div class="proj-form-section-title">Fase 5: Conclusão</div><div class="proj-ib proj-ib-blue">Registre o encerramento oficial, o Memorial do Projeto, as notícias e os aprendizados.</div><div class="proj-fg"><label class="proj-fl">Tipo de Conclusão<span>*</span></label><div class="proj-conclusao-tipo"><div class="proj-conclusao-card ${selectedSuccess?'selected-success':''}" onclick="projSelecionarTipoConclusao('sucesso')"><div class="proj-conclusao-icon">OK</div><div class="proj-conclusao-label">Conclusão com Sucesso</div><div class="proj-conclusao-desc">Projeto entregue conforme planejado</div></div><div class="proj-conclusao-card ${selectedCancel?'selected-cancel':''}" onclick="projSelecionarTipoConclusao('cancelamento')"><div class="proj-conclusao-icon">X</div><div class="proj-conclusao-label">Cancelamento</div><div class="proj-conclusao-desc">Projeto encerrado sem conclusão das entregas</div></div></div></div><div class="proj-g2"><div class="proj-fg"><label class="proj-fl">Data de Conclusão/Cancelamento</label><input type="date" class="proj-fi" id="conc-data" value="${projEsc(conc.dt_conclusao||'')}"></div><div class="proj-fg"><label class="proj-fl">Link para o Termo de Aceite</label><input type="url" class="proj-fi" id="conc-termo" value="${projEsc(conc.link_termo_aceite||'')}" placeholder="https://..."></div></div><div class="proj-fg"><label class="proj-fl">História do Projeto</label><textarea class="proj-fi" id="conc-historia" rows="5" placeholder="Conte a história e trajetória do projeto, principais marcos, aprendizados...">${projEsc(conc.historia||'')}</textarea></div><div class="proj-fg"><label class="proj-fl">Links de Notícias / Resultados <span style="font-size:10px;color:var(--ink3)">(um por linha)</span></label><textarea class="proj-fi" id="conc-links" rows="3" placeholder="https://noticia1.gov.br&#10;https://noticia2.gov.br">${projEsc(conc.links_noticias||'')}</textarea></div><div class="proj-form-section" style="background:#fff;margin-top:1rem"><div class="proj-form-section-title">Anexos de Imagens do Memorial</div><div class="proj-fg"><input type="file" class="proj-fi" accept="image/*" multiple onchange="projUploadConclusaoImagens(this)">${(conc.imagens||[]).length ? `<div class="proj-v9-attach-grid">${(conc.imagens||[]).map((img,i)=>`<div><img src="${projEsc(img.data)}" alt="${projEsc(img.nome||'Imagem')}"><button type="button" class="proj-btn danger" style="font-size:10px;padding:2px 6px;margin-top:3px;width:100%" onclick="projRemoveConclusaoImagem(${i})">Remover</button></div>`).join('')}</div>` : '<div style="font-size:11px;color:var(--ink3);margin-top:4px">Nenhuma imagem anexada.</div>'}</div></div><div class="proj-form-section" style="background:#f8fbff;margin-top:1rem"><div class="proj-form-section-title">Reunião de Lições Aprendidas</div><div class="proj-g2"><div class="proj-fg"><label class="proj-fl">Data da reunião</label><input type="date" class="proj-fi" id="conc-lic-data" value="${projEsc(conc.licoes_data||'')}"></div><div class="proj-fg"><label class="proj-fl">Participantes</label><input type="text" class="proj-fi" id="conc-lic-part" value="${projEsc(conc.licoes_participantes||'')}" placeholder="Nomes dos participantes"></div></div><div class="proj-g3"><div class="proj-fg"><label class="proj-fl">O que deu certo?</label><textarea class="proj-fi" id="conc-lic-certo" rows="4">${projEsc(conc.licoes_certo||'')}</textarea></div><div class="proj-fg"><label class="proj-fl">O que pode melhorar?</label><textarea class="proj-fi" id="conc-lic-melhorar" rows="4">${projEsc(conc.licoes_melhorar||'')}</textarea></div><div class="proj-fg"><label class="proj-fl">Sugestões / ideias</label><textarea class="proj-fi" id="conc-lic-ideias" rows="4">${projEsc(conc.licoes_ideias||'')}</textarea></div></div></div><div class="proj-btn-row"><button type="button" class="proj-btn teal" onclick="projSalvarConclusao()">Salvar</button>${p.status !== 'concluido' && p.status !== 'cancelado' ? `<button type="button" class="proj-btn primary" onclick="projFinalizarProjeto()">Encerrar Projeto</button>` : `<div style="font-size:12.5px;color:var(--teal);font-weight:600;align-self:center">Projeto encerrado</div>`}</div></div>`;
 }
 
 function projMemorialNewsEmbeds(conc) {
@@ -13396,7 +13396,7 @@ function projRenderMemorial(p) {
   const content = document.getElementById('proj-detalhe-content');
   if(!content) return;
   const licoes = [conc.licoes_data, conc.licoes_participantes, conc.licoes_certo, conc.licoes_melhorar, conc.licoes_ideias].some(Boolean);
-  const imgs = (conc.imagens||[]).length ? `<div class="proj-v9-attach-grid">${(conc.imagens||[]).map(img => `<a href="${projEsc(img.data)}" target="_blank"><img src="${projEsc(img.data)}" alt="${projEsc(img.nome||'Imagem do memorial')}"></a>`).join('')}</div>` : '<div style="font-size:12px;color:#8893a7">Nenhuma imagem anexada ao Memorial.</div>';
+  const imgs = (conc.imagens||[]).length ? `<div class="proj-v9-attach-grid">${(conc.imagens||[]).map(img => `<a href="${projEsc(img.data)}" target="_blank"><img src="${projEsc(img.data)}" alt="${projEsc(img.nome||'Imagem do memorial')}"></a>`).join('')}</div>` : '<div style="font-size:12px;color:var(--ink3)">Nenhuma imagem anexada ao Memorial.</div>';
   content.innerHTML = `<div class="proj-ph"><div><div class="proj-ph-t">Memorial do Projeto</div><div class="proj-ph-s">${projEsc(p.nome||'Projeto')}</div></div><button type="button" class="proj-btn" style="font-size:12px;padding:5px 11px" onclick="projGo('portfolio',document.getElementById('pnb-portfolio'))">Voltar ao Portfólio</button></div><div class="proj-form-section"><div class="proj-form-section-title">Informações Gerais</div><div class="proj-g3"><div><div class="proj-fl">Projeto</div><strong>${projEsc(p.nome||'')}</strong></div><div><div class="proj-fl">Patrocinador</div><strong>${projEsc(p.patrocinador||'Não informado')}</strong></div><div><div class="proj-fl">Gerente</div><strong>${projEsc(p.gerente||'Não informado')}</strong></div></div></div><div class="proj-form-section"><div class="proj-form-section-title">História do Projeto</div><div style="font-size:13px;color:#334155;line-height:1.7;white-space:pre-wrap">${projEsc(conc.historia||'História ainda não registrada.')}</div></div>${projMemorialNewsEmbeds(conc)}<div class="proj-form-section" style="margin-top:1rem"><div class="proj-form-section-title">Anexos de Imagens do Memorial</div>${imgs}</div>${licoes ? `<div class="proj-form-section" style="margin-top:1rem"><div class="proj-form-section-title">Lições Aprendidas</div><div class="proj-g2"><div><div class="proj-fl">Data da reunião</div><strong>${projFormatDate(conc.licoes_data)||'Não informada'}</strong></div><div><div class="proj-fl">Participantes</div><strong>${projEsc(conc.licoes_participantes||'Não informado')}</strong></div></div><div class="proj-g3" style="margin-top:1rem"><div><div class="proj-fl">O que deu certo?</div><div style="white-space:pre-wrap">${projEsc(conc.licoes_certo||'')}</div></div><div><div class="proj-fl">O que pode melhorar?</div><div style="white-space:pre-wrap">${projEsc(conc.licoes_melhorar||'')}</div></div><div><div class="proj-fl">Sugestões / ideias</div><div style="white-space:pre-wrap">${projEsc(conc.licoes_ideias||'')}</div></div></div></div>` : ''}`;
 }
 
@@ -13408,7 +13408,7 @@ function projBuildStatusReportHTML() {
   ativos.forEach(p => { const g = projProgramaNome(p); if(!grupos[g]) grupos[g] = []; grupos[g].push(p); });
   const media = ativos.length ? Math.round(ativos.reduce((a,p)=>a+(p.percentual||0),0)/ativos.length) : 0;
   const groupsHtml = Object.entries(grupos).map(([prog,items]) => `<h2 class="sr-program">${projEsc(prog)}</h2>${items.map(p => { const pct = Math.max(0,Math.min(100,p.percentual||0)); const obs = projEsc(p.status_report_obs||'Sem sumário executivo registrado.').replace(/\n/g,'<br>'); return `<section class="sr-card"><div class="sr-card-main"><div class="sr-title-row"><div><h3>${projEsc(p.nome)}</h3><div class="sr-sub">Projeto em andamento · ${projEsc(projFaseText(p))}</div></div><div class="sr-pct">${pct}%</div></div><div class="sr-progress"><div style="width:${pct}%"></div></div><div class="sr-info"><div><span>Patrocinador</span>${projEsc(p.patrocinador||'Não informado')}</div><div><span>Gerente</span>${projEsc(p.gerente||'Não informado')}</div><div><span>Gerente substituto</span>${projEsc(p.gerente_substituto||'Não informado')}</div><div><span>% de conclusão</span>${pct}%</div></div></div><aside class="sr-note"><span>Sumário Executivo</span><p>${obs}</p></aside></section>`; }).join('')}`).join('');
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Status Report Executivo</title><style>@page{size:A4;margin:13mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#172033;margin:0;background:#fff}.sr-cover{display:flex;align-items:center;justify-content:space-between;gap:22px;padding:18px 20px;margin-bottom:18px;border:1px solid #d8e6f5;border-left:8px solid #00599c;background:linear-gradient(90deg,#f5fbff,#fff)}.sr-logo{width:168px;max-height:62px;object-fit:contain}.sr-kicker{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#00599c}.sr-cover h1{margin:4px 0;font-size:27px;color:#0f2746}.sr-date{font-size:12px;color:#5f6b80}.sr-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}.sr-chip{border:1px solid #d9e5f5;border-radius:8px;padding:9px 12px;font-size:12px;background:#f8fbff}.sr-chip strong{font-size:20px;color:#00599c;display:block}.sr-program{font-size:16px;color:#00599c;border-bottom:2px solid #00c4b4;padding-bottom:5px;margin:18px 0 10px}.sr-card{display:grid;grid-template-columns:1.45fr .9fr;gap:14px;border:1px solid #d9e2ef;border-radius:10px;padding:14px;margin-bottom:12px;break-inside:avoid;background:#fff}.sr-title-row{display:flex;align-items:flex-start;gap:10px}.sr-title-row>div:first-child{flex:1}h3{font-size:15px;margin:0;color:#0f2746}.sr-sub{font-size:10.5px;color:#6b7588;margin-top:2px}.sr-pct{font-size:26px;font-weight:800;color:#00a89a}.sr-progress{height:7px;border-radius:99px;background:#e7edf5;overflow:hidden;margin:12px 0}.sr-progress div{height:100%;background:linear-gradient(90deg,#00599c,#00c4b4)}.sr-info{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sr-info div{font-size:12px;border-top:1px solid #edf2f7;padding-top:6px}.sr-info span,.sr-note span{display:block;font-size:9px;color:#00599c;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}.sr-note{border-left:3px solid #f59e0b;padding-left:12px}.sr-note p{font-size:12px;line-height:1.45;margin:0;color:#334155}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header class="sr-cover"><div><div class="sr-kicker">CAGE-RS · Escritório de Projetos e Processos</div><h1>Status Report Executivo</h1><div class="sr-date">Emitido em ${data}</div></div><img class="sr-logo" src="${PROJ_CAGE_REPORT_LOGO}" alt="CAGE"></header><div class="sr-summary"><div class="sr-chip"><strong>${ativos.length}</strong>Projetos em andamento</div><div class="sr-chip"><strong>${media}%</strong>Média de conclusão</div><div class="sr-chip"><strong>${Object.keys(grupos).length}</strong>Programas</div></div>${groupsHtml||'<div>Nenhum projeto em andamento encontrado.</div>'}<script>setTimeout(function(){window.print();},450);<\/script></body></html>`;
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Status Report Executivo</title><style>@page{size:A4;margin:13mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#172033;margin:0;background:#fff}.sr-cover{display:flex;align-items:center;justify-content:space-between;gap:22px;padding:18px 20px;margin-bottom:18px;border:1px solid #d8e6f5;border-left:8px solid var(--blue);background:linear-gradient(90deg,#f5fbff,#fff)}.sr-logo{width:168px;max-height:62px;object-fit:contain}.sr-kicker{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--blue)}.sr-cover h1{margin:4px 0;font-size:27px;color:#0f2746}.sr-date{font-size:12px;color:#5f6b80}.sr-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}.sr-chip{border:1px solid #d9e5f5;border-radius:8px;padding:9px 12px;font-size:12px;background:#f8fbff}.sr-chip strong{font-size:20px;color:var(--blue);display:block}.sr-program{font-size:16px;color:var(--blue);border-bottom:2px solid var(--teal);padding-bottom:5px;margin:18px 0 10px}.sr-card{display:grid;grid-template-columns:1.45fr .9fr;gap:14px;border:1px solid #d9e2ef;border-radius:10px;padding:14px;margin-bottom:12px;break-inside:avoid;background:#fff}.sr-title-row{display:flex;align-items:flex-start;gap:10px}.sr-title-row>div:first-child{flex:1}h3{font-size:15px;margin:0;color:#0f2746}.sr-sub{font-size:10.5px;color:#6b7588;margin-top:2px}.sr-pct{font-size:26px;font-weight:800;color:#00a89a}.sr-progress{height:7px;border-radius:99px;background:#e7edf5;overflow:hidden;margin:12px 0}.sr-progress div{height:100%;background:linear-gradient(90deg,var(--blue),var(--teal))}.sr-info{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sr-info div{font-size:12px;border-top:1px solid #edf2f7;padding-top:6px}.sr-info span,.sr-note span{display:block;font-size:9px;color:var(--blue);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}.sr-note{border-left:3px solid #f59e0b;padding-left:12px}.sr-note p{font-size:12px;line-height:1.45;margin:0;color:#334155}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header class="sr-cover"><div><div class="sr-kicker">CAGE-RS · Escritório de Projetos e Processos</div><h1>Status Report Executivo</h1><div class="sr-date">Emitido em ${data}</div></div><img class="sr-logo" src="${PROJ_CAGE_REPORT_LOGO}" alt="CAGE"></header><div class="sr-summary"><div class="sr-chip"><strong>${ativos.length}</strong>Projetos em andamento</div><div class="sr-chip"><strong>${media}%</strong>Média de conclusão</div><div class="sr-chip"><strong>${Object.keys(grupos).length}</strong>Programas</div></div>${groupsHtml||'<div>Nenhum projeto em andamento encontrado.</div>'}<script>setTimeout(function(){window.print();},450);<\/script></body></html>`;
 }
 
 // ── V10: Estratégia como fonte oficial ───────────────────────────
@@ -13481,8 +13481,8 @@ function projStrategyRelatedHtml(kind, values) {
   return `<div class="proj-v10-related"><div class="proj-v10-related-title">Projetos relacionados</div>${
     values.length ? values.map(v => {
       const ps = projProjetosRelacionados(kind, v);
-      return `<div class="proj-v10-related-group"><div class="proj-v10-related-name">${projEsc(v)} <span style="color:#8893a7;font-weight:700">(${ps.length})</span></div>${ps.length ? ps.map(p => `<a href="#" class="proj-v10-chart-project" onclick="event.preventDefault();projAbrirDetalhe('${projEsc(String(p.id))}', true)">${projIconHtml(p)}<span>${projEsc(p.nome||'Projeto sem nome')}</span></a>`).join('') : '<div style="font-size:11px;color:#8893a7">Nenhum projeto vinculado.</div>'}</div>`;
-    }).join('') : '<div style="font-size:12px;color:#8893a7">Nenhum item cadastrado.</div>'
+      return `<div class="proj-v10-related-group"><div class="proj-v10-related-name">${projEsc(v)} <span style="color:var(--ink3);font-weight:700">(${ps.length})</span></div>${ps.length ? ps.map(p => `<a href="#" class="proj-v10-chart-project" onclick="event.preventDefault();projAbrirDetalhe('${projEsc(String(p.id))}', true)">${projIconHtml(p)}<span>${projEsc(p.nome||'Projeto sem nome')}</span></a>`).join('') : '<div style="font-size:11px;color:var(--ink3)">Nenhum projeto vinculado.</div>'}</div>`;
+    }).join('') : '<div style="font-size:12px;color:var(--ink3)">Nenhum item cadastrado.</div>'
   }</div>`;
 }
 
@@ -13514,7 +13514,7 @@ function projPopulateVinculacoes() {
   var ms = document.getElementById('aprov-macro-sel');
   if(ms) ms.innerHTML = '<option value="">Selecione...</option>' + _macroprocessos.map(function(m){return '<option value="'+projEsc(m)+'">'+projEsc(m)+'</option>';}).join('');
   var ol = document.getElementById('aprov-obj-list');
-  if(ol) ol.innerHTML = (proj.objetivos_estrategicos||[]).map(function(o,i){var v=projCanonicalStrategyValue(o,_objetivosEstrategicos);return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:4px 8px;background:#e0f9f7;border-radius:6px;font-size:12px;color:#1a2540"><span style="flex:1">'+projEsc(v)+'</span><button type="button" style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:14px;padding:0 4px" onclick="projRemoverObj('+i+')">✕</button></div>';}).join('');
+  if(ol) ol.innerHTML = (proj.objetivos_estrategicos||[]).map(function(o,i){var v=projCanonicalStrategyValue(o,_objetivosEstrategicos);return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:4px 8px;background:var(--teal-l);border-radius:6px;font-size:12px;color:#1a2540"><span style="flex:1">'+projEsc(v)+'</span><button type="button" style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:14px;padding:0 4px" onclick="projRemoverObj('+i+')">✕</button></div>';}).join('');
   var os = document.getElementById('aprov-obj-sel');
   if(os) os.innerHTML = '<option value="">Selecione...</option>' + _objetivosEstrategicos.map(function(o){return '<option value="'+projEsc(o)+'">'+projEsc(o)+'</option>';}).join('');
 }
@@ -13546,7 +13546,7 @@ function projMemorialNewsEmbeds(conc) {
 
 function projMemorialImagesHtml(conc) {
   const imagens = conc.imagens || [];
-  if(!imagens.length) return '<div style="font-size:12px;color:#8893a7">Nenhuma imagem anexada ao Memorial.</div>';
+  if(!imagens.length) return '<div style="font-size:12px;color:var(--ink3)">Nenhuma imagem anexada ao Memorial.</div>';
   if(imagens.length === 1) {
     const img = imagens[0];
     return `<div class="proj-v12-single-image"><a href="${projEsc(img.data)}" target="_blank"><img src="${projEsc(img.data)}" alt="${projEsc(img.nome||'Imagem do memorial')}"></a></div>`;
