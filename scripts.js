@@ -9773,20 +9773,23 @@ async function projFbSyncCollection(col, items){
 }
 
 async function projFbSaveAll(){
-  if(!fbReady()) return;
-  try{
-    const {db, doc, setDoc} = fb();
-    await projFbSyncCollection(PROJ_FB.colProjetos, PROJETOS||[]);
-    await projFbSyncCollection(PROJ_FB.colProgramas, PROGRAMAS||[]);
-    await setDoc(doc(db,PROJ_FB.cfgCol,PROJ_FB.cfgMacrosId), {data: JSON.stringify(PROJ_MACROS||[])});
-    await setDoc(doc(db,PROJ_FB.cfgCol,PROJ_FB.cfgObjetivosId), {data: JSON.stringify(PROJ_OBJETIVOS||[])});
-  } catch(e){ console.warn('projFbSaveAll:', e.message); }
+  if(!fbReady()) throw new Error('Firebase indisponível.');
+  const {db, doc, setDoc} = fb();
+  await projFbSyncCollection(PROJ_FB.colProjetos, PROJETOS||[]);
+  await projFbSyncCollection(PROJ_FB.colProgramas, PROGRAMAS||[]);
+  await setDoc(doc(db,PROJ_FB.cfgCol,PROJ_FB.cfgMacrosId), {data: JSON.stringify(PROJ_MACROS||[])});
+  await setDoc(doc(db,PROJ_FB.cfgCol,PROJ_FB.cfgObjetivosId), {data: JSON.stringify(PROJ_OBJETIVOS||[])});
 }
 
 function projFbAutoSave(label){
   if(!fbReady()) return;
   clearTimeout(_projFbState.saveTimer);
-  _projFbState.saveTimer = setTimeout(()=>{ projFbSaveAll().catch(e=>console.warn('projFbAutoSave('+label+'):',e.message)); }, 1200);
+  _projFbState.saveTimer = setTimeout(()=>{
+    projFbSaveAll().catch(e=>{
+      console.warn('projFbAutoSave('+label+'):', e.message);
+      try { projToast('Erro ao salvar na nuvem: ' + e.message, '#dc2626'); } catch(_e){}
+    });
+  }, 1200);
 }
 
 function projRenderCurrentPage(){
@@ -13150,6 +13153,8 @@ function projExportJSON(){
   var data = {
     projetos: PROJETOS,
     programas: PROGRAMAS,
+    macros: PROJ_MACROS,
+    objetivos: PROJ_OBJETIVOS,
     exportDate: new Date().toISOString(),
     version: 'SIGA_Projetos_v6'
   };
@@ -13182,10 +13187,33 @@ function projImportJSON(){
         }
         projConfirmar('Importar dados? Isso substituira TODOS os projetos e programas atuais.', function(){
           PROJETOS = data.projetos.map(function(p){return projFixDefaults(p);});
-          if(data.programas) PROGRAMAS = data.programas.map(function(pg){return progFixDefaults(pg);});
-          projSave();
-          projToast('Dados importados com sucesso!');
-          projGo('inicio', document.getElementById('pnb-inicio'));
+          PROGRAMAS = Array.isArray(data.programas) ? data.programas.map(function(pg){return progFixDefaults(pg);}) : [];
+          if(Array.isArray(data.macros)) PROJ_MACROS = data.macros;
+          if(Array.isArray(data.objetivos)) PROJ_OBJETIVOS = data.objetivos;
+          // Cache local imediato (projetos + programas + listas)
+          try {
+            localStorage.setItem(PROJ_STORAGE_KEY, JSON.stringify(PROJETOS));
+            localStorage.setItem(PROG_STORAGE_KEY, JSON.stringify(PROGRAMAS));
+            localStorage.setItem('cagePROJ_MACROS_v6', JSON.stringify(PROJ_MACROS||[]));
+            localStorage.setItem('cage_objetivos_v6', JSON.stringify(PROJ_OBJETIVOS||[]));
+          } catch(_e){}
+          // Marca como carregado para evitar que projFbLoadOnce sobrescreva os dados importados
+          _projFbState.loaded = true;
+          // Cancela qualquer auto-save pendente — vamos persistir agora, sincronicamente.
+          clearTimeout(_projFbState.saveTimer);
+          if(!fbReady()){
+            projToast('Importado localmente. Firebase indisponível — dados não sincronizados na nuvem.', '#d97706');
+            projGo('inicio', document.getElementById('pnb-inicio'));
+            return;
+          }
+          projToast('Enviando para a nuvem…');
+          projFbSaveAll().then(function(){
+            projToast('Dados importados e sincronizados na nuvem!');
+            projGo('inicio', document.getElementById('pnb-inicio'));
+          }).catch(function(err){
+            console.warn('projImportJSON/fb:', err && err.message);
+            projToast('Erro ao enviar para a nuvem: ' + (err && err.message ? err.message : err), '#dc2626');
+          });
         });
       } catch(err){
         projToast('Erro ao ler arquivo: ' + err.message, '#d97706');
