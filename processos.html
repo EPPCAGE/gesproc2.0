@@ -125,9 +125,9 @@ body{font-family:var(--f);background:var(--bg);color:var(--ink);font-size:14px;l
 .module-hub-foot{margin-top:1.5rem;border-top:1px solid rgba(255,255,255,.08);padding-top:1.2rem;display:flex;align-items:center;justify-content:space-between}
 .hub-section{margin-top:2rem;border-top:1px solid rgba(255,255,255,.1);padding-top:2rem}
 .hub-section-ttl{font-family:var(--fh);font-size:15px;font-weight:600;color:#fff;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.hub-aviso-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:.5rem}
-.hub-aviso-ttl{font-size:13px;font-weight:600;color:#fff;margin-bottom:4px}
-.hub-aviso-body{font-size:12px;color:rgba(255,255,255,.55);line-height:1.5}
+.hub-aviso-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-left:3px solid var(--teal);border-radius:10px;padding:1rem 1.2rem;margin-bottom:.6rem}
+.hub-aviso-ttl{font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;letter-spacing:.01em}
+.hub-aviso-body{font-size:13px;color:rgba(255,255,255,.75);line-height:1.6}
 .hub-tbl-wrap{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:8px;overflow:hidden;overflow-x:auto}
 .hub-tbl{width:100%;border-collapse:collapse;font-size:12px}
 .hub-tbl th{text-align:left;padding:6px 9px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08);font-weight:600;color:rgba(255,255,255,.5);font-size:11px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
@@ -505,18 +505,17 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
       </div>
     </div>
 
-    <!-- Quadro de Avisos — visible to all users -->
+    <!-- Avisos — visible to all users, no heading -->
     <div class="hub-section" id="hub-avisos-section">
-      <div class="hub-section-ttl">
-        <span>📋 Quadro de avisos</span>
-        <button type="button" class="btn btn-p" style="font-size:12px;display:none" id="hub-aviso-new-btn" onclick="abrirModalAviso(null)">+ Novo aviso</button>
-      </div>
       <div id="hub-avisos-cards">
         <div style="text-align:center;color:rgba(255,255,255,.35);font-size:13px;padding:1rem 0">Nenhum aviso ativo.</div>
       </div>
-      <!-- EPP management table (hidden for non-EP) -->
+      <!-- EPP: manage avisos inline -->
       <div id="hub-avisos-manage" style="display:none;margin-top:1.4rem">
-        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.6rem">Gerenciar avisos</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.7rem">
+          <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em">Gerenciar avisos</span>
+          <button type="button" class="btn btn-p" style="font-size:12px" id="hub-aviso-new-btn" onclick="abrirModalAviso(null)">+ Novo aviso</button>
+        </div>
         <div class="hub-tbl-wrap">
           <table class="hub-tbl"><thead><tr><th>Título</th><th>Mensagem</th><th>Destinatários</th><th>Status</th><th>Ações</th></tr></thead>
           <tbody id="avisos-tbody"></tbody></table>
@@ -524,29 +523,13 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
       </div>
     </div>
 
-    <!-- Administração de Usuários — EPP only -->
+    <!-- Administração de Usuários — EPP only, collapsed into modal button -->
     <div class="hub-section" id="hub-admin-section" style="display:none">
-      <div class="hub-section-ttl">
-        <span>👤 Usuários</span>
-        <div style="display:flex;gap:8px">
-          <button type="button" class="btn" style="font-size:12px" onclick="exportarBackupJSON()" title="Baixar backup completo dos dados em JSON">⬇ Backup JSON</button>
-          <button type="button" class="btn btn-p" style="font-size:12px" onclick="abrirModalUsr(null)">+ Novo usuário</button>
-        </div>
-      </div>
-      <div class="hub-fbar">
-        <div style="display:flex;gap:5px;flex-wrap:wrap" id="hub-usr-chips">
-          <button type="button" class="hub-chip on" onclick="filtUsr('',this)">Todos</button>
-          <button type="button" class="hub-chip" onclick="filtUsr('ep',this)">EPP</button>
-          <button type="button" class="hub-chip" onclick="filtUsr('dono',this)">Executor</button>
-          <button type="button" class="hub-chip" onclick="filtUsr('gestor',this)">Gestor</button>
-          <button type="button" class="hub-chip" onclick="filtUsr('gerente_projeto',this)">Ger. Projeto</button>
-        </div>
-        <input class="hub-srch" id="srch-usr" placeholder="Buscar..." oninput="renderAdmin()">
-      </div>
-      <div class="hub-tbl-wrap">
-        <table class="hub-tbl"><thead><tr><th></th><th>Nome</th><th>Cargo</th><th>E-mail</th><th>Perfil</th><th>Processos vinculados</th><th>Ações</th></tr></thead>
-        <tbody id="usr-tbody"></tbody></table>
-      </div>
+      <button type="button" onclick="abrirModalUsuarios()" style="width:100%;padding:.75rem 1rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:rgba(255,255,255,.75);font-size:13px;font-weight:500;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;transition:background .12s;font-family:inherit" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
+        <svg viewBox="0 0 16 16" fill="none" style="width:16px;height:16px;flex-shrink:0"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Gerenciar usuários
+        <svg viewBox="0 0 16 16" fill="none" style="width:14px;height:14px;margin-left:auto;opacity:.4"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
 
     <!-- Footer: user info + logout -->
@@ -693,6 +676,34 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
       <button type="button" class="btn btn-r" id="aviso-del-btn" style="margin-right:auto;display:none" onclick="excluirAvisoModal()">Excluir</button>
       <button type="button" class="btn" onclick="document.getElementById('aviso-modal').style.display='none'">Cancelar</button>
       <button type="button" class="btn btn-p" onclick="salvarAviso()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LISTA DE USUÁRIOS — EPP only, opened from hub admin button -->
+<div id="usr-list-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:5000;align-items:flex-start;justify-content:center;padding:2rem 1.2rem;overflow-y:auto">
+  <div style="background:#1e1e2e;border:1px solid rgba(255,255,255,.12);border-radius:16px;width:min(960px,100%);padding:1.8rem;margin:auto 0;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:1.2rem">
+      <div style="font-family:var(--fh);font-size:16px;font-weight:600;color:#fff">Gerenciamento de usuários</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button type="button" class="btn" style="font-size:12px" onclick="exportarBackupJSON()" title="Baixar backup completo dos dados em JSON">⬇ Backup JSON</button>
+        <button type="button" class="btn btn-p" style="font-size:12px" onclick="abrirModalUsr(null)">+ Novo usuário</button>
+        <button type="button" onclick="document.getElementById('usr-list-modal').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.45);cursor:pointer;font-size:20px;line-height:1;padding:2px 6px;border-radius:4px;transition:color .1s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.45)'">&times;</button>
+      </div>
+    </div>
+    <div class="hub-fbar">
+      <div style="display:flex;gap:5px;flex-wrap:wrap" id="hub-usr-chips">
+        <button type="button" class="hub-chip on" onclick="filtUsr('',this)">Todos</button>
+        <button type="button" class="hub-chip" onclick="filtUsr('ep',this)">EPP</button>
+        <button type="button" class="hub-chip" onclick="filtUsr('dono',this)">Executor</button>
+        <button type="button" class="hub-chip" onclick="filtUsr('gestor',this)">Gestor</button>
+        <button type="button" class="hub-chip" onclick="filtUsr('gerente_projeto',this)">Ger. Projeto</button>
+      </div>
+      <input class="hub-srch" id="srch-usr" placeholder="Buscar..." oninput="renderAdmin()">
+    </div>
+    <div class="hub-tbl-wrap">
+      <table class="hub-tbl"><thead><tr><th></th><th>Nome</th><th>Cargo</th><th>E-mail</th><th>Perfil</th><th>Processos vinculados</th><th>Ações</th></tr></thead>
+      <tbody id="usr-tbody"></tbody></table>
     </div>
   </div>
 </div>
@@ -1728,11 +1739,9 @@ function openModuleHub(){
   const ep=isEP();
   const adminSec=document.getElementById('hub-admin-section');
   const avisosManage=document.getElementById('hub-avisos-manage');
-  const avisoNewBtn=document.getElementById('hub-aviso-new-btn');
   if(adminSec) adminSec.style.display=ep?'':'none';
   if(avisosManage) avisosManage.style.display=ep?'':'none';
-  if(avisoNewBtn) avisoNewBtn.style.display=ep?'':'none';
-  if(ep){ renderAdmin(); rAvisos(); }
+  if(ep) rAvisos();
 }
 
 function renderHubAvisosCards(){
@@ -1754,6 +1763,12 @@ function renderHubAvisosCards(){
       <div class="hub-aviso-body">${esc(a.corpo)}</div>
     </div>`).join('');
 }
+function abrirModalUsuarios(){
+  if(!isEP()){ toast('Acesso restrito ao EPP.','var(--red)'); return; }
+  renderAdmin();
+  document.getElementById('usr-list-modal').style.display='flex';
+}
+
 function enterProcessModule(){
   if(!hasProcessosAccess()){ toast('Seu perfil não tem acesso ao SIGA Processos.','var(--red)'); return; }
   const hub=document.getElementById('module-hub');
