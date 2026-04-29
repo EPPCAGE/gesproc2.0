@@ -1654,7 +1654,7 @@ let _pubIdC = 1;
 
 let plano = [];
 let _planoIdC = 1;
-let PLANO_METAS = [];  // Metas anuais do escritório (config)
+let PAT_METAS = [];  // Metas anuais do escritório (config)
 let _metaIdC = 1;
 
 let solicitacoes = [];
@@ -12047,7 +12047,7 @@ function exportarBackupJSON(){
     processos,
     kpis,
     plano,
-    plano_metas: PLANO_METAS,
+    plano_metas: PAT_METAS,
     publicacoes,
     trilhas: TRILHAS,
     avisos: AVISOS,
@@ -12601,7 +12601,7 @@ function renderPlanoMetas(){
   const el=document.getElementById('plano-metas');
   if(!el) return;
   const ano=planoAno();
-  const metas=PLANO_METAS.filter(m=>!m.ano||m.ano===ano);
+  const metas=PAT_METAS.filter(m=>!m.ano||m.ano===ano);
   const podeEditar=isEP();
   const btnAdd=podeEditar?`<button type="button" class="btn btn-a ep-only" onclick="abrirMetaModal(null)" style="font-size:11px;padding:3px 10px">+ Meta</button>`:'';
   const addMetaHint=podeEditar?' Clique em <b>+ Meta</b> para adicionar.':'';
@@ -12696,7 +12696,7 @@ function fecharMetaModal(){
 }
 
 function abrirMetaModal(id){
-  const m=id===null ? null : PLANO_METAS.find(x=>x.id===id);
+  const m=id===null ? null : PAT_METAS.find(x=>x.id===id);
   const ano=planoAno();
   if(!document.getElementById('meta-modal')) _criarMetaModal();
   document.getElementById('meta-modal').style.display='flex';
@@ -12812,8 +12812,8 @@ async function salvarMeta(){
   };
   if(fonte==='builtin'&&!m.auto_campo){toast('Selecione uma métrica automática.','var(--amber)');return;}
   if(fonte==='kpi'&&!m.kpi_id){toast('Selecione um indicador.','var(--amber)');return;}
-  if(id){ const i=PLANO_METAS.findIndex(x=>x.id===id); if(i>=0) PLANO_METAS[i]=m; else PLANO_METAS.push(m); }
-  else PLANO_METAS.push(m);
+  if(id){ const i=PAT_METAS.findIndex(x=>x.id===id); if(i>=0) PAT_METAS[i]=m; else PAT_METAS.push(m); }
+  else PAT_METAS.push(m);
   fecharMetaModal();
   await fbSaveAll();
   renderPlanoMetas();
@@ -12822,7 +12822,7 @@ async function salvarMeta(){
 
 async function deletarMeta(id){
   confirmar('Excluir esta meta?',async()=>{
-    PLANO_METAS=PLANO_METAS.filter(m=>m.id!==id);
+    PAT_METAS=PAT_METAS.filter(m=>m.id!==id);
     await fbSaveAll();
     renderPlanoMetas();
     toast('Meta excluída','var(--amber)');
@@ -13107,7 +13107,7 @@ function gerarStatusReportPDF(){
     .sort((a,b)=>(a.trimestre===trimAtual?0:1)-(b.trimestre===trimAtual?0:1)||(a.prazo||'').localeCompare(b.prazo||''));
 
   // ── Metas do escritório ──────────────────────────────────────────────────────
-  const metasAno=(PLANO_METAS||[]).filter(m=>!m.ano||m.ano===ano);
+  const metasAno=(PAT_METAS||[]).filter(m=>!m.ano||m.ano===ano);
   const metasRows=metasAno.map(m=>{
     const real=_metaRealizado(m);
     const pct=m.meta?Math.min(100,Math.round(real/m.meta*100)):null;
@@ -13537,7 +13537,7 @@ async function fbSaveAll(){
     publicacoes.forEach(p => ops.push({ref: doc(db,'publicacoes',String(p.id)), data: _fsClean(p)}));
     plano.forEach(a => ops.push({ref: doc(db,'plano',String(a.id)), data: _fsClean(a)}));
     TRILHAS.forEach(t => ops.push({ref: doc(db,'trilhas',String(t.id)), data: _fsClean(t)}));
-    PLANO_METAS.forEach(m => ops.push({ref: doc(db,'plano_metas',String(m.id)), data: _fsClean(m)}));
+    PAT_METAS.forEach(m => ops.push({ref: doc(db,'plano_metas',String(m.id)), data: _fsClean(m)}));
     ops.push(
       {ref: doc(db,'config','arquitetura'), data: {data: JSON.stringify(ARQUITETURA)}},
       {ref: doc(db,'config','usuarios'),    data: {data: JSON.stringify(USUARIOS)}},
@@ -13676,9 +13676,9 @@ async function fbLoad(){
     // metas do escritório
     const metasSnap = await getDocs(collection(db,'plano_metas'));
     if(!metasSnap.empty){
-      PLANO_METAS = [];
-      metasSnap.forEach(d => PLANO_METAS.push(d.data()));
-      _metaIdC = Math.max(...PLANO_METAS.map(m => m.id), 0) + 1;
+      PAT_METAS = [];
+      metasSnap.forEach(d => PAT_METAS.push(d.data()));
+      _metaIdC = Math.max(...PAT_METAS.map(m => m.id), 0) + 1;
     }
 
     // relatórios oficiais de indicadores
