@@ -20,7 +20,10 @@
 <script src="config.deploy.js" onerror="console.info('config.deploy.js not found')"></script>
 <script>
   if (location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    document.write('<script src="config.local.js" onerror="console.info(\\'config.local.js not found\\')"><\\/script>');
+    const localConfigScript = document.createElement('script');
+    localConfigScript.src = 'config.local.js';
+    localConfigScript.onerror = () => console.info('config.local.js not found');
+    document.head.appendChild(localConfigScript);
   }
 </script>
 <!-- Firebase -->
@@ -1282,5 +1285,4 @@ Não responda este e-mail.</pre>
 <script src="scripts.js"></script>
 </body>
 </html>
-
 
