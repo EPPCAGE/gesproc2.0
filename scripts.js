@@ -9793,10 +9793,16 @@ function projIsDataUrl(value){
   return typeof value === 'string' && value.startsWith('data:');
 }
 
-async function projDataUrlToBlob(dataUrl){
-  const res = await fetch(dataUrl);
-  if(!res.ok) throw new Error('Não foi possível preparar imagem para upload.');
-  return res.blob();
+function projDataUrlToBlob(dataUrl){
+  const match = String(dataUrl || '').match(/^data:([^;,]+)?(;base64)?,(.*)$/);
+  if(!match) throw new Error('Imagem anexada em formato inválido.');
+  const mime = match[1] || 'application/octet-stream';
+  const isBase64 = !!match[2];
+  const payload = match[3] || '';
+  const binary = isBase64 ? atob(payload) : decodeURIComponent(payload);
+  const bytes = new Uint8Array(binary.length);
+  for(let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], {type: mime});
 }
 
 function projSafeStorageName(name, fallback){
