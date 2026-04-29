@@ -9758,6 +9758,25 @@ const PROJ_FB = Object.freeze({
 });
 const _projFbState = {loaded:false, loading:false, saveTimer:null, listenersStarted:false, unsubscribers:[], saving:false, pendingRender:false};
 
+function projApplyDataSet(data){
+  PROJETOS = Array.isArray(data?.projetos) ? data.projetos.map(function(p){return projFixDefaults(p);}) : [];
+  PROGRAMAS = Array.isArray(data?.programas) ? data.programas.map(function(pg){return progFixDefaults(pg);}) : [];
+  if(Array.isArray(data?.macros)) PROJ_MACROS = data.macros;
+  if(Array.isArray(data?.objetivos)) PROJ_OBJETIVOS = data.objetivos;
+}
+
+async function projFetchDefaultData(){
+  try{
+    const res = await fetch('projetos-default.json', {cache:'no-store'});
+    if(!res.ok) return null;
+    const data = await res.json();
+    return Array.isArray(data?.projetos) ? data : null;
+  }catch(e){
+    console.warn('projFetchDefaultData:', e.message);
+    return null;
+  }
+}
+
 function projLoadListas(){
   if(fbReady()) return;
   try{
@@ -9961,9 +9980,15 @@ async function projFbLoadOnce(){
       getDocs(collection(db,PROJ_FB.colProgramas))
     ]);
 
-    // Fallback/migração: se nuvem estiver vazia, sobe o que existe no localStorage.
-    if(pSnap.empty && gSnap.empty && ((PROJETOS||[]).length || (PROGRAMAS||[]).length)){
-      await projFbSaveAll();
+    // Fallback/migração: se a nuvem estiver vazia, semeia pela base padrão versionada.
+    if(pSnap.empty && gSnap.empty){
+      const defaultData = await projFetchDefaultData();
+      if(defaultData){
+        projApplyDataSet(defaultData);
+        await projFbSaveAll();
+      } else if((PROJETOS||[]).length || (PROGRAMAS||[]).length){
+        await projFbSaveAll();
+      }
     } else {
       if(!pSnap.empty){
         PROJETOS = [];
@@ -13355,15 +13380,7 @@ function projImportJSON(){
           const prevMacros = PROJ_MACROS;
           const prevObjetivos = PROJ_OBJETIVOS;
 
-          const nextProjetos = data.projetos.map(function(p){return projFixDefaults(p);});
-          const nextProgramas = Array.isArray(data.programas) ? data.programas.map(function(pg){return progFixDefaults(pg);}) : [];
-          const nextMacros = Array.isArray(data.macros) ? data.macros : PROJ_MACROS;
-          const nextObjetivos = Array.isArray(data.objetivos) ? data.objetivos : PROJ_OBJETIVOS;
-
-          PROJETOS = nextProjetos;
-          PROGRAMAS = nextProgramas;
-          PROJ_MACROS = nextMacros;
-          PROJ_OBJETIVOS = nextObjetivos;
+          projApplyDataSet(data);
 
           _projFbState.loaded = true;
           clearTimeout(_projFbState.saveTimer);
