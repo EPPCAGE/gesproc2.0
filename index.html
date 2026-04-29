@@ -412,6 +412,13 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
 #concurrent-banner strong{font-weight:600}
 .cb-btn{padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-family:var(--f);transition:background .12s}.cb-btn:hover{background:rgba(255,255,255,.22)}
 .cb-btn.cb-reload{background:#fff;color:#7C3400;border-color:#fff}.cb-btn.cb-reload:hover{background:#f0f0f0}
+/* inactivity warning */
+#inactivity-warning{display:none;position:fixed;bottom:1.5rem;right:1.5rem;z-index:9000;background:var(--ink);color:#fff;border-radius:14px;padding:1.1rem 1.3rem;box-shadow:0 8px 32px rgba(0,0,0,.4);max-width:290px;border:1px solid rgba(255,255,255,.12);flex-direction:column;gap:.65rem}
+#inactivity-warning .iw-title{font-size:13px;font-weight:700;color:#fff}
+#inactivity-warning .iw-body{font-size:12px;color:rgba(255,255,255,.65);line-height:1.5}
+#inactivity-warning .iw-body strong{color:#fff}
+#inactivity-warning .iw-btn{padding:7px 14px;border-radius:8px;background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--f);width:100%;transition:background .12s}
+#inactivity-warning .iw-btn:hover{background:#1248A8}
 </style>
 </head>
 <body>
@@ -600,6 +607,13 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   </div>
 </aside>
 <main class="main-area">
+
+<!-- Inactivity auto-logout warning -->
+<div id="inactivity-warning" role="alertdialog" aria-modal="false" aria-label="Aviso de inatividade">
+  <div class="iw-title">⏱ Sessão inativa</div>
+  <div class="iw-body">Você será desconectado por inatividade em <strong><span id="inactivity-countdown">30</span> segundos</strong>.</div>
+  <button type="button" class="iw-btn" onclick="_keepSessionAlive()">Continuar conectado</button>
+</div>
 
 <!-- Concurrent edit warning banner -->
 <div id="concurrent-banner" role="alert">
@@ -1666,6 +1680,7 @@ function _aplicarUsuario(user){
   updCounts();
   aplicarPermissoes();
   openModuleHub();
+  _startInactivityWatch();
   if(user.trocar_senha) setTimeout(abrirModalTrocarSenha, 600);
   setTimeout(verificarPrazosProximos, 1500);
 }
@@ -1962,6 +1977,7 @@ async function salvarNovaSenha(){
 }
 
 async function doLogout(){
+  _stopInactivityWatch();
   if(globalThis._fbExternalWatcher){ globalThis._fbExternalWatcher(); globalThis._fbExternalWatcher=null; }
   globalThis._fbLoadedAt = 0;
   if(fbReady()){
@@ -13953,6 +13969,63 @@ function excluirTrilhaModal(){
 }
 
 // ── END TRILHAS ────────────────────────────
+
+// ── AUTO-LOGOUT POR INATIVIDADE ──────────────────────────────
+const _INACTIVITY_MS   = 5 * 60 * 1000; // 5 min até logout
+const _INACTIVITY_WARN = 30 * 1000;      // aviso 30s antes
+const _INACT_EVENTS = ['mousemove','mousedown','keydown','touchstart','scroll','click'];
+let _inactTimer = null;
+let _inactWarnTimer = null;
+let _inactInterval = null;
+
+function _resetInactivityTimer(){
+  clearTimeout(_inactTimer);
+  clearTimeout(_inactWarnTimer);
+  clearInterval(_inactInterval);
+  const w = document.getElementById('inactivity-warning');
+  if(w) w.style.display = 'none';
+  _inactWarnTimer = setTimeout(_showInactivityWarning, _INACTIVITY_MS - _INACTIVITY_WARN);
+  _inactTimer     = setTimeout(_doInactivityLogout,   _INACTIVITY_MS);
+}
+
+function _startInactivityWatch(){
+  _INACT_EVENTS.forEach(e => document.addEventListener(e, _resetInactivityTimer, {passive:true}));
+  _resetInactivityTimer();
+}
+
+function _stopInactivityWatch(){
+  _INACT_EVENTS.forEach(e => document.removeEventListener(e, _resetInactivityTimer));
+  clearTimeout(_inactTimer);
+  clearTimeout(_inactWarnTimer);
+  clearInterval(_inactInterval);
+  const w = document.getElementById('inactivity-warning');
+  if(w) w.style.display = 'none';
+}
+
+function _showInactivityWarning(){
+  const w = document.getElementById('inactivity-warning');
+  if(!w) return;
+  let secs = 30;
+  const el = document.getElementById('inactivity-countdown');
+  if(el) el.textContent = secs;
+  w.style.display = 'flex';
+  _inactInterval = setInterval(()=>{
+    secs--;
+    if(el) el.textContent = secs;
+    if(secs <= 0) clearInterval(_inactInterval);
+  }, 1000);
+}
+
+async function _doInactivityLogout(){
+  _stopInactivityWatch();
+  toast('Sessão encerrada por inatividade.', 'var(--amber)');
+  await doLogout();
+}
+
+function _keepSessionAlive(){
+  _resetInactivityTimer();
+}
+// ── END AUTO-LOGOUT ───────────────────────────────────────────
 
 // ── CONCURRENT EDIT DETECTION ────────────────────────────────
 globalThis._fbLoadedAt = 0;
