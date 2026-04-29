@@ -9756,17 +9756,20 @@ const PROJ_FB = Object.freeze({
   cfgMacrosId: 'projPROJ_MACROS',
   cfgObjetivosId: 'proj_objetivos'
 });
-const _projFbState = {loaded:false, loading:false, saveTimer:null};
+const _projFbState = {loaded:false, loading:false, saveTimer:null, listenersStarted:false, unsubscribers:[], saving:false, pendingRender:false};
 
 function projLoadListas(){
+  if(fbReady()) return;
   try{
     var m=localStorage.getItem('cagePROJ_MACROS_v6');if(m)PROJ_MACROS=JSON.parse(m);
     var o=localStorage.getItem('cage_objetivos_v6');if(o)PROJ_OBJETIVOS=JSON.parse(o);
   }catch(e){}
 }
 function projSaveListas(){
-  localStorage.setItem('cagePROJ_MACROS_v6',JSON.stringify(PROJ_MACROS));
-  localStorage.setItem('cage_objetivos_v6',JSON.stringify(PROJ_OBJETIVOS));
+  if(!fbReady()){
+    localStorage.setItem('cagePROJ_MACROS_v6',JSON.stringify(PROJ_MACROS));
+    localStorage.setItem('cage_objetivos_v6',JSON.stringify(PROJ_OBJETIVOS));
+  }
   projFbAutoSave('listas');
 }
 
@@ -9844,25 +9847,46 @@ async function projFbUploadConclusaoImages(){
   }
 }
 
-async function projFbSaveAll(){
+async function projFbSaveAll(options){
+  const includeConfig = !options || options.includeConfig !== false;
   if(!fbReady()) throw new Error('Firebase indisponível.');
   const {db, doc, setDoc} = fb();
-  await projFbUploadConclusaoImages();
-  await projFbSyncCollection(PROJ_FB.colProjetos, PROJETOS||[]);
-  await projFbSyncCollection(PROJ_FB.colProgramas, PROGRAMAS||[]);
-  await setDoc(doc(db,PROJ_FB.cfgCol,PROJ_FB.cfgMacrosId), {data: JSON.stringify(PROJ_MACROS||[])});
-  await setDoc(doc(db,PROJ_FB.cfgCol,PROJ_FB.cfgObjetivosId), {data: JSON.stringify(PROJ_OBJETIVOS||[])});
+  _projFbState.saving = true;
+  try{
+    await projFbUploadConclusaoImages();
+    await projFbSyncCollection(PROJ_FB.colProjetos, PROJETOS||[]);
+    await projFbSyncCollection(PROJ_FB.colProgramas, PROGRAMAS||[]);
+    if(includeConfig){
+      await setDoc(doc(db,PROJ_FB.cfgCol,PROJ_FB.cfgMacrosId), {data: JSON.stringify(PROJ_MACROS||[])});
+      await setDoc(doc(db,PROJ_FB.cfgCol,PROJ_FB.cfgObjetivosId), {data: JSON.stringify(PROJ_OBJETIVOS||[])});
+    }
+    try{
+      localStorage.setItem(PROJ_STORAGE_KEY, JSON.stringify(PROJETOS||[]));
+      localStorage.setItem(PROG_STORAGE_KEY, JSON.stringify(PROGRAMAS||[]));
+      localStorage.setItem('cagePROJ_MACROS_v6', JSON.stringify(PROJ_MACROS||[]));
+      localStorage.setItem('cage_objetivos_v6', JSON.stringify(PROJ_OBJETIVOS||[]));
+    }catch(_e){}
+  } finally {
+    _projFbState.saving = false;
+    if(_projFbState.pendingRender){
+      _projFbState.pendingRender = false;
+      projRenderCurrentPage();
+    }
+  }
 }
 
 function projFbAutoSave(label){
-  if(!fbReady()) return;
+  if(!fbReady()) return Promise.resolve();
   clearTimeout(_projFbState.saveTimer);
-  _projFbState.saveTimer = setTimeout(()=>{
-    projFbSaveAll().catch(e=>{
+  return new Promise((resolve, reject)=>{
+    _projFbState.saveTimer = setTimeout(()=>{
+    projFbSaveAll({includeConfig: label === 'listas' || label === 'importar'}).catch(e=>{
       console.warn('projFbAutoSave('+label+'):', e.message);
       try { projToast('Erro ao salvar na nuvem: ' + e.message, '#dc2626'); } catch(_e){}
-    });
-  }, 1200);
+      reject(e);
+    }).then(resolve);
+    }, 500);
+  });
 }
 
 function projRenderCurrentPage(){
@@ -9871,6 +9895,60 @@ function projRenderCurrentPage(){
   if(document.getElementById('proj-shell')?.classList.contains('on')){
     projGo(page || 'inicio', active || document.getElementById('pnb-inicio'));
   }
+}
+
+function projCacheCloudState(){
+  try{
+    localStorage.setItem(PROJ_STORAGE_KEY, JSON.stringify(PROJETOS||[]));
+    localStorage.setItem(PROG_STORAGE_KEY, JSON.stringify(PROGRAMAS||[]));
+    localStorage.setItem('cagePROJ_MACROS_v6', JSON.stringify(PROJ_MACROS||[]));
+    localStorage.setItem('cage_objetivos_v6', JSON.stringify(PROJ_OBJETIVOS||[]));
+  }catch(_e){}
+}
+
+function projCloudRender(){
+  _projFbState.loaded = true;
+  projCacheCloudState();
+  if(_projFbState.saving){
+    _projFbState.pendingRender = true;
+    return;
+  }
+  projRenderCurrentPage();
+}
+
+function projFbStartRealtime(){
+  if(!fbReady() || _projFbState.listenersStarted) return;
+  const {db, collection, doc, onSnapshot} = fb();
+  if(!onSnapshot) return;
+  _projFbState.listenersStarted = true;
+  _projFbState.unsubscribers = [
+    onSnapshot(collection(db, PROJ_FB.colProjetos), snap => {
+      if(_projFbState.saving){ _projFbState.pendingRender = true; return; }
+      PROJETOS = [];
+      snap.forEach(d => PROJETOS.push(projFixDefaults(d.data())));
+      projCloudRender();
+    }, e => console.warn('proj projetos snapshot:', e.message)),
+    onSnapshot(collection(db, PROJ_FB.colProgramas), snap => {
+      if(_projFbState.saving){ _projFbState.pendingRender = true; return; }
+      PROGRAMAS = [];
+      snap.forEach(d => PROGRAMAS.push(progFixDefaults(d.data())));
+      projCloudRender();
+    }, e => console.warn('proj programas snapshot:', e.message)),
+    onSnapshot(doc(db, PROJ_FB.cfgCol, PROJ_FB.cfgMacrosId), snap => {
+      if(_projFbState.saving){ _projFbState.pendingRender = true; return; }
+      if(snap.exists() && typeof snap.data()?.data === 'string'){
+        try{ PROJ_MACROS = JSON.parse(snap.data().data); }catch(_e){}
+        projCloudRender();
+      }
+    }, e => console.warn('proj macros snapshot:', e.message)),
+    onSnapshot(doc(db, PROJ_FB.cfgCol, PROJ_FB.cfgObjetivosId), snap => {
+      if(_projFbState.saving){ _projFbState.pendingRender = true; return; }
+      if(snap.exists() && typeof snap.data()?.data === 'string'){
+        try{ PROJ_OBJETIVOS = JSON.parse(snap.data().data); }catch(_e){}
+        projCloudRender();
+      }
+    }, e => console.warn('proj objetivos snapshot:', e.message))
+  ];
 }
 
 async function projFbLoadOnce(){
@@ -9912,16 +9990,9 @@ async function projFbLoadOnce(){
       await setDoc(doc(db,PROJ_FB.cfgCol,PROJ_FB.cfgObjetivosId), {data: JSON.stringify(PROJ_OBJETIVOS||[])});
     }
 
-    // Mantém cache local para modo offline.
-    try{
-      localStorage.setItem(PROJ_STORAGE_KEY, JSON.stringify(PROJETOS||[]));
-      localStorage.setItem(PROG_STORAGE_KEY, JSON.stringify(PROGRAMAS||[]));
-      localStorage.setItem('cagePROJ_MACROS_v6', JSON.stringify(PROJ_MACROS||[]));
-      localStorage.setItem('cage_objetivos_v6', JSON.stringify(PROJ_OBJETIVOS||[]));
-    }catch(_e){}
+    projFbStartRealtime();
 
-    _projFbState.loaded = true;
-    projRenderCurrentPage();
+    projCloudRender();
   } catch(e){ console.warn('projFbLoadOnce:', e.message); }
   finally { _projFbState.loading = false; }
 }
@@ -9929,6 +10000,12 @@ async function projFbLoadOnce(){
 
 // ── Persistência ─────────────────────────────────────────────────
 function projLoad() {
+  if(fbReady()){
+    if(!_projFbState.loaded) projFbLoadOnce().catch(e=>console.warn('projLoad/fb:',e.message));
+    PROJETOS = (PROJETOS||[]).map(p => projFixDefaults(p));
+    PROGRAMAS = (PROGRAMAS||[]).map(pg => progFixDefaults(pg));
+    return;
+  }
   try {
     const raw = localStorage.getItem(PROJ_STORAGE_KEY);
     PROJETOS = raw ? JSON.parse(raw) : [];
@@ -9944,6 +10021,10 @@ function projLoad() {
 }
 
 function projSave() {
+  if(fbReady()){
+    projFbAutoSave('projetos').catch(()=>{});
+    return;
+  }
   try {
     localStorage.setItem(PROJ_STORAGE_KEY, JSON.stringify(PROJETOS));
     projFbAutoSave('projetos');
@@ -9954,6 +10035,11 @@ function projSave() {
 
 // ── Persistência de Programas ───────────────────────────────────
 function progLoad() {
+  if(fbReady()){
+    if(!_projFbState.loaded) projFbLoadOnce().catch(e=>console.warn('progLoad/fb:',e.message));
+    PROGRAMAS = (PROGRAMAS||[]).map(pg => progFixDefaults(pg));
+    return;
+  }
   try {
     const raw = localStorage.getItem(PROG_STORAGE_KEY);
     PROGRAMAS = raw ? JSON.parse(raw) : [];
@@ -9964,6 +10050,10 @@ function progLoad() {
 }
 
 function progSave() {
+  if(fbReady()){
+    projFbAutoSave('programas').catch(()=>{});
+    return;
+  }
   try {
     localStorage.setItem(PROG_STORAGE_KEY, JSON.stringify(PROGRAMAS));
     projFbAutoSave('programas');
@@ -13177,6 +13267,7 @@ function progAbrirDetalhe(id) {
 // CARREGAR DADOS INICIAIS (PORTFÓLIO CAGE DO STATUS REPORT MAR/26)
 // ════════════════════════════════════════════════════════════════════
 function projCarregarDemoSeVazio() {
+  if(fbReady()) return;
   projLoad();
   if(PROJETOS.length > 0 || PROGRAMAS.length > 0) return;
   try {
@@ -13416,7 +13507,43 @@ function projUpdateIndicador(idx,field,value){projLoad();const proj=PROJETOS.fin
 function projRemoveIndicador(idx){projLoad();const proj=PROJETOS.find(p=>String(p.id)===_projCurrentId);if(!proj?.execucao?.indicadores)return;proj.execucao.indicadores.splice(idx,1);projSave();projDetalheTab('execucao',document.querySelector('#proj-detalhe-tabs .proj-tab:nth-child(4)'));}
 function projFlattenTasksForExport(tasks,prefix){let rows=[];(tasks||[]).forEach((t,i)=>{const num=prefix?prefix+'.'+(i+1):String(i+1);rows.push({Numero:num,Nome:t.nome||'',PPE:t.ppe?'Sim':'Não',Marco:t.marco?'Sim':'Não',Inicio:t.dt_inicio||'',Fim:t.dt_fim||'',Responsavel:t.responsavel||'',Conclusao:t.conclusao||0,Concluida:t.concluida?'Sim':'Não'});rows=rows.concat(projFlattenTasksForExport(t.subtarefas||[],num));});return rows;}
 function projExportCronogramaXLSX(){projLoad();const proj=PROJETOS.find(p=>String(p.id)===_projCurrentId);if(!proj)return;const rows=projFlattenTasksForExport(proj.execucao?.tarefas||[]);if(!rows.length){projToast('Não há tarefas para exportar.','#d97706');return;}if(typeof XLSX==='undefined'){projToast('Biblioteca XLSX indisponível.','#d97706');return;}const ws=XLSX.utils.json_to_sheet(rows);ws['!cols']=[{wch:10},{wch:42},{wch:8},{wch:8},{wch:12},{wch:12},{wch:24},{wch:10},{wch:10}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Cronograma SIGA');XLSX.writeFile(wb,'Cronograma_SIGA_'+(proj.nome||'projeto').replace(/[^\w]+/g,'_').slice(0,40)+'.xlsx');}
-function projUploadConclusaoImagens(inputEl){const files=Array.from(inputEl.files||[]);if(!files.length)return;projLoad();const proj=PROJETOS.find(p=>String(p.id)===_projCurrentId);if(!proj)return;if(!proj.conclusao)proj.conclusao={};if(!proj.conclusao.imagens)proj.conclusao.imagens=[];let pending=files.length;files.forEach(file=>{if(!file.type.startsWith('image/')){pending--;return;}const reader=new FileReader();reader.onload=e=>{proj.conclusao.imagens.push({nome:file.name,data:e.target.result});pending--;if(pending<=0){projSave();projDetalheTab('conclusao',document.querySelector('#proj-detalhe-tabs .proj-tab:nth-child(5)'));}};reader.readAsDataURL(file);});}
+async function projUploadConclusaoImagens(inputEl){
+  const files=Array.from(inputEl.files||[]);
+  if(!files.length)return;
+  projLoad();
+  const proj=PROJETOS.find(p=>String(p.id)===_projCurrentId);
+  if(!proj)return;
+  if(!proj.conclusao)proj.conclusao={};
+  if(!proj.conclusao.imagens)proj.conclusao.imagens=[];
+
+  if(fbReady()){
+    const {storage,storageRef,uploadBytes,getDownloadURL}=fb();
+    if(!storage){projToast('Armazenamento não disponível.','#dc2626');return;}
+    try{
+      projToast('Enviando imagem(ns) para a nuvem…','var(--blue)');
+      for(let i=0;i<files.length;i++){
+        const file=files[i];
+        if(!file.type.startsWith('image/')) continue;
+        const nome=projSafeStorageName(file.name,'imagem-'+(i+1));
+        const path=`projetos/${proj.id||'sem-id'}/conclusao/${Date.now()}-${i}-${nome}`;
+        const ref=storageRef(storage,path);
+        await uploadBytes(ref,file,{contentType:file.type||'application/octet-stream'});
+        const url=await getDownloadURL(ref);
+        proj.conclusao.imagens.push({nome:file.name,path,url,data:url});
+      }
+      await projFbSaveAll({includeConfig:false});
+      projToast('Imagem(ns) salva(s) na nuvem!');
+      projDetalheTab('conclusao',document.querySelector('#proj-detalhe-tabs .proj-tab:nth-child(5)'));
+    }catch(e){
+      console.error('projUploadConclusaoImagens:',e);
+      projToast('Erro ao enviar imagem: '+(e.message||e),'#dc2626');
+    }
+    return;
+  }
+
+  let pending=files.length;
+  files.forEach(file=>{if(!file.type.startsWith('image/')){pending--;return;}const reader=new FileReader();reader.onload=e=>{proj.conclusao.imagens.push({nome:file.name,data:e.target.result});pending--;if(pending<=0){projSave();projDetalheTab('conclusao',document.querySelector('#proj-detalhe-tabs .proj-tab:nth-child(5)'));}};reader.readAsDataURL(file);});
+}
 function projRemoveConclusaoImagem(idx){projLoad();const proj=PROJETOS.find(p=>String(p.id)===_projCurrentId);if(!proj?.conclusao?.imagens)return;proj.conclusao.imagens.splice(idx,1);projSave();projDetalheTab('conclusao',document.querySelector('#proj-detalhe-tabs .proj-tab:nth-child(5)'));}
 function projRenderStatusReport(){projLoad();progLoad();const el=document.getElementById('proj-status-report-content');if(!el)return;const ativos=PROJETOS.filter(p=>p.status==='ativo');const grupos={};ativos.forEach(p=>{const g=projProgramaNome(p);if(!grupos[g])grupos[g]=[];grupos[g].push(p);});el.innerHTML=`<div class="proj-ib proj-ib-blue">Status Report Executivo agrupado por programa. O campo abaixo de cada projeto será usado como <strong>Sumário Executivo</strong> no PDF.</div><div class="proj-status-grid">${Object.entries(grupos).map(([prog,items])=>`<div><div class="proj-v9-program-title">${projEsc(prog)}</div>${items.map(p=>{const pct=Math.max(0,Math.min(100,p.percentual||0));return `<div class="proj-status-card"><div class="proj-status-head"><div class="proj-status-icon">${p.icone_url?`<img src="${projEsc(p.icone_url)}" alt="">`:projEsc(p.icone_emoji||'▣')}</div><div style="flex:1"><div class="proj-status-name">${projEsc(p.nome)}</div><div class="proj-status-meta">Patrocinador: ${projEsc(p.patrocinador||'Não informado')} · Gerente: ${projEsc(p.gerente||'Não informado')}</div></div><div class="proj-status-pct">${pct}%</div></div><div class="proj-status-bar"><div style="width:${pct}%"></div></div><div class="proj-fg" style="margin:.8rem 0 0"><label class="proj-fl">Sumário Executivo</label><textarea class="proj-fi proj-status-note" data-proj-id="${projEsc(String(p.id))}" rows="3" onchange="projSalvarStatusReportObs('${projEsc(String(p.id))}',this.value)">${projEsc(p.status_report_obs||'')}</textarea></div></div>`;}).join('')}</div>`).join('')}</div>`;}
 function projBuildStatusReportHTML(){progLoad();const ativos=PROJETOS.filter(p=>p.status==='ativo');const data=new Date().toLocaleDateString('pt-BR');const grupos={};ativos.forEach(p=>{const g=projProgramaNome(p);if(!grupos[g])grupos[g]=[];grupos[g].push(p);});const groupsHtml=Object.entries(grupos).map(([prog,items])=>`<h2 class="sr-program">${projEsc(prog)}</h2>${items.map(p=>{const pct=Math.max(0,Math.min(100,p.percentual||0));const obs=projEsc(p.status_report_obs||'Sem sumário executivo registrado.').replace(/\n/g,'<br>');return `<section class="sr-card"><div class="sr-card-main"><div class="sr-title-row"><div class="sr-icon">${p.icone_url?`<img src="${projEsc(p.icone_url)}" alt="">`:projEsc(p.icone_emoji||'▣')}</div><div><h3>${projEsc(p.nome)}</h3><div class="sr-sub">Projeto em andamento · ${projEsc(projFaseText(p))}</div></div><div class="sr-pct">${pct}%</div></div><div class="sr-progress"><div style="width:${pct}%"></div></div><div class="sr-info"><div><span>Patrocinador</span>${projEsc(p.patrocinador||'Não informado')}</div><div><span>Gerente</span>${projEsc(p.gerente||'Não informado')}</div><div><span>Gerente substituto</span>${projEsc(p.gerente_substituto||'Não informado')}</div><div><span>% de conclusão</span>${pct}%</div></div></div><aside class="sr-note"><span>Sumário Executivo</span><p>${obs}</p></aside></section>`}).join('')}`).join('');return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Status Report Executivo</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#1a2540;margin:0;background:#fff}.sr-cover{border-left:8px solid var(--blue);padding:18px 22px;margin-bottom:18px;background:linear-gradient(90deg,#eaf4ff,#fff)}.sr-brand{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--blue)}.sr-brand b{color:#00a89a}.sr-cover h1{margin:4px 0;font-size:26px;color:#0f2746}.sr-date{font-size:12px;color:#5f6b80}.sr-summary{display:flex;gap:10px;margin-bottom:16px}.sr-chip{border:1px solid #d9e5f5;border-radius:8px;padding:8px 12px;font-size:12px;background:#f8fbff}.sr-chip strong{font-size:18px;color:var(--blue);display:block}.sr-program{font-size:16px;color:var(--blue);border-bottom:2px solid #00a89a;padding-bottom:5px;margin:18px 0 10px}.sr-card{display:grid;grid-template-columns:1.45fr .9fr;gap:14px;border:1px solid #d9e2ef;border-radius:10px;padding:14px;margin-bottom:12px;break-inside:avoid}.sr-title-row{display:flex;align-items:center;gap:10px}.sr-icon{width:36px;height:36px;border-radius:9px;background:var(--blue-l);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden}.sr-icon img{width:100%;height:100%;object-fit:cover}h3{font-size:15px;margin:0;color:#0f2746}.sr-sub{font-size:10.5px;color:#6b7588;margin-top:2px}.sr-pct{margin-left:auto;font-size:24px;font-weight:800;color:#00a89a}.sr-progress{height:7px;border-radius:99px;background:#e7edf5;overflow:hidden;margin:12px 0}.sr-progress div{height:100%;background:linear-gradient(90deg,var(--blue),var(--teal))}.sr-info{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sr-info div{font-size:12px;border-top:1px solid #edf2f7;padding-top:6px}.sr-info span,.sr-note span{display:block;font-size:9px;color:var(--blue);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}.sr-note{border-left:3px solid #f59e0b;padding-left:12px}.sr-note p{font-size:12px;line-height:1.45;margin:0;color:#334155}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header class="sr-cover"><div class="sr-brand">CAGE-RS · <b>Escritório de Projetos e Processos</b></div><h1>Status Report Executivo</h1><div class="sr-date">Emitido em ${data}</div></header><div class="sr-summary"><div class="sr-chip"><strong>${ativos.length}</strong>Projetos em andamento</div><div class="sr-chip"><strong>${ativos.length?Math.round(ativos.reduce((a,p)=>a+(p.percentual||0),0)/ativos.length):0}%</strong>Média de conclusão</div><div class="sr-chip"><strong>${Object.keys(grupos).length}</strong>Programas</div></div>${groupsHtml||'<div>Nenhum projeto em andamento encontrado.</div>'}<script>setTimeout(function(){window.print();},350);<\/script></body></html>`;}// ── Init ao carregar ──────────────────────────────────────────────
