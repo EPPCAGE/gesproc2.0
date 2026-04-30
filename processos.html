@@ -9532,6 +9532,16 @@ function cancelarEditReuniao(){
   el('nr-form-title').textContent='+ Registrar nova reunião';
   el('nr-btn-cancel').style.display='none';
 }
+function _vincularReuniaoEtapaFluxo(p,tipo,dados){
+  if(!p || tipo!=='reuniao_apresentacao') return false;
+  if(!p.form) p.form={};
+  p.form.reuniao_apresentacao={
+    data:dados?.data||'',
+    participantes:dados?.participantes||'',
+    ata:dados?.ata||''
+  };
+  return true;
+}
 
 async function excluirReuniao(id){
   const p=curProc; if(!p) return;
@@ -9552,17 +9562,29 @@ async function salvarReuniaoAvulsa(){
   const data=document.getElementById('nr-data')?.value||'';
   const part=document.getElementById('nr-part')?.value||'';
   const ata=document.getElementById('nr-ata')?.value||'';
+  const dadosReuniao={data,participantes:part,ata};
   if(!data){toast('Informe a data da reunião','var(--red)');return;}
   if(!p.reunioes) p.reunioes=[];
+  const vinculouEtapa=_vincularReuniaoEtapaFluxo(p,tipo,dadosReuniao);
   if(editId){
-    const r=p.reunioes.find(x=>x.id===editId);
-    if(r){r.tipo=tipo;r.data=data;r.participantes=part;r.ata=ata;}
+    const idx=p.reunioes.findIndex(x=>x.id===editId);
+    if(idx>=0){
+      if(vinculouEtapa){
+        p.reunioes.splice(idx,1);
+      } else {
+        const r=p.reunioes[idx];
+        r.tipo=tipo;r.data=data;r.participantes=part;r.ata=ata;
+      }
+    }
   } else {
-    p.reunioes.push({id:'rn_'+Date.now(),tipo,data,participantes:part,ata,registrada_em:now()});
-    push(p,'','EP','Reunião registrada: '+(REUNIAO_TIPOS[tipo]||tipo)+' — '+data);
+    if(!vinculouEtapa){
+      p.reunioes.push({id:'rn_'+Date.now(),tipo,data,participantes:part,ata,registrada_em:now()});
+    }
+    push(p,vinculouEtapa?'apresentacao':'','EP','Reunião registrada: '+(REUNIAO_TIPOS[tipo]||tipo)+' — '+data);
   }
   await fbSaveAll();
-  toast(editId?'Reunião atualizada!':'Reunião registrada!','var(--teal)');
+  toast(vinculouEtapa?'Reunião registrada e vinculada à etapa Aprovação pelo Gestor!':(editId?'Reunião atualizada!':'Reunião registrada!'),'var(--teal)');
+  cancelarEditReuniao();
   rReun(p);
 }
 
