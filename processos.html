@@ -5045,11 +5045,19 @@ function _rsEsbocaAsis(p){
   if(!p.mod)p.mod={};
   const txt=document.getElementById('e-asis')?.value;
   if(txt!=null) p.mod.asIs=txt;
+  const m=bpmnModelers['asis'];
+  if(m&&bpmnProcIds['asis']===p?.id){
+    m.saveXML({format:true}).then(({xml})=>{if(xml)p.mod.bpmnAsIs=xml;}).catch(()=>{});
+  }
 }
 function _rsEsbocaTobe(p){
   if(!p.mod)p.mod={};
   const txt=document.getElementById('e-tobe')?.value;
   if(txt!=null) p.mod.toBe=txt;
+  const m=bpmnModelers['tobe'];
+  if(m&&bpmnProcIds['tobe']===p?.id){
+    m.saveXML({format:true}).then(({xml})=>{if(xml)p.mod.bpmnToBe=xml;}).catch(()=>{});
+  }
 }
 function _rsDetValidAsis(p){
   return p;
@@ -8634,6 +8642,11 @@ async function _getFluxogramaAsIsPng(p){
   const linkedImg = p.arq_id ? await loadFluxoImg(p.arq_id) : null;
   if(linkedImg) return linkedImg;
   if(p.mod?.bpmnAsIs) return renderBpmnToPng(p.mod.bpmnAsIs);
+  // Fallback: use active modeler if still loaded for this process in the same session
+  const m=bpmnModelers['asis'];
+  if(m&&bpmnProcIds['asis']===p?.id){
+    try{const{xml}=await m.saveXML({format:true});if(xml)return renderBpmnToPng(xml);}catch{}
+  }
   return null;
 }
 
