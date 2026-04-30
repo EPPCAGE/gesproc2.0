@@ -1964,14 +1964,19 @@ function togglePrimeiroAcesso(){
 async function _primeiroAcessoExistente(email, showErr, showOk){
   if(!fbReady()){ showErr('Firebase não configurado.'); return; }
   try {
-    const {auth, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail} = fb();
+    const {auth, sendPasswordResetEmail, initializeApp, deleteApp, getAuth, createUserWithEmailAndPassword, FIREBASE_CONFIG} = fb();
+    // Usuário cadastrado manualmente pelo EPP pode não ter conta Firebase Auth ainda.
+    // Usa app secundária para criar, evitando disparar onAuthStateChanged na auth principal.
+    const secApp = initializeApp(FIREBASE_CONFIG, 'sec_exist_'+Date.now());
+    const secAuth = getAuth(secApp);
     try {
-      const tmpPass = gerarSenhaTemp() + gerarSenhaTemp(); // longo o suficiente, nunca usado
-      await createUserWithEmailAndPassword(auth, email, tmpPass);
-      await signOut(auth); // limpa sessão da conta recém-criada
+      const tmpPass = gerarSenhaTemp() + gerarSenhaTemp();
+      await createUserWithEmailAndPassword(secAuth, email, tmpPass);
     } catch(createErr){
       if(createErr.code !== 'auth/email-already-in-use') throw createErr;
-      // conta já existe → segue normalmente para o reset
+      // conta já existe no Firebase Auth → segue para o reset
+    } finally {
+      await deleteApp(secApp).catch(()=>{});
     }
     await sendPasswordResetEmail(auth, email);
     showOk('Link de redefinição enviado para '+email+'. Verifique sua caixa de entrada (e a pasta de spam).');
