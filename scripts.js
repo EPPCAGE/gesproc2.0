@@ -522,7 +522,7 @@ function projGo(pageId, btnEl) {
   // Render page
   switch(pageId) {
     case 'inicio':    projRenderInicio(); break;
-    case 'portfolio': projRenderPortfolio(); projRenderQuickAccess(); break;
+    case 'portfolio': projRenderPortfolio(); break;
     case 'concluidos': projRenderConcluidos(); break;
     case 'programas': progRenderPage(); break;
     case 'estrategia': projRenderEstrategiaPage(); break;
