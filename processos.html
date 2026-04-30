@@ -4216,6 +4216,16 @@ function _renderAnexosAchado(anexos, i){
   ).join('');
   return '<div style="margin-top:.5rem;display:flex;flex-wrap:wrap;gap:4px">'+items+'</div>';
 }
+function _renderAnexosQuestao(anexos, i){
+  if(!anexos.length) return '<div style="font-size:11px;color:var(--ink4);margin-top:.45rem">Nenhuma evidência anexada.</div>';
+  const items=anexos.map((x,j)=>
+    '<span style="display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--bdr);border-radius:6px;padding:2px 8px;font-size:11px">'+
+    `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--teal);text-decoration:none">📎 ${esc(x.nome||'Anexo')}</a>`+
+    `<button type="button" onclick="removerAnexoQuestao(${i},${j})" style="background:none;border:none;cursor:pointer;color:var(--ink4);font-size:11px;padding:0 2px" title="Remover" aria-label="Remover anexo">✕</button>`+
+    '</span>'
+  ).join('');
+  return '<div style="margin-top:.55rem"><div style="font-size:11px;color:var(--ink3);margin-bottom:.2rem">Evidências anexadas</div><div style="display:flex;flex-wrap:wrap;gap:4px">'+items+'</div></div>';
+}
 
 function _iaSection(lbl,items,style){
   if(!items?.length)return'';
@@ -4730,13 +4740,29 @@ const ACOES = {
       const questoesHtml=questoes.length?questoes.map((q,i)=>`
         <div class="card" style="margin-bottom:.4rem;padding:.6rem .8rem;font-size:13px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-            <div><strong>Q${i+1}:</strong> ${q.questao}
-            ${q.criterio?`<div style="font-size:11px;color:var(--ink3);margin-top:2px">Critério: ${q.criterio}</div>`:''}
-            ${q.resposta?`<div style="color:var(--teal);margin-top:.2rem">✓ ${q.resposta}</div>`:'<div style="color:var(--amber);margin-top:.2rem">Aguardando resposta</div>'}</div>
+            <div style="flex:1;min-width:0"><strong>Q${i+1}:</strong> ${esc(q.questao||'')}
+            ${q.criterio?`<div style="font-size:11px;color:var(--ink3);margin-top:2px">Critério: ${esc(q.criterio)}</div>`:''}
+            ${q.responsavel?`<div style="font-size:11px;color:var(--ink3);margin-top:2px">Responsável: ${esc(q.responsavel)}</div>`:''}
+            ${q.resposta?`<div style="color:var(--teal);margin-top:.4rem;white-space:pre-wrap"><strong>Resposta:</strong> ${esc(q.resposta)}</div>`:'<div style="color:var(--amber);margin-top:.4rem">Aguardando resposta</div>'}
+            ${_renderAnexosQuestao(q.anexos||[], i)}</div>
             <div style="display:flex;gap:4px;flex-shrink:0">
               <button type="button" class="btn" style="font-size:11px;padding:2px 7px" onclick="editarQuestaoAuditoria(${i})">Editar</button>
               <button type="button" class="btn" style="font-size:11px;padding:2px 7px;color:var(--red);border-color:var(--red)" onclick="excluirQuestaoAuditoria(${i})" aria-label="Remover questão">✕</button>
             </div>
+          </div>
+          <div class="fg" style="margin-top:.7rem">
+            <label class="fl">Resposta da questão</label>
+            <textarea class="fi" id="aud-q-resposta-${i}" style="min-height:78px" placeholder="Registre aqui a resposta desta questão...">${esc(q.resposta||'')}</textarea>
+          </div>
+          <div id="aud-q-anexo-form-${i}" style="margin-top:.5rem;display:none;gap:6px;flex-wrap:wrap;align-items:center">
+            <input class="fi" id="aud-q-link-nome-${i}" placeholder="Nome do documento" style="width:140px;font-size:11px;padding:3px 6px">
+            <input class="fi" id="aud-q-link-url-${i}" placeholder="https://..." style="flex:1;min-width:160px;font-size:11px;padding:3px 6px">
+            <button type="button" class="btn" style="font-size:11px;padding:2px 8px" onclick="adicionarLinkQuestao(${i})">+ Link</button>
+            <label class="btn" style="font-size:11px;padding:2px 8px;cursor:pointer">↑ Arquivo<input type="file" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg" onchange="uploadArquivoQuestao(${i},this)"></label>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:.6rem">
+            <button type="button" class="btn btn-p" style="font-size:11px;padding:2px 8px" onclick="salvarRespostaQuestaoAuditoria(${i})">Salvar resposta</button>
+            <button type="button" class="btn" style="font-size:11px;padding:2px 8px;color:var(--teal);border-color:var(--teal)" onclick="toggleAnexoQuestaoForm(${i})">📎 Anexar evidência</button>
           </div>
         </div>`).join(''):'';
       const achadosHtml=achados.length?achados.map((a,i)=>{
@@ -6856,7 +6882,13 @@ async function iaGerarRelatorioAuditoria(){
     criterios: aud.criterios||'',
     data_inicio: aud.data_inicio||'', data_fim: aud.data_fim||'',
     conformidade: document.getElementById('aud-conf')?.value || aud.conformidade || '',
-    questoes: (aud.questoes||[]).map(q=>({questao:q.questao,criterio:q.criterio})),
+    questoes: (aud.questoes||[]).map(q=>({
+      questao:q.questao,
+      criterio:q.criterio,
+      responsavel:q.responsavel,
+      resposta:q.resposta,
+      evidencias:(q.anexos||[]).map(x=>x.nome||x.url).join('; ')
+    })),
     trilha: (aud.trilha||[]).map(t=>({tipo:t.tipo,data:t.data,responsavel:t.responsavel,descricao:t.descricao,objetivo:t.objetivo,evidencias:t.evidencias,conclusoes:t.conclusoes})),
     achados: (aud.achados_list||[]).map(a=>({tipo:a.tipo,titulo:a.titulo,desc:a.desc,evidencia:a.evidencia,criterio:a.criterio})),
     acoes: (aud.acoes_list||[]).map(a=>({acao:a.acao,responsavel:a.responsavel,prazo:a.prazo,status:a.status})),
@@ -7039,7 +7071,7 @@ function adicionarQuestaoAuditoria(){
     questao:document.getElementById('aud-q-texto')?.value||'',
     criterio:document.getElementById('aud-q-crit')?.value||'',
     responsavel:document.getElementById('aud-q-resp')?.value||'',
-    resposta:'',criada_em:now()
+    resposta:'',anexos:[],criada_em:now()
   };
   if(!q.questao){toast('Informe a questão','var(--red)');return;}
   p.auditoria.questoes.push(q);
@@ -7057,7 +7089,7 @@ async function salvarQuestaoAuditoria(){
   const idxStr=document.getElementById('aud-q-idx')?.value||'';
   if(!texto){toast('Informe a questão','var(--red)');return;}
   if(idxStr===''){
-    p.auditoria.questoes.push({questao:texto,criterio,responsavel,resposta:'',criada_em:now()});
+    p.auditoria.questoes.push({questao:texto,criterio,responsavel,resposta:'',anexos:[],criada_em:now()});
     toast('Questão adicionada!','var(--teal)');
   } else {
     const idx=Number.parseInt(idxStr);
@@ -7066,6 +7098,7 @@ async function salvarQuestaoAuditoria(){
   }
   await fbSaveAll();
   rDetalhe();
+  _reabrirAbaQuestoesAuditoria();
 }
 
 function editarQuestaoAuditoria(idx){
@@ -7090,6 +7123,10 @@ function cancelarEdicaoQuestao(){
   document.getElementById('aud-q-save-btn').textContent='＋ Adicionar questão';
   document.getElementById('aud-q-cancel-btn').style.display='none';
 }
+function _reabrirAbaQuestoesAuditoria(){
+  const aud2Tab=document.getElementById('tab-acao')?.querySelector('.tab[onclick*="aud2"]');
+  if(aud2Tab) sstab('aud2',aud2Tab);
+}
 
 async function excluirQuestaoAuditoria(idx){
   const p=curProc;if(!p)return;
@@ -7097,9 +7134,88 @@ async function excluirQuestaoAuditoria(idx){
     p.auditoria.questoes.splice(idx,1);
     toast('Questão excluída','var(--amber)');
     rDetalhe();
-    // Restore the Questões tab after rDetalhe resets it to Planejamento
-    const aud2Tab = document.getElementById('tab-acao')?.querySelector('.tab[onclick*="aud2"]');
-    if(aud2Tab) sstab('aud2', aud2Tab);
+    _reabrirAbaQuestoesAuditoria();
+    await fbSaveAll();
+  });
+}
+
+async function salvarRespostaQuestaoAuditoria(idx){
+  const p=curProc;if(!p)return;
+  const q=p.auditoria?.questoes?.[idx];if(!q)return;
+  q.resposta=document.getElementById('aud-q-resposta-'+idx)?.value?.trim()||'';
+  q.respondida_em=now();
+  await fbSaveAll();
+  toast('Resposta salva!','var(--teal)');
+  rDetalhe();
+  _reabrirAbaQuestoesAuditoria();
+}
+
+function toggleAnexoQuestaoForm(idx){
+  const el=document.getElementById('aud-q-anexo-form-'+idx);
+  if(!el)return;
+  const open=el.style.display==='flex';
+  el.style.display=open?'none':'flex';
+}
+
+function adicionarLinkQuestao(idx){
+  const p=curProc;if(!p)return;
+  const q=p.auditoria?.questoes?.[idx];if(!q)return;
+  q.resposta=document.getElementById('aud-q-resposta-'+idx)?.value?.trim()||q.resposta||'';
+  const nome=(document.getElementById('aud-q-link-nome-'+idx)?.value||'').trim();
+  const url=(document.getElementById('aud-q-link-url-'+idx)?.value||'').trim();
+  if(!url){toast('Informe a URL do documento','var(--red)');return;}
+  if(!url.startsWith('http')){toast('URL inválida','var(--red)');return;}
+  if(!q.anexos) q.anexos=[];
+  q.anexos.push({tipo:'link',nome:nome||url,url});
+  fbAutoSave('salvar');
+  toast('Link de evidência adicionado!','var(--teal)');
+  rDetalhe();
+  _reabrirAbaQuestoesAuditoria();
+}
+
+async function uploadArquivoQuestao(idx,input){
+  const p=curProc;if(!p)return;
+  const q=p.auditoria?.questoes?.[idx];if(!q)return;
+  q.resposta=document.getElementById('aud-q-resposta-'+idx)?.value?.trim()||q.resposta||'';
+  const file=input?.files?.[0];if(!file)return;
+  if(!q.anexos) q.anexos=[];
+  const {storage,storageRef,uploadBytes,getDownloadURL}=globalThis._fb||{};
+  if(!storage){toast('Armazenamento não disponível','var(--red)');return;}
+  const path=`auditoria/${p.id||'sem-id'}/questoes/${idx}/${Date.now()}_${file.name.replaceAll(/[^a-zA-Z0-9._-]/g,'_')}`;
+  const ref=storageRef(storage,path);
+  try{
+    toast('Enviando arquivo…','var(--blue)');
+    await uploadBytes(ref,file);
+    const url=await getDownloadURL(ref);
+    q.anexos.push({tipo:'arquivo',nome:file.name,url,path});
+    await fbSaveAll();
+    toast('Arquivo anexado à questão!','var(--teal)');
+    rDetalhe();
+    _reabrirAbaQuestoesAuditoria();
+  }catch(e){
+    console.error('upload questao erro',e);
+    toast('Erro ao enviar arquivo: '+e.message,'var(--red)');
+  }finally{
+    if(input) input.value='';
+  }
+}
+
+async function removerAnexoQuestao(questaoIdx,anexoIdx){
+  const p=curProc;if(!p)return;
+  confirmar('Remover este anexo?', async () => {
+    const q=p.auditoria?.questoes?.[questaoIdx];if(!q?.anexos)return;
+    q.resposta=document.getElementById('aud-q-resposta-'+questaoIdx)?.value?.trim()||q.resposta||'';
+    const anexo=q.anexos[anexoIdx];
+    if(anexo?.tipo==='arquivo'&&anexo.path){
+      const {storage,storageRef,deleteObject}=globalThis._fb||{};
+      if(storage&&anexo.path){
+        try{await deleteObject(storageRef(storage,anexo.path));}catch(e){console.warn('delete questao err',e);}
+      }
+    }
+    q.anexos.splice(anexoIdx,1);
+    toast('Anexo removido','var(--amber)');
+    rDetalhe();
+    _reabrirAbaQuestoesAuditoria();
     await fbSaveAll();
   });
 }
@@ -7143,6 +7259,7 @@ async function iaGerarQuestoesAuditoria(){
         criterio:item.criterio||'',
         responsavel:'',
         resposta:'',
+        anexos:[],
         criada_em:now()
       });
     });
@@ -7381,8 +7498,15 @@ function exportarAuditoriaWord(){
   // 3. QUESTÕES
   const questoes=aud.questoes||[];
   html+=sec('2. Questões de Auditoria',tabela(
-    ['#','Questão','Critério','Responsável','Resposta'],
-    questoes.map((q,i)=>[i+1,_e(q.questao),_e(q.criterio),_e(q.responsavel),_e(q.resposta)||'<span style="color:#aaa">Pendente</span>'])
+    ['#','Questão','Critério','Responsável','Resposta','Evidências'],
+    questoes.map((q,i)=>[
+      i+1,
+      _e(q.questao),
+      _e(q.criterio),
+      _e(q.responsavel),
+      _e(q.resposta)||'<span style="color:#aaa">Pendente</span>',
+      _e((q.anexos||[]).map(a=>a.nome||a.url).join('; '))||'<span style="color:#aaa">Sem anexos</span>'
+    ])
   ));
 
   // 4. TRILHA DE PROCEDIMENTOS
