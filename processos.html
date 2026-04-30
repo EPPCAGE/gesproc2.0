@@ -4225,6 +4225,16 @@ function _renderAnexosAcao(anexos, i){
   ).join('');
   return '<div style="margin-top:.5rem;display:flex;flex-wrap:wrap;gap:4px">'+items+'</div>';
 }
+function _renderAnexosTrilha(anexos, i){
+  if(!anexos.length) return '';
+  const items=anexos.map((x,j)=>
+    '<span style="display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--bdr);border-radius:6px;padding:2px 8px;font-size:11px">'+
+    `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--teal);text-decoration:none">📎 ${esc(x.nome||'Anexo')}</a>`+
+    `<button type="button" onclick="removerAnexoTrilha(${i},${j})" style="background:none;border:none;cursor:pointer;color:var(--ink4);font-size:11px;padding:0 2px" title="Remover" aria-label="Remover anexo">✕</button>`+
+    '</span>'
+  ).join('');
+  return '<div style="margin-top:.5rem;display:flex;flex-wrap:wrap;gap:4px">'+items+'</div>';
+}
 
 function _iaSection(lbl,items,style){
   if(!items?.length)return'';
@@ -4735,6 +4745,14 @@ const ACOES = {
           ${t.objetivo?`<div style="font-size:12px;color:var(--ink3);margin-bottom:.2rem"><strong>Objetivo:</strong> ${esc(t.objetivo)}</div>`:''}
           ${t.evidencias?`<div style="font-size:12px;color:var(--teal);margin-bottom:.2rem">📎 <strong>Evidências:</strong> ${esc(t.evidencias)}</div>`:''}
           ${t.conclusoes?`<div style="font-size:12px;color:var(--ink2)">→ <strong>Conclusões parciais:</strong> ${esc(t.conclusoes)}</div>`:''}
+          ${_renderAnexosTrilha(t.anexos||[], i)}
+          <div id="tr-anexo-form-${i}" style="margin-top:.5rem;display:none;gap:6px;flex-wrap:wrap;align-items:center">
+            <input class="fi" id="tr-link-nome-${i}" placeholder="Nome do documento" style="width:140px;font-size:11px;padding:3px 6px">
+            <input class="fi" id="tr-link-url-${i}" placeholder="https://..." style="flex:1;min-width:160px;font-size:11px;padding:3px 6px">
+            <button type="button" class="btn" style="font-size:11px;padding:2px 8px" onclick="adicionarLinkTrilha(${i})">+ Link</button>
+            <label class="btn" style="font-size:11px;padding:2px 8px;cursor:pointer">↑ Arquivo<input type="file" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg" onchange="uploadArquivoTrilha(${i},this)"></label>
+          </div>
+          <button type="button" class="btn" style="font-size:11px;padding:2px 8px;margin-top:.4rem;color:var(--teal);border-color:var(--teal)" onclick="toggleAnexoFormTrilha(${i})">📎 Anexar</button>
         </div>`).join(''):'';
       const questoesHtml=questoes.length?questoes.map((q,i)=>`
         <div class="card" style="margin-bottom:.4rem;padding:.6rem .8rem;font-size:13px">
@@ -7262,7 +7280,8 @@ function adicionarProcedimentoAuditoria(){
     objetivo:document.getElementById('aud-tr-obj')?.value||'',
     evidencias:document.getElementById('aud-tr-evid')?.value||'',
     conclusoes:document.getElementById('aud-tr-concl')?.value||'',
-    criado_em:now()
+    criado_em:now(),
+    anexos:[]
   };
   if(!t.descricao){toast('Informe o que foi feito','var(--red)');return;}
   p.auditoria.trilha.push(t);
@@ -7346,6 +7365,70 @@ async function removerAnexoAchado(achadoIdx,anexoIdx){
     rDetalhe();
     const aud4Tab=document.getElementById('tab-acao')?.querySelector('.tab[onclick*="aud4"]');
     if(aud4Tab) sstab('aud4',aud4Tab);
+    await fbSaveAll();
+  });
+}
+function toggleAnexoFormTrilha(idx){
+  const el=document.getElementById('tr-anexo-form-'+idx);
+  if(!el)return;
+  const open=el.style.display==='flex';
+  el.style.display=open?'none':'flex';
+}
+function adicionarLinkTrilha(idx){
+  const p=curProc;if(!p)return;
+  const nome=(document.getElementById('tr-link-nome-'+idx)?.value||'').trim();
+  const url=(document.getElementById('tr-link-url-'+idx)?.value||'').trim();
+  if(!url){toast('Informe a URL do documento','var(--red)');return;}
+  if(!url.startsWith('http')){toast('URL inválida','var(--red)');return;}
+  const proc=p.auditoria?.trilha?.[idx];
+  if(!proc)return;
+  if(!proc.anexos)proc.anexos=[];
+  proc.anexos.push({tipo:'link',nome:nome||url,url});
+  fbAutoSave('salvar');toast('Link adicionado!','var(--teal)');
+  rDetalhe();
+  const aud3Tab=document.getElementById('tab-acao')?.querySelector('.tab[onclick*="aud3"]');
+  if(aud3Tab) sstab('aud3',aud3Tab);
+}
+async function uploadArquivoTrilha(idx,input){
+  const p=curProc;if(!p)return;
+  const file=input?.files?.[0];if(!file)return;
+  const proc=p.auditoria?.trilha?.[idx];if(!proc)return;
+  if(!proc.anexos)proc.anexos=[];
+  const {storage,storageRef,uploadBytes,getDownloadURL}=globalThis._fb||{};
+  if(!storage){toast('Armazenamento não disponível','var(--red)');return;}
+  const path=`auditoria/${p.id||'sem-id'}/acoes/${Date.now()}_${file.name.replaceAll(/[^a-zA-Z0-9._-]/g,'_')}`;
+  const ref=storageRef(storage,path);
+  try{
+    toast('Enviando arquivo…','var(--blue)');
+    await uploadBytes(ref,file);
+    const url=await getDownloadURL(ref);
+    proc.anexos.push({tipo:'arquivo',nome:file.name,url,path});
+    await fbSaveAll();
+    toast('Arquivo enviado!','var(--teal)');
+    rDetalhe();
+    const aud3Tab=document.getElementById('tab-acao')?.querySelector('.tab[onclick*="aud3"]');
+    if(aud3Tab) sstab('aud3',aud3Tab);
+  }catch(e){
+    console.error('upload erro',e);
+    toast('Erro ao enviar arquivo: '+e.message,'var(--red)');
+  }
+}
+async function removerAnexoTrilha(trilhaIdx,anexoIdx){
+  const p=curProc;if(!p)return;
+  confirmar('Remover este anexo?', async () => {
+    const proc=p.auditoria?.trilha?.[trilhaIdx];if(!proc?.anexos)return;
+    const anexo=proc.anexos[anexoIdx];
+    if(anexo?.tipo==='arquivo'&&anexo.path){
+      const {storage,storageRef,deleteObject}=globalThis._fb||{};
+      if(storage&&anexo.path){
+        try{await deleteObject(storageRef(storage,anexo.path));}catch(e){console.warn('delete storage err',e);}
+      }
+    }
+    proc.anexos.splice(anexoIdx,1);
+    toast('Anexo removido','var(--amber)');
+    rDetalhe();
+    const aud3Tab=document.getElementById('tab-acao')?.querySelector('.tab[onclick*="aud3"]');
+    if(aud3Tab) sstab('aud3',aud3Tab);
     await fbSaveAll();
   });
 }
