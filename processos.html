@@ -554,30 +554,12 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
 <div id="trocar-senha-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;align-items:center;justify-content:center;padding:1rem">
   <div style="background:#1e1e2e;border-radius:16px;padding:2rem;width:100%;max-width:420px;box-shadow:0 12px 48px rgba(0,0,0,.6);overflow-y:auto;max-height:90vh">
     <div style="color:#fff;font-size:17px;font-weight:700;margin-bottom:.35rem">Bem-vindo(a) ao SIGA 2.0!</div>
-    <div style="color:rgba(255,255,255,.5);font-size:12px;margin-bottom:1.5rem;line-height:1.55">Você está usando uma senha temporária. Defina sua senha definitiva e confirme seu perfil de acesso antes de continuar.</div>
+    <div style="color:rgba(255,255,255,.5);font-size:12px;margin-bottom:1.5rem;line-height:1.55">Você está usando uma senha temporária. Defina sua senha definitiva antes de continuar.</div>
 
     <label class="login-label" for="ts-nova">Nova senha <span style="opacity:.45;font-size:10px">(mín. 6 caracteres)</span></label>
     <input class="login-input" id="ts-nova" type="password" placeholder="••••••••" style="margin-bottom:.7rem">
     <label class="login-label" for="ts-conf">Confirmar nova senha</label>
     <input class="login-input" id="ts-conf" type="password" placeholder="••••••••" style="margin-bottom:1.4rem">
-
-    <div id="ts-perfil-section">
-      <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.7rem">Meu perfil de acesso</div>
-      <label id="ts-lbl-dono" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:.7rem .85rem;border-radius:10px;border:1px solid rgba(255,255,255,.1);margin-bottom:.5rem;transition:border-color .12s,background .12s">
-        <input type="checkbox" id="ts-perfil-dono" style="margin-top:3px;width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-color:var(--blue)" onchange="_tsAtualizarCards()">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:#fff">🧩 Dono de Processo</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;line-height:1.4">Acesso ao SIGA Processos — mapeamento, workflow e gestão de processos institucionais.</div>
-        </div>
-      </label>
-      <label id="ts-lbl-gerproj" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:.7rem .85rem;border-radius:10px;border:1px solid rgba(255,255,255,.1);transition:border-color .12s,background .12s">
-        <input type="checkbox" id="ts-perfil-gerproj" style="margin-top:3px;width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-color:var(--teal)" onchange="_tsAtualizarCards()">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:#fff">📁 Gerente de Projeto</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;line-height:1.4">Acesso ao SIGA Projetos — portfólio, indicadores e acompanhamento estratégico.</div>
-        </div>
-      </label>
-    </div>
 
     <button type="button" class="login-btn" style="margin-top:1.2rem" onclick="salvarNovaSenha()">Definir senha e entrar →</button>
     <div id="ts-msg" style="display:none;font-size:12px;text-align:center;margin-top:.6rem;color:#F2A0A0"></div>
@@ -2023,7 +2005,7 @@ async function _primeiroAcessoNovo(email, nome, showErr, showOk){
   // Adiciona ao USUARIOS com flag de troca de senha
   const palavras = nome.trim().split(/\s+/).filter(Boolean);
   const iniciais = (palavras.length>=2 ? palavras[0][0]+palavras[palavras.length-1][0] : (palavras[0]||'?').slice(0,2)).toUpperCase();
-  USUARIOS.push({email, nome, perfil:'dono', iniciais, processos_vinculados:[], trocar_senha:true});
+  USUARIOS.push({email, nome, perfil:'dono', perfis:['dono','gerente_projeto'], iniciais, processos_vinculados:[], trocar_senha:true});
   await fbSaveAll();
 
   // Envia senha temporária ao usuário
@@ -2145,35 +2127,10 @@ async function _criarUsuarioParaAtribuicao(email, nome, perfil){
   return senhaEnviada; // null se usuário já tinha conta Auth
 }
 
-function _tsAtualizarCards(){
-  const lblDono   = document.getElementById('ts-lbl-dono');
-  const lblGerproj= document.getElementById('ts-lbl-gerproj');
-  const chkDono   = document.getElementById('ts-perfil-dono');
-  const chkGerproj= document.getElementById('ts-perfil-gerproj');
-  if(lblDono && chkDono){
-    lblDono.style.borderColor   = chkDono.checked   ? 'var(--blue)' : 'rgba(255,255,255,.1)';
-    lblDono.style.background    = chkDono.checked   ? 'rgba(26,93,200,.15)' : '';
-  }
-  if(lblGerproj && chkGerproj){
-    lblGerproj.style.borderColor= chkGerproj.checked? 'var(--teal)' : 'rgba(255,255,255,.1)';
-    lblGerproj.style.background = chkGerproj.checked? 'rgba(10,112,96,.15)' : '';
-  }
-}
 
 function abrirModalTrocarSenha(){
   const m = document.getElementById('trocar-senha-modal');
   if(!m) return;
-  // Pre-select existing profiles
-  const perfis = getPerfisUsuario();
-  const chkDono    = document.getElementById('ts-perfil-dono');
-  const chkGerproj = document.getElementById('ts-perfil-gerproj');
-  const section    = document.getElementById('ts-perfil-section');
-  const isEpUser   = perfis.includes('ep');
-  if(section) section.style.display = isEpUser ? 'none' : 'block';
-  if(chkDono)    chkDono.checked    = perfis.includes('dono');
-  if(chkGerproj) chkGerproj.checked = perfis.includes('gerente_projeto');
-  _tsAtualizarCards();
-  // Clear fields and message
   const nova = document.getElementById('ts-nova');
   const conf = document.getElementById('ts-conf');
   const msg  = document.getElementById('ts-msg');
@@ -2192,40 +2149,17 @@ async function salvarNovaSenha(){
   if(nova.length < 6){ showErr('A senha deve ter pelo menos 6 caracteres.'); return; }
   if(nova !== conf){ showErr('As senhas não coincidem.'); return; }
 
-  // Validate profile selection (not required for EP users)
-  const isEpUser = usuarioLogado && getPerfisUsuario(usuarioLogado).includes('ep');
-  let novosPerfis = [];
-  if(isEpUser){
-    novosPerfis = ['ep'];
-  } else {
-    const chkDono    = document.getElementById('ts-perfil-dono');
-    const chkGerproj = document.getElementById('ts-perfil-gerproj');
-    if(chkDono?.checked)    novosPerfis.push('dono');
-    if(chkGerproj?.checked) novosPerfis.push('gerente_projeto');
-    if(!novosPerfis.length){ showErr('Selecione pelo menos um perfil de acesso.'); return; }
-  }
-
   if(!fbReady()){ showErr('Firebase não disponível.'); return; }
   const {auth, updatePassword} = fb();
   const firebaseUser = auth.currentUser;
   if(!firebaseUser){ showErr('Sessão inválida. Faça login novamente.'); return; }
   try {
     await updatePassword(firebaseUser, nova);
-    // Apply profiles and clear temp-password flag
+    // Clear temp-password flag, keep existing profiles
     if(usuarioLogado){
-      usuarioLogado.perfis      = novosPerfis;
-      usuarioLogado.perfil      = novosPerfis[0]; // keep legacy field in sync
       usuarioLogado.trocar_senha = false;
-      // Update the entry in USUARIOS array
       const idx = USUARIOS.findIndex(u => u.email === usuarioLogado.email);
-      if(idx !== -1){
-        USUARIOS[idx].perfis      = novosPerfis;
-        USUARIOS[idx].perfil      = novosPerfis[0];
-        USUARIOS[idx].trocar_senha = false;
-      }
-      // Update sidebar role label
-      const roleEl = document.getElementById('aside-role');
-      if(roleEl) roleEl.textContent = novosPerfis.map(p => PERFIL_LABELS[p]||p).join(' · ');
+      if(idx !== -1) USUARIOS[idx].trocar_senha = false;
     }
     await fbSaveAll();
     const modal = document.getElementById('trocar-senha-modal');
