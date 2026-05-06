@@ -14531,6 +14531,15 @@ async function fbLoad(){
   try {
     const {db, collection, getDocs, doc, getDoc} = fb();
 
+    // usuarios — lido PRIMEIRO e em bloco isolado para garantir que USUARIOS
+    // seja carregado mesmo que as leituras seguintes falhem por regras de acesso
+    try {
+      const usrDocFirst = await getDoc(doc(db,'config','usuarios'));
+      if(usrDocFirst.exists() && usrDocFirst.data().data){
+        USUARIOS = JSON.parse(usrDocFirst.data().data);
+      }
+    } catch(e){ console.warn('fbLoad: erro ao carregar usuarios:', e.message); }
+
     // processos
     const pSnap = await getDocs(collection(db,'processos'));
     if(!pSnap.empty){
@@ -14580,12 +14589,6 @@ async function fbLoad(){
     const arqDoc = await getDoc(doc(db,'config','arquitetura'));
     if(arqDoc.exists() && arqDoc.data().data){
       try { ARQUITETURA = JSON.parse(arqDoc.data().data); } catch(e){ console.error('Erro ao parsear arquitetura:', e); }
-    }
-
-    // usuarios
-    const usrDoc = await getDoc(doc(db,'config','usuarios'));
-    if(usrDoc.exists() && usrDoc.data().data){
-      try { USUARIOS = JSON.parse(usrDoc.data().data); } catch(e){ console.error('Erro ao parsear usuarios:', e); }
     }
 
     const projSnap = await getDocs(collection(db,'projPROJETOS'));
