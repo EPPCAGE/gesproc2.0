@@ -3704,7 +3704,7 @@ function av(etAtu, role, acao, _prazoEl, notifDest){
     curProc.status_workflow='concluido';
   }
   rDetalhe();updCounts();
-  fbAutoSave('av');
+  fbSaveNow('av');
 }
 // Solicita prazo ao EP antes de passar tarefa ao dono
 function perguntarNotifDono(etapaProxId){
@@ -6139,7 +6139,7 @@ function publicarProcesso(){
   if(p.arq_id && !mapeadosManual.has(p.arq_id)){
     mapeadosManual.add(p.arq_id);
     lsSet('mapeadosManual', JSON.stringify([...mapeadosManual]));
-    fbAutoSave('mapeados');
+    fbSaveNow('mapeados');
   }
 
   // Agendar próximo acompanhamento com base na data de entrega efetiva
@@ -6325,7 +6325,7 @@ function voltarEtapa(){
   push(curProc,etAtual,'EP','Etapa desfeita — retorno à etapa anterior');
   curProc.etapa=pr;
   push(curProc,pr,'Sistema','Etapa retomada');
-  rDetalhe();updCounts();fbAutoSave('voltarEtapa');
+  rDetalhe();updCounts();fbSaveNow('voltarEtapa');
 }
 function pularEtapaConfirm(etId){
   const lb=etLb(etId);
@@ -6339,7 +6339,7 @@ function pularEtapa(etId){
   push(curProc,etId,'EP','Etapa pulada — pendente');
   const nx=nextEt(etId);
   if(nx){curProc.etapa=nx;push(curProc,nx,'Sistema','Etapa iniciada');}
-  rDetalhe();updCounts();fbAutoSave('pularEtapa');
+  rDetalhe();updCounts();fbSaveNow('pularEtapa');
 }
 function salvarPOP(avancar=true){
   const p=curProc;
@@ -7983,7 +7983,7 @@ function tipoCls(t,sub){
 }
 
 // Returns the correct etapas array key depending on the active stage
-function _ekey(){ return ['esboco_tobe','det_valid_tobe'].includes(curProc?.etapa)?'etapas_proc_tobe':'etapas_proc'; }
+function _ekey(){ const _et=epRetroEtapa||curProc?.etapa; return ['esboco_tobe','det_valid_tobe'].includes(_et)?'etapas_proc_tobe':'etapas_proc'; }
 
 // Navigate a dot-path like "ep100.c0.a1.c0" into etapas_proc nested objects
 function _resolvePathPart(obj, part){
@@ -9655,7 +9655,8 @@ function _syncBpmnElName(epId, newName){
   }catch{}
 }
 function bpmnHoverEtapa(event, epId){
-  const which=['esboco_tobe','det_valid_tobe'].includes(curProc?.etapa)?'tobe':'asis';
+  const _et=epRetroEtapa||curProc?.etapa;
+  const which=['esboco_tobe','det_valid_tobe'].includes(_et)?'tobe':'asis';
   const mod=bpmnModelers[which];
   if(!mod) return;
   const canvas=mod.get('canvas');
@@ -9775,6 +9776,16 @@ function bpmnEditorHTML(which, existingXml){
   </div>`;
 }
 
+function _bpmnActivateKeyboard(which){
+  Object.keys(bpmnModelers).forEach(k=>{
+    const m=bpmnModelers[k];
+    if(!m)return;
+    try{
+      if(k===which) m.get('keyboard').bind(document);
+      else m.get('keyboard').unbind();
+    }catch{}
+  });
+}
 function initBpmnMod(which, p){
   if(typeof BpmnJS==='undefined'){
     const l=document.getElementById('bpmn-'+which+'-loading');
@@ -9792,6 +9803,7 @@ function initBpmnMod(which, p){
     if(bpmnProcIds[which]===p?.id){
       try{
         bpmnModelers[which].attachTo(canvasEl);
+        _bpmnActivateKeyboard(which);
         const l=document.getElementById('bpmn-'+which+'-loading');
         if(l)l.style.display='none';
         if(bpmnDirty[which]){
@@ -9820,10 +9832,13 @@ function initBpmnMod(which, p){
     try{bpmnModelers[which].destroy();}catch{}
     bpmnModelers[which]=null;
   }
-  const mod=new BpmnJS({container:'#bpmn-'+which+'-canvas',keyboard:{bindTo:document}});
+  const mod=new BpmnJS({container:'#bpmn-'+which+'-canvas'});
   bpmnModelers[which]=mod;
   bpmnDirty[which]=false;
   bpmnProcIds[which]=p?.id;
+  _bpmnActivateKeyboard(which);
+  const _canvasEl2=document.getElementById('bpmn-'+which+'-canvas');
+  if(_canvasEl2) _canvasEl2.addEventListener('mousedown',()=>_bpmnActivateKeyboard(which),true);
   mod.on('commandStack.changed',()=>{
     bpmnDirty[which]=true;
     const lbl=document.getElementById('bpmn-'+which+'-dirty');
@@ -15321,6 +15336,14 @@ function _fbWatchExternalChanges(){
 }
 // ── END CONCURRENT EDIT ──────────────────────────────────────
 
+function fbSaveNow(label){
+  if(!fbReady()) return;
+  clearTimeout(globalThis._fbSaveTimer);
+  fbSaveAll().catch(e=>{
+    console.error('fbSaveNow error ('+label+'):', e);
+    toast('⚠ Erro ao salvar dados. Verifique sua conexão.','var(--red)');
+  });
+}
 function fbAutoSave(label){
   if(!fbReady()) return;
   // Q023: snapshot dos campos editáveis antes de salvar (operações de edição)
