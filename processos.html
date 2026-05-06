@@ -7983,7 +7983,7 @@ function tipoCls(t,sub){
 }
 
 // Returns the correct etapas array key depending on the active stage
-function _ekey(){ return ['esboco_tobe','det_valid_tobe'].includes(curProc?.etapa)?'etapas_proc_tobe':'etapas_proc'; }
+function _ekey(){ const _et=epRetroEtapa||curProc?.etapa; return ['esboco_tobe','det_valid_tobe'].includes(_et)?'etapas_proc_tobe':'etapas_proc'; }
 
 // Navigate a dot-path like "ep100.c0.a1.c0" into etapas_proc nested objects
 function _resolvePathPart(obj, part){
@@ -9655,7 +9655,8 @@ function _syncBpmnElName(epId, newName){
   }catch{}
 }
 function bpmnHoverEtapa(event, epId){
-  const which=['esboco_tobe','det_valid_tobe'].includes(curProc?.etapa)?'tobe':'asis';
+  const _et=epRetroEtapa||curProc?.etapa;
+  const which=['esboco_tobe','det_valid_tobe'].includes(_et)?'tobe':'asis';
   const mod=bpmnModelers[which];
   if(!mod) return;
   const canvas=mod.get('canvas');
@@ -9775,6 +9776,16 @@ function bpmnEditorHTML(which, existingXml){
   </div>`;
 }
 
+function _bpmnActivateKeyboard(which){
+  Object.keys(bpmnModelers).forEach(k=>{
+    const m=bpmnModelers[k];
+    if(!m)return;
+    try{
+      if(k===which) m.get('keyboard').bind(document);
+      else m.get('keyboard').unbind();
+    }catch{}
+  });
+}
 function initBpmnMod(which, p){
   if(typeof BpmnJS==='undefined'){
     const l=document.getElementById('bpmn-'+which+'-loading');
@@ -9792,6 +9803,7 @@ function initBpmnMod(which, p){
     if(bpmnProcIds[which]===p?.id){
       try{
         bpmnModelers[which].attachTo(canvasEl);
+        _bpmnActivateKeyboard(which);
         const l=document.getElementById('bpmn-'+which+'-loading');
         if(l)l.style.display='none';
         if(bpmnDirty[which]){
@@ -9820,10 +9832,13 @@ function initBpmnMod(which, p){
     try{bpmnModelers[which].destroy();}catch{}
     bpmnModelers[which]=null;
   }
-  const mod=new BpmnJS({container:'#bpmn-'+which+'-canvas',keyboard:{bindTo:document}});
+  const mod=new BpmnJS({container:'#bpmn-'+which+'-canvas'});
   bpmnModelers[which]=mod;
   bpmnDirty[which]=false;
   bpmnProcIds[which]=p?.id;
+  _bpmnActivateKeyboard(which);
+  const _canvasEl2=document.getElementById('bpmn-'+which+'-canvas');
+  if(_canvasEl2) _canvasEl2.addEventListener('mousedown',()=>_bpmnActivateKeyboard(which),true);
   mod.on('commandStack.changed',()=>{
     bpmnDirty[which]=true;
     const lbl=document.getElementById('bpmn-'+which+'-dirty');
