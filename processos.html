@@ -499,7 +499,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
     <div class="module-grid" id="module-grid">
       <div class="module-card" id="hub-card-processos">
         <h3>🧩 SIGA Processos</h3>
-        <p>Mapeamento, workflow, auditoria, trilhas e demais funcionalidades de gestão de processos.</p>
+        <p>Mapeamento, workflow, análise de aderência, trilhas e demais funcionalidades de gestão de processos.</p>
         <button type="button" class="btn btn-p" onclick="enterProcessModule()">Entrar →</button>
       </div>
       <div class="module-card" id="hub-card-projetos">
@@ -768,7 +768,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   </button>
   <button type="button" class="nav-btn ep-only" onclick="go('auditoria',this)" id="nb-aud">
     <svg viewBox="0 0 16 16" fill="none"><path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.4"/><path d="M5 6h6M5 9h4M5 12h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="12" cy="12" r="3" fill="var(--surf)" stroke="currentColor" stroke-width="1.4"/><path d="M11 12l.8.8L13 11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Auditoria <span class="nav-cnt" id="nb-aud-cnt">0</span>
+    Análise de Aderência <span class="nav-cnt" id="nb-aud-cnt">0</span>
   </button>
   <button type="button" class="nav-btn" onclick="go('publicacoes',this)" id="nb-pub">
     <svg viewBox="0 0 16 16" fill="none"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.4"/><path d="M10 2v3h3" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
@@ -1217,7 +1217,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
     </select>
     <select class="fi plano-filtros-avancados" id="plano-filt-cat" onchange="rPlano()" style="width:130px">
       <option value="">Todas categorias</option>
-      <option value="auditoria">Auditoria</option>
+      <option value="auditoria">Análise de Aderência</option>
       <option value="mapeamento">Mapeamento</option>
       <option value="normativa">Normativa</option>
       <option value="capacitacao">Capacitação</option>
@@ -1240,8 +1240,8 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
 
 <div id="page-auditoria" class="page"><div style="padding:2rem">
   <div class="ph">
-    <div><div class="ph-t">Auditoria de processos</div><div class="ph-s" id="aud-sub">Processos com auditoria em andamento ou concluída</div></div>
-    <button type="button" class="btn btn-p" onclick="abrirModalNovaAuditoria()">+ Nova auditoria</button>
+    <div><div class="ph-t">Análise de Aderência de processos</div><div class="ph-s" id="aud-sub">Processos com análise de aderência em andamento ou concluída</div></div>
+    <button type="button" class="btn btn-p" onclick="abrirModalNovaAuditoria()">+ Nova análise de aderência</button>
   </div>
   <div style="display:flex;gap:8px;margin-bottom:1rem">
     <button type="button" class="chip on" id="aud-chip-and" onclick="filtAuditoria('andamento',this)">Em andamento</button>
@@ -1251,13 +1251,13 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   <div id="aud-list"></div>
 </div></div>
 
-<!-- MODAL: Nova Auditoria -->
+<!-- MODAL: Nova Análise de Aderência -->
 <div id="modal-nova-auditoria" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;overflow-y:auto">
   <div style="background:var(--surf);border-radius:14px;max-width:640px;width:95%;margin:2rem auto;padding:2rem;box-shadow:0 16px 48px rgba(0,0,0,.3)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
       <div>
-        <div style="font-size:16px;font-weight:700;color:var(--ink)">Nova auditoria</div>
-        <div style="font-size:12px;color:var(--ink3);margin-top:2px">Selecione o processo mapeado que será auditado</div>
+        <div style="font-size:16px;font-weight:700;color:var(--ink)">Nova análise de aderência</div>
+        <div style="font-size:12px;color:var(--ink3);margin-top:2px">Selecione o processo mapeado que será analisado</div>
       </div>
       <button type="button" class="btn" onclick="fecharModalNovaAuditoria()">✕ Fechar</button>
     </div>
@@ -1613,7 +1613,7 @@ const ETAPAS = [
   // Operação
   {id:'acompanha',lb:'Acompanhamento',fase:'Operacao',cor:'pip-o',resp:'ep'},
   // Auditoria
-  {id:'auditoria',lb:'Auditoria do processo',fase:'Auditoria',cor:'pip-a',resp:'ep'},
+  {id:'auditoria',lb:'Análise de Aderência do processo',fase:'Auditoria',cor:'pip-a',resp:'ep'},
 ];
 // Retorna pipeline efetivo — exclui etapas TO BE se produto for somente AS IS
 function getEtapas(p){
@@ -2271,7 +2271,7 @@ function go(page,btn){
   ({fila:rFila,dashboard:rDash,processos:renderProcs,arq:rArq,faq:rFaq,indicadores:()=>{rInd();},notificacoes:()=>{rNotif();},auditoria:rAuditoria,publicacoes:()=>{rPub();},admin:renderAdmin,plano:rPlano,avisos:rAvisos,trilhas:rTrilhas}[page]||function(){})();
   // Mobile: close drawer, update title
   if(globalThis.innerWidth<=720){mobClose();}
-  const ttl={fila:'Minhas tarefas',dashboard:'Painel geral',processos:'Processos',arq:'Arquitetura',faq:'Base de FAQs',indicadores:'Indicadores',plano:'PAT',notificacoes:'Notificações',auditoria:'Auditoria',publicacoes:'Publicações',admin:'Usuários',avisos:'Avisos',detalhe:'Processo',trilhas:'Trilhas de capacitação'};
+  const ttl={fila:'Minhas tarefas',dashboard:'Painel geral',processos:'Processos',arq:'Arquitetura',faq:'Base de FAQs',indicadores:'Indicadores',plano:'PAT',notificacoes:'Notificações',auditoria:'Análise de Aderência',publicacoes:'Publicações',admin:'Usuários',avisos:'Avisos',detalhe:'Processo',trilhas:'Trilhas de capacitação'};
   const el=document.getElementById('mob-page-title');if(el)el.textContent=ttl[page]||'SIGA 2.0';
 }
 function mobToggleDrawer(){
@@ -2550,27 +2550,27 @@ function rListaAptosAuditoria(){
         <div style="font-size:11px;color:var(--ink3);margin-top:2px">
           <span class="badge bg" style="font-size:9px">Mapeado</span>
           &nbsp;Etapa atual: <strong>${etLb(p.etapa)}</strong>
-          ${p.auditoria?.data?`&nbsp;· Última auditoria: ${esc(p.auditoria.data)}`:''}
+          ${p.auditoria?.data?`&nbsp;· Última análise de aderência: ${esc(p.auditoria.data)}`:''}
         </div>
       </div>
-      <button type="button" class="btn btn-p" style="font-size:11px;padding:4px 12px" onclick="event.stopPropagation();iniciarNovaAuditoria(${p.id})">Iniciar auditoria →</button>
+      <button type="button" class="btn btn-p" style="font-size:11px;padding:4px 12px" onclick="event.stopPropagation();iniciarNovaAuditoria(${p.id})">Iniciar análise de aderência →</button>
     </div>`).join('');
 }
 function iniciarNovaAuditoria(procId){
   const p=processos.find(x=>x.id===procId);
   if(!p) return;
-  confirmar('Iniciar auditoria de "'+p.nome+'"?\nO processo será movido para a etapa Auditoria.', () => {
+  confirmar('Iniciar análise de aderência de "'+p.nome+'"?\nO processo será movido para a etapa Análise de Aderência.', () => {
     p.auditoria=null; // limpa auditoria anterior
     p.etapa='auditoria';
-    push(p,'auditoria','EP','Nova auditoria iniciada');
+    push(p,'auditoria','EP','Nova análise de aderência iniciada');
     fbAutoSave('novaAuditoria');
     fecharModalNovaAuditoria();
     rAuditoria();
     updCounts();
-    toast('Auditoria iniciada para "'+p.nome+'"','var(--teal)');
+    toast('Análise de Aderência iniciada para "'+p.nome+'"','var(--teal)');
     // Notificar dono sobre início de auditoria
     const donoEmailAud=getDonoEmail(p);
-    if(donoEmailAud && p.dono) enviarNotif(donoEmailAud, p.dono, 'Auditoria iniciada para "'+p.nome+'" — aguarda sua participação para responder questões e ciência do relatório.', p.nome, '', usuarioLogado?.nome||'EP');
+    if(donoEmailAud && p.dono) enviarNotif(donoEmailAud, p.dono, 'Análise de Aderência iniciada para "'+p.nome+'" — aguarda sua participação para responder questões e ciência do relatório.', p.nome, '', usuarioLogado?.nome||'EP');
     // Abre o processo direto na aba auditoria
     setTimeout(()=>abrirProc(procId),300);
   });
@@ -2589,7 +2589,7 @@ function rAuditoria(){
     const aud=p.auditoria||{};
     const concluida=aud.concluida===true;
     const audConf=aud.conformidade?' · '+esc(aud.conformidade):'';
-    const audRow=aud.data?`<div style="font-size:11px;color:var(--ink3);margin-top:3px">Auditoria: ${esc(aud.data)}${audConf}</div>`:'';
+    const audRow=aud.data?`<div style="font-size:11px;color:var(--ink3);margin-top:3px">Análise de Aderência: ${esc(aud.data)}${audConf}</div>`:'';
     const audConclusaoRow=aud.conclusao?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px">${esc(aud.conclusao)}</div>`:'';
     return `<div class="prc ${p.prio==='Critica'?'urg':''}" onclick="abrirProc(${p.id})" style="margin-bottom:8px">
       <div style="flex:1">
@@ -2609,7 +2609,7 @@ function rFila(){
   if(!usuarioLogado)return;
   const tarefas=getTarefasUsr();
   document.getElementById('fila-sub').textContent=usuarioLogado.nome+' — '+(tarefas.length?tarefas.length+' tarefa(s) pendente(s)':'nenhuma tarefa pendente');
-  const ACT={abertura:'Abrir processo e vincular à arquitetura',questionario:'Responder questionário de maturidade',reuniao:'Conduzir reunião de entendimento',analise:'Elaborar análise inteligente do AS IS',esboco_asis:'Elaborar esboço AS IS com BPMN',det_valid_asis:'Detalhar etapas e validar AS IS',riscos:'Identificar e avaliar riscos do processo',melhorias:'Revisar melhorias e mitigações identificadas',esboco_tobe:'Elaborar esboço TO BE com BPMN',det_valid_tobe:'Detalhar etapas e validar TO BE',desenho_final:'Finalizar desenho do processo',pop:'Construir POP no padrão CAGE',apresentacao:'Apresentar ao gestor',publicacao:'Publicar no repositório oficial',acompanha:'Verificar conformidade na implementação',auditoria:'Conduzir auditoria do processo'};
+  const ACT={abertura:'Abrir processo e vincular à arquitetura',questionario:'Responder questionário de maturidade',reuniao:'Conduzir reunião de entendimento',analise:'Elaborar análise inteligente do AS IS',esboco_asis:'Elaborar esboço AS IS com BPMN',det_valid_asis:'Detalhar etapas e validar AS IS',riscos:'Identificar e avaliar riscos do processo',melhorias:'Revisar melhorias e mitigações identificadas',esboco_tobe:'Elaborar esboço TO BE com BPMN',det_valid_tobe:'Detalhar etapas e validar TO BE',desenho_final:'Finalizar desenho do processo',pop:'Construir POP no padrão CAGE',apresentacao:'Apresentar ao gestor',publicacao:'Publicar no repositório oficial',acompanha:'Verificar conformidade na implementação',auditoria:'Conduzir análise de aderência do processo'};
   const el=document.getElementById('fila-content');
   document.getElementById('fale-conosco-panel').style.display = isDono() ? 'block' : 'none';
   if(!tarefas.length){el.innerHTML='<div style="text-align:center;padding:3rem"><div style="font-size:36px;margin-bottom:10px">✓</div><div style="font-size:15px;font-weight:600;color:var(--ink)">Você está em dia!</div><div style="font-size:12px;color:var(--ink3);margin-top:4px">Nenhuma tarefa pendente no momento.</div></div>';rMeusProc();return;}
@@ -2831,7 +2831,7 @@ function filtEtapaGo(etId){filtFaseAtual='';document.querySelectorAll('#fase-chi
 
 function buildPipelineHTML(cnt){
   const faseMap={Entendimento:'pip-e',Modelagem:'pip-m',Formalizacao:'pip-f',Operacao:'pip-o',Auditoria:'pip-a'};
-  const faseTitle={Entendimento:'Entendimento',Modelagem:'Modelagem',Formalizacao:'Formalização',Operacao:'Operação',Auditoria:'Auditoria'};
+  const faseTitle={Entendimento:'Entendimento',Modelagem:'Modelagem',Formalizacao:'Formalização',Operacao:'Operação',Auditoria:'Análise de Aderência'};
   return FASES.map(f=>`
     <div class="pip-phase"><div class="pip-phase-hd ${faseMap[f]}">${faseTitle[f]}</div>
     <div class="pip-steps">${ETAPAS.filter(e=>e.fase===f).map(e=>`
@@ -4690,7 +4690,7 @@ const ACOES = {
         </div>`;
     }},
 
-  auditoria:{titulo:'Auditoria do processo',sub:'Verificação sistemática da conformidade, desempenho e melhorias.',role:'EP',rk:'ep',
+  auditoria:{titulo:'Análise de Aderência do processo',sub:'Verificação sistemática da conformidade, desempenho e melhorias.',role:'EP',rk:'ep',
     form:p=>{
       const aud=p.auditoria||{};
       const questoes=aud.questoes||[];
@@ -4819,10 +4819,10 @@ const ACOES = {
           <div class="fg"><label class="fl">Data de início</label><input class="fi" id="aud-ini" type="date" value="${aud.data_inicio||''}"></div>
           <div class="fg"><label class="fl">Data prevista de conclusão</label><input class="fi" id="aud-fim" type="date" value="${aud.data_fim||''}"></div>
         </div>
-        <div class="fg"><label class="fl">Objetivo da auditoria</label><textarea class="fi" id="aud-obj" style="min-height:70px" placeholder="Descreva o objetivo...">${aud.objetivo||''}</textarea></div>
-        <div class="fg"><label class="fl">Escopo</label><textarea class="fi" id="aud-escopo" style="min-height:70px" placeholder="Defina o escopo da auditoria...">${aud.escopo||''}</textarea></div>
-        <div class="fg"><label class="fl">Equipe de auditoria</label><input class="fi" id="aud-equipe" value="${aud.equipe||''}" placeholder="Nomes dos auditores"></div>
-        <div class="fg"><label class="fl">Critérios de auditoria</label><textarea class="fi" id="aud-crit" style="min-height:70px" placeholder="Ex: POP publicado, normas internas, indicadores de desempenho...">${aud.criterios||''}</textarea></div>
+        <div class="fg"><label class="fl">Objetivo da análise de aderência</label><textarea class="fi" id="aud-obj" style="min-height:70px" placeholder="Descreva o objetivo...">${aud.objetivo||''}</textarea></div>
+        <div class="fg"><label class="fl">Escopo</label><textarea class="fi" id="aud-escopo" style="min-height:70px" placeholder="Defina o escopo da análise de aderência...">${aud.escopo||''}</textarea></div>
+        <div class="fg"><label class="fl">Equipe de análise de aderência</label><input class="fi" id="aud-equipe" value="${aud.equipe||''}" placeholder="Nomes dos auditores"></div>
+        <div class="fg"><label class="fl">Critérios de análise de aderência</label><textarea class="fi" id="aud-crit" style="min-height:70px" placeholder="Ex: POP publicado, normas internas, indicadores de desempenho...">${aud.criterios||''}</textarea></div>
         <div class="fg"><label class="fl">Metodologia</label>
           <select class="fi" id="aud-metod">
             <option ${aud.metodologia==='Análise documental'?'selected':''}>Análise documental</option>
@@ -4840,7 +4840,7 @@ const ACOES = {
         </div>
         <div id="aud-ia-questoes"></div>
         <div style="margin-bottom:1rem">${questoesHtml||'<div style="font-size:12px;color:var(--ink3)">Nenhuma questão cadastrada.</div>'}</div>
-        <div style="font-weight:600;font-size:13px;margin-bottom:.8rem;padding-top:.8rem;border-top:1px solid var(--bdr)" id="aud-q-form-title">Adicionar questão de auditoria</div>
+        <div style="font-weight:600;font-size:13px;margin-bottom:.8rem;padding-top:.8rem;border-top:1px solid var(--bdr)" id="aud-q-form-title">Adicionar questão de análise de aderência</div>
         <input type="hidden" id="aud-q-idx" value="">
         <div class="fg"><label class="fl">Questão</label><textarea class="fi" id="aud-q-texto" style="min-height:60px" placeholder="Ex: O processo é executado conforme o POP?"></textarea></div>
         <div class="g2">
@@ -4856,8 +4856,8 @@ const ACOES = {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
           <span style="font-size:13px;color:var(--ink3)">${trilha.length} procedimento(s) registrado(s)</span>
         </div>
-        <div style="margin-bottom:1rem">${trilhaHtml||'<div style="font-size:12px;color:var(--ink3)">Nenhum procedimento registrado. Use o formulário abaixo para registrar reuniões, entrevistas, testes e demais ações de auditoria.</div>'}</div>
-        <div style="font-weight:600;font-size:13px;margin-bottom:.8rem;padding-top:.8rem;border-top:1px solid var(--bdr)" id="aud-tr-form-title">Registrar procedimento de auditoria</div>
+        <div style="margin-bottom:1rem">${trilhaHtml||'<div style="font-size:12px;color:var(--ink3)">Nenhum procedimento registrado. Use o formulário abaixo para registrar reuniões, entrevistas, testes e demais ações de análise de aderência.</div>'}</div>
+        <div style="font-weight:600;font-size:13px;margin-bottom:.8rem;padding-top:.8rem;border-top:1px solid var(--bdr)" id="aud-tr-form-title">Registrar procedimento de análise de aderência</div>
         <input type="hidden" id="aud-tr-idx" value="">
         <div class="g2">
           <div class="fg"><label class="fl">Tipo de ação</label>
@@ -5417,7 +5417,7 @@ const _CHECKLIST_DEFS={
     {lb:'Reunião de acompanhamento realizada',done:!!(p.mod&&(p.mod.reunioes_acomp||[]).length)},
   ],
   auditoria:(p)=>[
-    {lb:'Plano de auditoria definido (objetivo informado)',done:!!(p.auditoria&&p.auditoria.objetivo)},
+    {lb:'Plano de análise de aderência definido (objetivo informado)',done:!!(p.auditoria&&p.auditoria.objetivo)},
   ],
 };
 function _renderChecklist(p){
@@ -6904,7 +6904,7 @@ function salvarAuditoria(concluir){
 
 async function iaGerarRelatorioAuditoria(){
   const p = curProc;
-  if(!p?.auditoria){ toast('Nenhuma auditoria iniciada.','var(--amber)'); return; }
+  if(!p?.auditoria){ toast('Nenhuma análise de aderência iniciada.','var(--amber)'); return; }
   const aud = p.auditoria;
   const btn = document.getElementById('aud-rel-btn');
   const el  = document.getElementById('aud-rel-result');
@@ -6987,7 +6987,7 @@ function renderRelatorioAuditoria(json, conf, p, aud){
   const hdr = mk('div','aud-rep-header');
   const hL = mk('div'); 
   hL.append(
-    mk('div','aud-rep-title','Relatório Executivo de Auditoria'),
+    mk('div','aud-rep-title','Relatório Executivo de Análise de Aderência'),
     mk('div','aud-rep-sub', p.nome+' · '+p.area),
     mk('div', null, 'Emitido em '+now()+(aud.equipe?' · Equipe: '+aud.equipe:''), 'font-size:11px;color:rgba(255,255,255,.65);margin-top:3px')
   );
@@ -7163,7 +7163,7 @@ function cancelarEdicaoQuestao(){
   document.getElementById('aud-q-texto').value='';
   document.getElementById('aud-q-crit').value='';
   document.getElementById('aud-q-resp').value='';
-  document.getElementById('aud-q-form-title').textContent='Adicionar questão de auditoria';
+  document.getElementById('aud-q-form-title').textContent='Adicionar questão de análise de aderência';
   document.getElementById('aud-q-save-btn').textContent='＋ Adicionar questão';
   document.getElementById('aud-q-cancel-btn').style.display='none';
 }
@@ -7271,7 +7271,7 @@ async function iaGerarQuestoesAuditoria(){
   const objetivo=(document.getElementById('aud-obj')?.value||'').trim()||aud.objetivo||'';
   const criterios=(document.getElementById('aud-crit')?.value||'').trim()||aud.criterios||'';
   if(!objetivo || !criterios){
-    toast('Preencha o objetivo e os critérios da auditoria na aba Planejamento antes de gerar.','var(--amber)');return;
+    toast('Preencha o objetivo e os critérios da análise de aderência na aba Planejamento antes de gerar.','var(--amber)');return;
   }
   const targetEl=document.getElementById('aud-ia-questoes');
   const payload={
@@ -7392,7 +7392,7 @@ function _limparFormularioProcedimentoAuditoria(){
   campos.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const tipoEl=document.getElementById('aud-tr-tipo'); if(tipoEl) tipoEl.value='Reunião de abertura';
   const idxEl=document.getElementById('aud-tr-idx'); if(idxEl) idxEl.value='';
-  const titleEl=document.getElementById('aud-tr-form-title'); if(titleEl) titleEl.textContent='Registrar procedimento de auditoria';
+  const titleEl=document.getElementById('aud-tr-form-title'); if(titleEl) titleEl.textContent='Registrar procedimento de análise de aderência';
   const saveEl=document.getElementById('aud-tr-save-btn'); if(saveEl) saveEl.textContent='＋ Registrar procedimento';
   const cancelEl=document.getElementById('aud-tr-cancel-btn'); if(cancelEl) cancelEl.style.display='none';
 }
@@ -7440,7 +7440,7 @@ function editarProcedimentoAuditoria(idx){
   document.getElementById('aud-tr-obj').value=t.objetivo||'';
   document.getElementById('aud-tr-evid').value=t.evidencias||'';
   document.getElementById('aud-tr-concl').value=t.conclusoes||'';
-  document.getElementById('aud-tr-form-title').textContent='Editar procedimento de auditoria';
+  document.getElementById('aud-tr-form-title').textContent='Editar procedimento de análise de aderência';
   document.getElementById('aud-tr-save-btn').textContent='Salvar alterações';
   document.getElementById('aud-tr-cancel-btn').style.display='';
   document.getElementById('aud-tr-desc').scrollIntoView({behavior:'smooth',block:'center'});
@@ -7690,8 +7690,8 @@ function salvarRelatorioAuditoria(concluir){
   if(!p.auditoria)p.auditoria={};
   const conf = document.getElementById('aud-conf')?.value || p.auditoria.conformidade || '';
   Object.assign(p.auditoria,{conformidade:conf, data:now(), concluida:concluir});
-  if(concluir)push(p,'auditoria','EP','Auditoria concluída. Conformidade: '+conf);
-  fbAutoSave('salvar');toast(concluir?'Auditoria concluída!':'Relatório salvo!','var(--teal)');
+  if(concluir)push(p,'auditoria','EP','Análise de Aderência concluída. Conformidade: '+conf);
+  fbAutoSave('salvar');toast(concluir?'Análise de Aderência concluída!':'Relatório salvo!','var(--teal)');
   if(concluir){updCounts();rDetalhe();}
 }
 function exportarAuditoriaWord(){
@@ -7722,14 +7722,14 @@ function exportarAuditoriaWord(){
   <style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;margin:2.5cm;color:#1a1a1a}
   h1{font-size:18pt;color:#1E3A5F;margin-bottom:4px}
   p{margin:3px 0}table{page-break-inside:avoid}</style></head><body>
-  <h1>Relatório de Auditoria</h1>
+  <h1>Relatório de Análise de Aderência</h1>
   <p style="font-size:10pt;color:#666;margin-bottom:16px">Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</p>
   <table style="width:100%;border-collapse:collapse;font-size:10.5pt;margin-bottom:8px">
     <tr><td style="padding:4px 8px;width:50%"><strong>Processo:</strong> ${_e(p.nome)}</td>
         <td style="padding:4px 8px"><strong>Macroprocesso:</strong> ${_e(p.macro)}</td></tr>
     <tr style="background:#f5f7fa"><td style="padding:4px 8px"><strong>Dono do processo:</strong> ${_e(p.dono)}</td>
         <td style="padding:4px 8px"><strong>EP Responsável:</strong> ${_e(p.resp_ep)}</td></tr>
-    <tr><td style="padding:4px 8px"><strong>Início da auditoria:</strong> ${_d(aud.data_inicio)}</td>
+    <tr><td style="padding:4px 8px"><strong>Início da análise de aderência:</strong> ${_d(aud.data_inicio)}</td>
         <td style="padding:4px 8px"><strong>Conclusão prevista:</strong> ${_d(aud.data_fim)}</td></tr>
     <tr style="background:#f5f7fa"><td style="padding:4px 8px"><strong>Conformidade geral:</strong>
         <span style="color:${_confCor[aud.conformidade]||'#444'};font-weight:bold"> ${_e(aud.conformidade||'Não definida')}</span></td>
@@ -7745,7 +7745,7 @@ function exportarAuditoriaWord(){
 
   // 3. QUESTÕES
   const questoes=aud.questoes||[];
-  html+=sec('2. Questões de Auditoria',tabela(
+  html+=sec('2. Questões de Análise de Aderência',tabela(
     ['#','Questão','Critério','Responsável','Resposta','Evidências'],
     questoes.map((q,i)=>[
       i+1,
@@ -7759,7 +7759,7 @@ function exportarAuditoriaWord(){
 
   // 4. TRILHA DE PROCEDIMENTOS
   const trilha=aud.trilha||[];
-  html+=sec('3. Trilha de Auditoria',tabela(
+  html+=sec('3. Trilha de Análise de Aderência',tabela(
     ['Tipo','Data','Auditor','Descrição','Evidências','Documentos anexados','Conclusões'],
     trilha.map(t=>[
       _e(t.tipo),
@@ -7805,7 +7805,7 @@ function exportarAuditoriaWord(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  a.download='Auditoria_'+(p.nome||'processo').replaceAll(/[^a-zA-Z0-9]/g,'_').slice(0,50)+'.doc';
+  a.download='Analise_aderencia_'+(p.nome||'processo').replaceAll(/[^a-zA-Z0-9]/g,'_').slice(0,50)+'.doc';
   document.body.appendChild(a);a.click();a.remove();
   URL.revokeObjectURL(url);
   toast('Relatório Word exportado!','var(--teal)');
@@ -8618,7 +8618,7 @@ function _rEntIlpCard(ilpData){
       ${nSemi?`<span>⚡ Semi: <strong>${nSemi}</strong></span>`:''}
       <span>Gateways: <strong>${gxorDiv}</strong></span>
       <span>Atores: <strong>${nAtores}</strong></span>
-      <button type="button" onclick="abrirIlpAuditoria(curProc)" style="margin-left:auto;font-size:11px;padding:2px 10px;border:1px solid var(--bdr);border-radius:4px;background:var(--bg2);cursor:pointer;color:var(--ink2);white-space:nowrap">🔍 Auditoria</button>
+      <button type="button" onclick="abrirIlpAuditoria(curProc)" style="margin-left:auto;font-size:11px;padding:2px 10px;border:1px solid var(--bdr);border-radius:4px;background:var(--bg2);cursor:pointer;color:var(--ink2);white-space:nowrap">🔍 Análise de Aderência</button>
     </div>
   </div>`;
 }
@@ -8673,7 +8673,7 @@ function abrirIlpAuditoria(p){
     :'';
   modal.innerHTML=`<div style="background:var(--surf);border-radius:var(--rl);padding:1.5rem;width:100%;max-width:600px;max-height:88vh;overflow-y:auto;box-shadow:var(--sh2)">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.1rem">
-      <div style="flex:1;font-family:var(--fh);font-size:16px;font-weight:700">Auditoria — Índice Lean Processual</div>
+      <div style="flex:1;font-family:var(--fh);font-size:16px;font-weight:700">Análise de Aderência — Índice Lean Processual</div>
       <button type="button" onclick="document.getElementById('ilp-audit-modal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink3);line-height:1">✕</button>
     </div>
     ${formulaHtml}
@@ -9286,7 +9286,7 @@ function rMon(p){
   const audConclusaoHtml = p.auditoria?.conclusao ? `<div style="margin-top:.6rem"><div class="sec-lbl">Conclusão</div><div style="font-size:12.5px">${esc(p.auditoria.conclusao)}</div></div>` : '';
   const audBadgeCls = p.auditoria?.concluida ? 'bg' : 'ba';
   const audStatus = p.auditoria?.concluida ? 'Concluída' : 'Rascunho';
-  const audHTML=p.auditoria?`<div class="card" style="margin-top:1rem"><div class="card-t">Auditoria — ${esc(p.auditoria.data||'')}</div>
+  const audHTML=p.auditoria?`<div class="card" style="margin-top:1rem"><div class="card-t">Análise de Aderência — ${esc(p.auditoria.data||'')}</div>
     <div class="g2"><div><div class="sec-lbl">Conformidade</div><div style="font-size:13px;font-weight:600">${esc(p.auditoria.conformidade||'—')}</div></div><div><div class="sec-lbl">Status</div><span class="badge ${audBadgeCls}">${audStatus}</span></div></div>
     ${audConclusaoHtml}
   </div>`:'';
@@ -13193,7 +13193,7 @@ const PLANO_PRIO_CFG = {
   media: {lb:'Média', cor:'#f59e0b'},
   baixa: {lb:'Baixa', cor:'#14b8a6'},
 };
-const PLANO_CAT_LB = {auditoria:'Auditoria',mapeamento:'Mapeamento',normativa:'Normativa',capacitacao:'Capacitação',governanca:'Governança',outro:'Outro'};
+const PLANO_CAT_LB = {auditoria:'Análise de Aderência',mapeamento:'Mapeamento',normativa:'Normativa',capacitacao:'Capacitação',governanca:'Governança',outro:'Outro'};
 
 function planoAno(){
   return Number.parseInt(document.getElementById('plano-ano-sel')?.value)||new Date().getFullYear();
@@ -13821,7 +13821,7 @@ function gerarStatusReportPDF(){
   const triAtras=doTri.filter(a=>planoStatusEfetivo(a)==='em_atraso').length;
   const triPlanj=doTri.filter(a=>planoStatusEfetivo(a)==='planejado').length;
   const triTotal=doTri.length;
-  const catLabels={mapeamento:'Mapeamento',auditoria:'Auditoria',normativa:'Normativa',capacitacao:'Capacitação',governanca:'Governança',outro:'Outro'};
+  const catLabels={mapeamento:'Mapeamento',auditoria:'Análise de Aderência',normativa:'Normativa',capacitacao:'Capacitação',governanca:'Governança',outro:'Outro'};
   const cats=[...new Set(doAno.map(a=>a.categoria).filter(Boolean))];
   const catMetrics=cats.map(c=>{
     const its=doAno.filter(a=>a.categoria===c);
@@ -13875,7 +13875,7 @@ function gerarStatusReportPDF(){
   const badge=(v,cor)=>`<span style="color:${cor};font-weight:700">${_e(v)}</span>`;
   const pbar=(pct,cor)=>`<div style="background:#e5e7eb;border-radius:99px;height:7px;margin-top:3px"><div style="background:${cor};height:7px;border-radius:99px;width:${pct||0}%"></div></div>`;
   const kpi=(label,val,sub,cor)=>{const _sub=sub?'<div class="kpi-sub">'+sub+'</div>':'';return `<div class="kpi"><div class="kpi-val" style="color:${cor||'#2B485F'}">${val}</div><div class="kpi-lbl">${label}</div>${_sub}</div>`;};
-  const etBadge=et=>{const m={abertura:'Abertura',reuniao:'Reunião',questionario:'Questionário',esboco_asis:'Esboço AS IS',det_valid_asis:'Det. AS IS',riscos:'Riscos',analise:'Análise',melhorias:'Melhorias',esboco_tobe:'Esboço TO BE',det_valid_tobe:'Det. TO BE',desenho_final:'Desenho Final',indicadores_proc:'Indicadores',pop:'POP',apresentacao:'Apresentação',publicacao:'Publicação',acompanha:'Acompanhamento',auditoria:'Auditoria'};return m[et]||et||'—';};
+  const etBadge=et=>{const m={abertura:'Abertura',reuniao:'Reunião',questionario:'Questionário',esboco_asis:'Esboço AS IS',det_valid_asis:'Det. AS IS',riscos:'Riscos',analise:'Análise',melhorias:'Melhorias',esboco_tobe:'Esboço TO BE',det_valid_tobe:'Det. TO BE',desenho_final:'Desenho Final',indicadores_proc:'Indicadores',pop:'POP',apresentacao:'Apresentação',publicacao:'Publicação',acompanha:'Acompanhamento',auditoria:'Análise de Aderência'};return m[et]||et||'—';};
 
   // ── HTML ────────────────────────────────────────────────────────────────────
   const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
@@ -13935,13 +13935,13 @@ function gerarStatusReportPDF(){
     </div>
   </div>
 
-  ${SEC(1,'Mapeamentos e Auditorias em Andamento')}
+  ${SEC(1,'Mapeamentos e Análises de Aderência em Andamento')}
   ${SUB('Mapeamentos em andamento ('+mapAndamento.length+')')}
   ${tbl(['Processo','Macroprocesso','Dono','EP Responsável','Etapa atual','Prazo global'],
     mapAndamento.map(p=>[_e(p.nome),_e(p.macro),_e(p.dono),_e(p.resp_ep),etBadge(p.etapa),_d(p.ent?.dt_prev)])
   )}
-  ${SUB('Auditorias em andamento ('+audAndamento.length+')')}
-  ${tbl(['Processo','Macroprocesso','Dono','Equipe','Início auditoria','Objetivo'],
+  ${SUB('Análises de Aderência em andamento ('+audAndamento.length+')')}
+  ${tbl(['Processo','Macroprocesso','Dono','Equipe','Início análise de aderência','Objetivo'],
     audAndamento.map(p=>[_e(p.nome),_e(p.macro),_e(p.dono),_e(p.auditoria?.equipe),_d(p.auditoria?.data_inicio),_e(p.auditoria?.objetivo)])
   )}
 
@@ -13950,7 +13950,7 @@ function gerarStatusReportPDF(){
   ${tbl(['Processo','Macroprocesso','Dono','EP','Fim do ciclo','Tempo total'],
     mapConclMes.map(p=>[_e(p.nome),_e(p.macro),_e(p.dono),_e(p.resp_ep),_d(p.dt_ciclo_fim),_e(p.ent?.t_total)])
   )}
-  ${SUB('Auditorias concluídas ('+audConclMes.length+')')}
+  ${SUB('Análises de Aderência concluídas ('+audConclMes.length+')')}
   ${tbl(['Processo','Macroprocesso','Conformidade','Data conclusão','Achados','Ações'],
     audConclMes.map(p=>{
       const aud=p.auditoria||{};
@@ -14063,7 +14063,7 @@ function _planoModalBodyHTML(){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem">
       <div style="grid-column:1/-1">
         <div class="fl">Nome da atividade *</div>
-        <input class="fi" id="pm-nome" value="" placeholder="Ex: Auditoria do processo de licitação">
+        <input class="fi" id="pm-nome" value="" placeholder="Ex: Análise de Aderência do processo de licitação">
       </div>
       <div style="grid-column:1/-1">
         <div class="fl">Descrição</div>
@@ -14120,7 +14120,7 @@ function _planoModalBodyHTML(){
         <select class="fi" id="pm-vint" onchange="planoAtualizarVinculo()">
           <option value="">Sem vínculo</option>
           <option value="mapeamento">Mapeamento</option>
-          <option value="auditoria">Auditoria</option>
+          <option value="auditoria">Análise de Aderência</option>
         </select>
       </div>
       <div>
