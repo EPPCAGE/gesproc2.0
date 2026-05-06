@@ -1948,34 +1948,15 @@ async function doLogin(){
     mostrarErrLogin('Acesso restrito a e-mails institucionais.');return;
   }
 
-  // Verifica rápido se USUARIOS já tem o email (carregado no boot)
-  // Se não encontrar, pode ser que fbLoad() rodou antes da auth estar pronta —
-  // tenta autenticar no Firebase e recarrega USUARIOS com credenciais válidas.
-  const userRapido = USUARIOS.find(u=>u.email===email);
-  if(!userRapido && !fbReady()){
-    mostrarErrLogin('Acesso não encontrado. Use "Primeiro acesso" para criar seu cadastro.');return;
-  }
-
-  // Autentica via Firebase Auth
+  // Autentica via Firebase Auth — o onAuthStateChanged cuida de carregar
+  // USUARIOS e aplicar o usuário depois que a auth estiver confirmada.
   if(fbReady()){
     const btn = document.querySelector('.login-btn');
     btn.textContent = 'Entrando…'; btn.disabled = true;
     try {
       const {auth, signInWithEmailAndPassword} = fb();
       await signInWithEmailAndPassword(auth, email, senha);
-      // Se USUARIOS não foi carregado no boot (sessão expirada), recarrega agora
-      // que o usuário está autenticado e as regras do Firestore permitem a leitura
-      if(!userRapido){
-        await fbLoad();
-        const userPos = USUARIOS.find(u=>u.email===email);
-        if(!userPos){
-          const {signOut} = fb(); signOut(auth).catch(()=>{});
-          btn.textContent = 'Entrar'; btn.disabled = false;
-          mostrarErrLogin('Acesso não encontrado. Use "Primeiro acesso" para criar seu cadastro.');
-          return;
-        }
-      }
-      // onAuthStateChanged vai aplicar o usuário
+      // onAuthStateChanged vai carregar fbLoad() e aplicar o usuário
     } catch(e){
       btn.textContent = 'Entrar'; btn.disabled = false;
       const msgs = {
@@ -1988,9 +1969,10 @@ async function doLogin(){
     }
   } else {
     // Fallback sem Firebase (modo local)
-    if(!userRapido){mostrarErrLogin('Acesso não encontrado. Use "Primeiro acesso" para criar seu cadastro.');return;}
-    lsSet('siga_user', userRapido.email);
-    _aplicarUsuario(userRapido);
+    const user = USUARIOS.find(u=>u.email===email);
+    if(!user){mostrarErrLogin('Acesso não encontrado. Use "Primeiro acesso" para criar seu cadastro.');return;}
+    lsSet('siga_user', user.email);
+    _aplicarUsuario(user);
   }
 }
 
@@ -15520,42 +15502,44 @@ async function bootApp() {
     waited++;
   }
 
-  // Load from Firebase
-  await fbLoad();
-
-  // Fall back to localStorage for EmailJS if Firebase didn't have it
-  if(!ejsConfig.pubkey){
-    try {
-      const saved = lsGet('epcage_ejs');
-      if(saved){
-        const cfg = JSON.parse(saved);
-        ejsConfig.service  = cfg.service  || '';
-        ejsConfig.template = cfg.template || '';
-        ejsConfig.pubkey   = cfg.pubkey   || '';
-        if(ejsConfig.pubkey && typeof emailjs !== 'undefined') emailjs.init({publicKey: ejsConfig.pubkey});
-      }
-    } catch(e){ console.warn('ejsConfig localStorage parse error:', e.message); }
-  }
-
   if(loadMsg) loadMsg.remove();
 
-  // Restaurar sessão após reload
   if(fbReady()){
     const {auth, onAuthStateChanged} = fb();
+    // onAuthStateChanged só dispara depois que a auth está confirmada (sessão
+    // restaurada do cache ou após signInWithEmailAndPassword). Só aí chamamos
+    // fbLoad(), que precisa de isAuth() para ler todas as coleções do Firestore.
+    let _fbLoadedOnce = false;
     onAuthStateChanged(auth, async firebaseUser => {
       const btn = document.querySelector('.login-btn');
       if(btn){ btn.textContent='Entrar'; btn.disabled=false; }
       if(firebaseUser){
-        let user = USUARIOS.find(u=>u.email===firebaseUser.email);
-        // Se USUARIOS ainda não foi carregado (race condition: onAuthStateChanged dispara
-        // antes de fbLoad() terminar), recarrega agora que temos autenticação válida.
-        if(!user){
+        if(!_fbLoadedOnce){
+          const loadingMsg = document.createElement('div');
+          loadingMsg.id = 'auth-load-msg';
+          loadingMsg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px';
+          loadingMsg.textContent = 'Carregando dados…';
+          document.body.appendChild(loadingMsg);
           await fbLoad();
-          user = USUARIOS.find(u=>u.email===firebaseUser.email);
+          _fbLoadedOnce = true;
+          loadingMsg.remove();
         }
+        // Fallback localStorage para EmailJS
+        if(!ejsConfig.pubkey){
+          try {
+            const saved = lsGet('epcage_ejs');
+            if(saved){
+              const cfg = JSON.parse(saved);
+              ejsConfig.service  = cfg.service  || '';
+              ejsConfig.template = cfg.template || '';
+              ejsConfig.pubkey   = cfg.pubkey   || '';
+              if(ejsConfig.pubkey && typeof emailjs !== 'undefined') emailjs.init({publicKey: ejsConfig.pubkey});
+            }
+          } catch(e){ console.warn('ejsConfig localStorage parse error:', e.message); }
+        }
+        const user = USUARIOS.find(u=>u.email===firebaseUser.email);
         if(user){ _iniciarSessaoUnica(firebaseUser.uid); _aplicarUsuario(user); }
         else {
-          // Usuário autenticado no Firebase mas realmente não cadastrado na lista
           const {signOut} = fb();
           signOut(auth).catch(()=>{});
           mostrarErrLogin('Acesso não autorizado. Solicite cadastro ao EPP.');
