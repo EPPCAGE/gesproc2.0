@@ -13873,7 +13873,8 @@ function gerarStatusReportPDF(){
   const DONE_ETAPAS=new Set(['publicacao','acompanha','auditoria']);
   const mapAndamento=processos.filter(p=>!DONE_ETAPAS.has(p.etapa)&&p.status_ciclo!=='cancelado'&&p.status_ciclo!=='suspenso'&&p.arq_id);
   const audAndamento=processos.filter(p=>p.etapa==='auditoria'&&!p.auditoria?.concluida);
-  const mapConclMes=processos.filter(p=>DONE_ETAPAS.has(p.etapa)&&_recente(p.dt_ciclo_fim));
+  const _fimCiclo=p=>p.dt_ciclo_fim||p.dt_etapas?.publicacao||p.dt_etapas?.acompanha;
+  const mapConclMes=processos.filter(p=>DONE_ETAPAS.has(p.etapa)&&_recente(_fimCiclo(p)));
   const audConclMes=processos.filter(p=>p.auditoria?.concluida&&_recente(p.auditoria?.data||p.dt_etapas?.auditoria));
   const proxTrabs=doAno.filter(a=>planoStatusEfetivo(a)==='planejado'&&(a.trimestre===trimAtual||a.trimestre===trimProx)&&['mapeamento','auditoria'].includes(a.categoria))
     .sort((a,b)=>(a.trimestre===trimAtual?0:1)-(b.trimestre===trimAtual?0:1)||(a.prazo||'').localeCompare(b.prazo||''));
@@ -13976,7 +13977,7 @@ function gerarStatusReportPDF(){
   ${SEC(2,'Concluídos no Último Mês')}
   ${SUB('Mapeamentos concluídos ('+mapConclMes.length+')')}
   ${tbl(['Processo','Macroprocesso','Dono','EP','Fim do ciclo','Tempo total'],
-    mapConclMes.map(p=>[_e(p.nome),_e(p.macro),_e(p.dono),_e(p.resp_ep),_d(p.dt_ciclo_fim),_e(p.ent?.t_total)])
+    mapConclMes.map(p=>[_e(p.nome),_e(p.macro),_e(p.dono),_e(p.resp_ep),_d(_fimCiclo(p)),_e(p.ent?.t_total)])
   )}
   ${SUB('Análises de Aderência concluídas ('+audConclMes.length+')')}
   ${tbl(['Processo','Macroprocesso','Conformidade','Data conclusão','Achados','Ações'],
