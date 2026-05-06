@@ -3704,7 +3704,7 @@ function av(etAtu, role, acao, _prazoEl, notifDest){
     curProc.status_workflow='concluido';
   }
   rDetalhe();updCounts();
-  fbAutoSave('av');
+  fbSaveNow('av');
 }
 // Solicita prazo ao EP antes de passar tarefa ao dono
 function perguntarNotifDono(etapaProxId){
@@ -6139,7 +6139,7 @@ function publicarProcesso(){
   if(p.arq_id && !mapeadosManual.has(p.arq_id)){
     mapeadosManual.add(p.arq_id);
     lsSet('mapeadosManual', JSON.stringify([...mapeadosManual]));
-    fbAutoSave('mapeados');
+    fbSaveNow('mapeados');
   }
 
   // Agendar próximo acompanhamento com base na data de entrega efetiva
@@ -6325,7 +6325,7 @@ function voltarEtapa(){
   push(curProc,etAtual,'EP','Etapa desfeita — retorno à etapa anterior');
   curProc.etapa=pr;
   push(curProc,pr,'Sistema','Etapa retomada');
-  rDetalhe();updCounts();fbAutoSave('voltarEtapa');
+  rDetalhe();updCounts();fbSaveNow('voltarEtapa');
 }
 function pularEtapaConfirm(etId){
   const lb=etLb(etId);
@@ -6339,7 +6339,7 @@ function pularEtapa(etId){
   push(curProc,etId,'EP','Etapa pulada — pendente');
   const nx=nextEt(etId);
   if(nx){curProc.etapa=nx;push(curProc,nx,'Sistema','Etapa iniciada');}
-  rDetalhe();updCounts();fbAutoSave('pularEtapa');
+  rDetalhe();updCounts();fbSaveNow('pularEtapa');
 }
 function salvarPOP(avancar=true){
   const p=curProc;
@@ -15336,6 +15336,14 @@ function _fbWatchExternalChanges(){
 }
 // ── END CONCURRENT EDIT ──────────────────────────────────────
 
+function fbSaveNow(label){
+  if(!fbReady()) return;
+  clearTimeout(globalThis._fbSaveTimer);
+  fbSaveAll().catch(e=>{
+    console.error('fbSaveNow error ('+label+'):', e);
+    toast('⚠ Erro ao salvar dados. Verifique sua conexão.','var(--red)');
+  });
+}
 function fbAutoSave(label){
   if(!fbReady()) return;
   // Q023: snapshot dos campos editáveis antes de salvar (operações de edição)
