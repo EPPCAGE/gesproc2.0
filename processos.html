@@ -5591,6 +5591,15 @@ function _addDias(dateStr,dias){
   const dt=new Date(y,m-1,d+dias);
   return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
 }
+function _calcTotalDias(ent){
+  if(ent?.dt_inicio&&ent?.dt_efetiva){
+    const [yi,mi,di]=ent.dt_inicio.split('-').map(Number);
+    const [ye,me,de]=ent.dt_efetiva.split('-').map(Number);
+    const d=Math.round((new Date(ye,me-1,de)-new Date(yi,mi-1,di))/86400000);
+    return d>0?d+' dias':'';
+  }
+  return ent?.t_total||'';
+}
 function calcPrevAbr(){
   const ini=document.getElementById('a-ini')?.value;
   const prev=document.getElementById('a-prev');
@@ -8831,7 +8840,7 @@ function rEnt(p){
     <div class="card">
       <div class="card-t">Identificação temporal</div>
       <div class="g2">
-        ${[['Início',e.dt_inicio||'—'],['Prev. entrega',e.dt_prev||'—'],['Entrega efetiva',e.dt_efetiva||'—'],['Próx. acompanhamento',p.dt_proximo_acompanhamento||'—'],['Produto',p.produto||'—'],['Tempo total',e.t_total||'—'],['Tempo sem fila',e.t_sem_fila||'—']].map(([l,v])=>`<div><div class="sec-lbl">${l}</div><div style="font-size:13px;font-weight:500">${v}</div></div>`).join('')}
+        ${[['Início',e.dt_inicio||'—'],['Prev. entrega',e.dt_prev||'—'],['Entrega efetiva',e.dt_efetiva||'—'],['Próx. acompanhamento',p.dt_proximo_acompanhamento||'—'],['Produto',p.produto||'—'],['Tempo total',_calcTotalDias(e)||'—'],['Tempo sem fila',e.t_sem_fila||'—']].map(([l,v])=>`<div><div class="sec-lbl">${l}</div><div style="font-size:13px;font-weight:500">${v}</div></div>`).join('')}
         ${desvioHtml}
         ${prazoEpHtml}
       </div>
@@ -8974,7 +8983,7 @@ function _rFormHtml(p){
     <div style="padding:1.2rem 1.5rem">
       <table class="pop-tbl" style="margin-bottom:1.2rem"><thead><tr><th>Revisão</th><th>Data</th><th>Descrição</th></tr></thead><tbody><tr><td>0</td><td>${now()}</td><td>Emissão inicial</td></tr></tbody></table>
       <table class="pop-tbl" style="margin-bottom:1.5rem"><thead><tr><th>Ação</th><th>Elaborado por</th><th>Revisado por</th><th>Aprovado por</th></tr></thead><tbody><tr><td>Nome</td><td>${(pd.ger&&pd.ger!==p.dono)?pd.ger:(p.resp_ep||'—')}</td><td>${p.dono||'—'}</td><td>${p.pat||'—'}</td></tr><tr><td>Função</td><td>Membro do EPP / CAGE</td><td>Dono do processo</td><td>Gestor responsável</td></tr></tbody></table>
-      ${(()=>{const _e=p.ent||{};const _fmtD=d=>d?d.split('-').reverse().join('/'):'—';if(!(_e.dt_inicio||_e.dt_prev||_e.dt_efetiva||_e.equipe||p.produto||_e.t_total||p.objetivo||_e.escopo)){return'';}const _lbl=(l,v,full)=>full?`<div style="margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--bdr);grid-column:1/-1"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink3);margin-bottom:3px">${l}</div><div style="font-size:12px;line-height:1.5;white-space:pre-wrap">${esc(v)}</div></div>`:`<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink3)">${l}</div><div style="font-weight:500">${esc(v)}</div></div>`;return`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">Identificação Temporal</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:12px">${[['Início',_fmtD(_e.dt_inicio)],['Previsão de entrega',_fmtD(_e.dt_prev)],['Entrega efetiva',_fmtD(_e.dt_efetiva)],['Produto',p.produto||''],['Tempo total',_e.t_total||''],['Equipe de trabalho',_e.equipe||'']].filter(([,v])=>v&&v!=='—').map(([l,v])=>_lbl(l,v,false)).join('')}${p.objetivo?_lbl('Objetivo do trabalho',p.objetivo,true):''}${_e.escopo?_lbl('Escopo do trabalho',_e.escopo,true):''}</div></div>`})()}
+      ${(()=>{const _e=p.ent||{};const _fmtD=d=>d?d.split('-').reverse().join('/'):'—';if(!(_e.dt_inicio||_e.dt_prev||_e.dt_efetiva||_e.equipe||p.produto||_e.t_total||p.objetivo||_e.escopo)){return'';}const _lbl=(l,v,full)=>full?`<div style="margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--bdr);grid-column:1/-1"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink3);margin-bottom:3px">${l}</div><div style="font-size:12px;line-height:1.5;white-space:pre-wrap">${esc(v)}</div></div>`:`<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink3)">${l}</div><div style="font-weight:500">${esc(v)}</div></div>`;return`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">Identificação Temporal</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:12px">${[['Início',_fmtD(_e.dt_inicio)],['Previsão de entrega',_fmtD(_e.dt_prev)],['Entrega efetiva',_fmtD(_e.dt_efetiva)],['Produto',p.produto||''],['Tempo total',_calcTotalDias(_e)||''],['Equipe de trabalho',_e.equipe||'']].filter(([,v])=>v&&v!=='—').map(([l,v])=>_lbl(l,v,false)).join('')}${p.objetivo?_lbl('Objetivo do trabalho',p.objetivo,true):''}${_e.escopo?_lbl('Escopo do trabalho',_e.escopo,true):''}</div></div>`})()}
       <div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">1.0 Objetivo</div><div style="font-size:12.5px;color:var(--ink2)">${pd.obj||p.objetivo||'—'}</div></div>
       ${pd.def?`<div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">1.1 Definições</div><div style="font-size:12.5px;color:var(--ink2);white-space:pre-wrap">${pd.def}</div></div>`:''}
       <div style="margin-bottom:1rem"><div style="font-family:var(--fh);font-size:13px;font-weight:600;border-bottom:1px solid var(--bdr);padding-bottom:5px;margin-bottom:.7rem">1.2 Entradas</div><div style="font-size:12.5px">${pd.ent||'—'}</div></div>
@@ -14143,14 +14152,7 @@ function gerarStatusReportPDF(){
   ${SUB('Mapeamentos concluídos ('+mapConclMes.length+')')}
   ${tbl(['Processo','Macroprocesso','Dono','EP','Prazo previsto','Entrega efetiva','Tempo total'],
     mapConclMes.map(p=>{
-      const _tTotal=(()=>{
-        if(p.ent?.t_total) return p.ent.t_total;
-        if(p.ent?.dt_inicio&&p.ent?.dt_efetiva){
-          const _d=Math.round((new Date(p.ent.dt_efetiva)-new Date(p.ent.dt_inicio))/(1000*60*60*24));
-          return _d>0?_d+' dias':'';
-        }
-        return '';
-      })();
+      const _tTotal=_calcTotalDias(p.ent);
       return [_e(p.nome),_e(p.macro),_e(p.dono),_e(p.resp_ep),_d(p.ent?.dt_prev),_d(p.ent?.dt_efetiva||_fimCiclo(p)),_e(_tTotal)];
     })
   )}
