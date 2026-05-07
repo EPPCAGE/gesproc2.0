@@ -1047,6 +1047,16 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
       </select>
       <span class="fbar-l">Dono</span>
       <select class="fi" id="arq-f-dono" onchange="rArq()" style="max-width:200px"><option value="">Todos</option></select>
+      <span class="fbar-l">Maturidade</span>
+      <select class="fi" id="arq-f-mat" onchange="rArq()" style="max-width:150px">
+        <option value="">Todas</option>
+        <option value="0">Não avaliada</option>
+        <option value="1">1 — Inicial</option>
+        <option value="2">2 — Repetível</option>
+        <option value="3">3 — Definido</option>
+        <option value="4">4 — Gerenciado</option>
+        <option value="5">5 — Otimizado</option>
+      </select>
     </div>
   </div>
 
@@ -2832,7 +2842,7 @@ function buildArqStatsHTML(f){
   updCounts();
   const mx=getMetricasArq(f);
   const pct=mx.nUnid>0?Math.round(mx.nMap/mx.nUnid*100):0;
-  const hasFilter=f&&(f.srch||f.macro||f.area||f.nat||f.obje||f.mapeado||f.critico||f.dono);
+  const hasFilter=f&&(f.srch||f.macro||f.area||f.nat||f.obje||f.mapeado||f.critico||f.dono||f.mat!=='');
   // economia: só dos processos cujo arq_id está nos itens filtrados
   const eco=processos.reduce((s,p)=>{
     if(hasFilter&&p.arq_id&&!mx.matchedIds.has(p.arq_id)) return s;
@@ -10507,6 +10517,7 @@ function getArqFilters(){
     mapeado: document.getElementById('arq-f-map')?.value||'',
     critico: document.getElementById('arq-f-crit')?.value||'',
     dono:    document.getElementById('arq-f-dono')?.value||'',
+    mat:     document.getElementById('arq-f-mat')?.value??'',
   };
 }
 
@@ -10518,6 +10529,11 @@ function itemMatchesFilters(item, macroNome, f){
   if(f.mapeado && (f.mapeado==='sim') !== isMapeado(item.id)) return false;
   if(f.critico && (f.critico==='sim') !== isCritico(item.id)) return false;
   if(f.dono && item.gerente !== f.dono) return false;
+  if(f.mat !== ''){
+    const _lp = processos.find(p=>p.arq_id===item.id);
+    const _mat = _lp ? (_lp.ent?.mat||0) : -1;
+    if(Number(f.mat) !== _mat) return false;
+  }
   if(f.srch){
     const hay = [item.nome, item.area, item.gerente, item.objetivo,
                  item.objetivo_estrategico, item.clientes, macroNome]
@@ -10528,7 +10544,7 @@ function itemMatchesFilters(item, macroNome, f){
 }
 
 function limparFiltrosArq(){
-  ['arq-srch','arq-f-macro','arq-f-area','arq-f-nat','arq-f-obje','arq-f-map','arq-f-crit','arq-f-dono'].forEach(id=>{
+  ['arq-srch','arq-f-macro','arq-f-area','arq-f-nat','arq-f-obje','arq-f-map','arq-f-crit','arq-f-dono','arq-f-mat'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
@@ -10687,7 +10703,7 @@ function rArq(){
     return;
   }
 
-  const hasFilter = f.srch || f.macro || f.area || f.nat || f.obje || f.mapeado || f.critico || f.dono;
+  const hasFilter = f.srch || f.macro || f.area || f.nat || f.obje || f.mapeado || f.critico || f.dono || f.mat!=='';
 
   // Hide import hint when filtering
   const hint = document.getElementById('arq-import-hint');
