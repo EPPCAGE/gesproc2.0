@@ -1030,8 +1030,6 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
         <option>Finalístico</option>
         <option>Apoio</option>
         <option>Gestão</option>
-        <option>Suporte</option>
-        <option>Controle</option>
       </select>
       <span class="fbar-l">Obj. estratégico</span>
       <select class="fi" id="arq-f-obje" onchange="rArq()" style="max-width:220px"><option value="">Todos</option></select>
@@ -11167,7 +11165,7 @@ function abrirModalMeta(item, onSave){
     <div class="g3">
       <div class="fg"><label class="fl">Natureza</label>
         <select class="fi" id="mm-nat">
-          ${['','Finalístico','Suporte','Gestão','Controle'].map(n=>`<option ${item.natureza===n?'selected':''}>${n}</option>`).join('')}
+          ${['','Finalístico','Apoio','Gestão'].map(n=>`<option ${item.natureza===n?'selected':''}>${n}</option>`).join('')}
         </select>
       </div>
       <div class="fg"><label class="fl">Área</label><input class="fi" id="mm-area" value="${item.area||''}"></div>
