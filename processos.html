@@ -1015,7 +1015,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
   <div class="fbar" style="flex-direction:column;align-items:stretch;gap:10px;margin-bottom:.9rem">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span class="fbar-l">Buscar</span>
-      <input class="srch" id="arq-srch" placeholder="Nome do processo, gerente, área..." oninput="rArq()" style="flex:1;max-width:380px">
+      <input class="srch" id="arq-srch" placeholder="Nome do processo, dono, área..." oninput="rArq()" style="flex:1;max-width:380px">
       <button type="button" class="btn" style="font-size:11px;padding:4px 10px" onclick="limparFiltrosArq()">Limpar filtros</button>
       <span id="arq-result-cnt" style="font-size:11px;color:var(--ink3)"></span>
     </div>
@@ -1030,8 +1030,6 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
         <option>Finalístico</option>
         <option>Apoio</option>
         <option>Gestão</option>
-        <option>Suporte</option>
-        <option>Controle</option>
       </select>
       <span class="fbar-l">Obj. estratégico</span>
       <select class="fi" id="arq-f-obje" onchange="rArq()" style="max-width:220px"><option value="">Todos</option></select>
@@ -1047,6 +1045,8 @@ hr{border:none;border-top:1px solid var(--bdr);margin:.8rem 0}
         <option value="sim">Sim</option>
         <option value="nao">Não</option>
       </select>
+      <span class="fbar-l">Dono</span>
+      <select class="fi" id="arq-f-dono" onchange="rArq()" style="max-width:200px"><option value="">Todos</option></select>
     </div>
   </div>
 
@@ -10456,11 +10456,14 @@ function rArqPopulateFilters(){
     if(!val) return;
     val.split(';').map(s=>s.trim()).filter(Boolean).forEach(o=>objEs.add(o));
   }
+  const donos = new Set();
   ARQUITETURA.forEach(m=>m.processos.forEach(p=>{
     if(p.area) areas.add(p.area);
+    if(p.gerente) donos.add(p.gerente);
     addObje(p.objetivo_estrategico);
     (p.subprocessos||[]).forEach(s=>{
       if(s.area) areas.add(s.area);
+      if(s.gerente) donos.add(s.gerente);
       addObje(s.objetivo_estrategico);
     });
   }));
@@ -10476,6 +10479,12 @@ function rArqPopulateFilters(){
     oSel.innerHTML = '<option value="">Todos</option>' +
       [...objEs].sort().map(o=>`<option ${cur===o?'selected':''} title="${o}">${o.length>40?o.slice(0,40)+'…':o}</option>`).join('');
   }
+  const dSel = document.getElementById('arq-f-dono');
+  if(dSel){
+    const cur = dSel.value;
+    dSel.innerHTML = '<option value="">Todos</option>' +
+      [...donos].sort().map(d=>`<option ${cur===d?'selected':''}>${d}</option>`).join('');
+  }
 }
 
 function getArqFilters(){
@@ -10487,6 +10496,7 @@ function getArqFilters(){
     obje:  document.getElementById('arq-f-obje')?.value||'',
     mapeado: document.getElementById('arq-f-map')?.value||'',
     critico: document.getElementById('arq-f-crit')?.value||'',
+    dono:    document.getElementById('arq-f-dono')?.value||'',
   };
 }
 
@@ -10497,6 +10507,7 @@ function itemMatchesFilters(item, macroNome, f){
   if(f.obje && !(item.objetivo_estrategico||'').includes(f.obje)) return false;
   if(f.mapeado && (f.mapeado==='sim') !== isMapeado(item.id)) return false;
   if(f.critico && (f.critico==='sim') !== isCritico(item.id)) return false;
+  if(f.dono && item.gerente !== f.dono) return false;
   if(f.srch){
     const hay = [item.nome, item.area, item.gerente, item.objetivo,
                  item.objetivo_estrategico, item.clientes, macroNome]
@@ -10507,7 +10518,7 @@ function itemMatchesFilters(item, macroNome, f){
 }
 
 function limparFiltrosArq(){
-  ['arq-srch','arq-f-macro','arq-f-area','arq-f-nat','arq-f-obje','arq-f-map','arq-f-crit'].forEach(id=>{
+  ['arq-srch','arq-f-macro','arq-f-area','arq-f-nat','arq-f-obje','arq-f-map','arq-f-crit','arq-f-dono'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
@@ -10642,6 +10653,20 @@ function rArq(){
   const el = document.getElementById('arq-content');
   if(!el) return;
 
+  // Preserva quais seções estão abertas para restaurar após re-render
+  const _openIds = new Set(
+    [...document.querySelectorAll('[id^="arq-body-"],[id^="arq-sub-"],[id^="arq-ssub-"]')]
+      .filter(e=>e.style.display!=='none').map(e=>e.id)
+  );
+  function _restoreOpen(){
+    _openIds.forEach(id=>{
+      const e=document.getElementById(id);
+      if(!e||e.style.display!=='none') return;
+      const chvId=id.replace(/^arq-body-/,'chv-').replace(/^arq-sub-/,'chvp-').replace(/^arq-ssub-/,'chvss-');
+      toggleEl(id,chvId);
+    });
+  }
+
   // Cards de métricas no topo
   const arqStatsEl = document.getElementById('arq-stats');
   if(arqStatsEl) arqStatsEl.innerHTML = buildArqStatsHTML();
@@ -10652,7 +10677,7 @@ function rArq(){
   }
 
   const f = getArqFilters();
-  const hasFilter = f.srch || f.macro || f.area || f.nat || f.obje || f.mapeado || f.critico;
+  const hasFilter = f.srch || f.macro || f.area || f.nat || f.obje || f.mapeado || f.critico || f.dono;
 
   // Hide import hint when filtering
   const hint = document.getElementById('arq-import-hint');
@@ -10661,6 +10686,7 @@ function rArq(){
   if(!hasFilter){
     // Normal tree view
     el.innerHTML = ARQUITETURA.map(m=>macroArqHTML(m)).join('');
+    _restoreOpen();
     document.getElementById('arq-result-cnt').textContent = '';
     document.getElementById('arq-sub').textContent = 'Macroprocesso → Processo → Subprocesso';
     return;
@@ -11090,7 +11116,7 @@ function _metaFieldsMapeamentoHTML(item, proc){
 // Render metadata fields read-only (expandable view) + linked mapeamento data
 function metaFieldsReadonly(item){
   const fields=[
-    ['Natureza',item.natureza],['Área',item.area],['Gerente',item.gerente],
+    ['Natureza',item.natureza],['Área',item.area],['Dono',item.gerente],
     ['Objetivo',item.objetivo],['Objetivo estratégico',item.objetivo_estrategico],
     ['Entradas',item.entradas],['Entregas',item.entregas],
     ['Clientes',item.clientes],['Documentações/Regulamentações',item.docs],
@@ -11139,11 +11165,11 @@ function abrirModalMeta(item, onSave){
     <div class="g3">
       <div class="fg"><label class="fl">Natureza</label>
         <select class="fi" id="mm-nat">
-          ${['','Finalístico','Suporte','Gestão','Controle'].map(n=>`<option ${item.natureza===n?'selected':''}>${n}</option>`).join('')}
+          ${['','Finalístico','Apoio','Gestão'].map(n=>`<option ${item.natureza===n?'selected':''}>${n}</option>`).join('')}
         </select>
       </div>
       <div class="fg"><label class="fl">Área</label><input class="fi" id="mm-area" value="${item.area||''}"></div>
-      <div class="fg"><label class="fl">Gerente do processo</label><input class="fi" id="mm-ger" value="${item.gerente||''}"></div>
+      <div class="fg"><label class="fl">Dono do processo</label><input class="fi" id="mm-ger" value="${item.gerente||''}"></div>
     </div>
     <div class="fg"><label class="fl">Objetivo do processo</label><textarea class="fi" id="mm-obj" style="min-height:60px">${item.objetivo||''}</textarea></div>
     <div class="fg"><label class="fl">Objetivo estratégico</label><input class="fi" id="mm-obje" value="${item.objetivo_estrategico||''}"></div>
