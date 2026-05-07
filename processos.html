@@ -21,7 +21,7 @@
 <!-- Firebase -->
 <script type="module">
   import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, doc, getDoc, getDocFromServer, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, deleteUser, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
@@ -46,7 +46,7 @@
       const db  = getFirestore(app);
       const auth = getAuth(app);
       const storage = getStorage(app);
-      globalThis._fb = { db, doc, getDoc, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc, auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, deleteUser, updatePassword, reauthenticateWithCredential, EmailAuthProvider, initializeApp, deleteApp, getAuth, storage, storageRef, uploadBytes, getDownloadURL, deleteObject, FIREBASE_CONFIG };
+      globalThis._fb = { db, doc, getDoc, getDocFromServer, setDoc, collection, getDocs, onSnapshot, writeBatch, deleteDoc, auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, deleteUser, updatePassword, reauthenticateWithCredential, EmailAuthProvider, initializeApp, deleteApp, getAuth, storage, storageRef, uploadBytes, getDownloadURL, deleteObject, FIREBASE_CONFIG };
       globalThis._fbReady = true;
       console.info('Firebase conectado');
     } catch(e) {
@@ -14560,14 +14560,25 @@ async function fbLoad(){
     return false;
   }
   try {
-    const {db, collection, getDocs, doc, getDoc} = fb();
+    const {db, collection, getDocs, doc, getDoc, getDocFromServer} = fb();
 
-    // usuarios — lido PRIMEIRO em bloco isolado: getDocs(processos) falha para
-    // usuários não-EP e abortaria fbLoad antes de chegar aqui
+    // usuarios — lido PRIMEIRO, forçando busca no servidor (getDocFromServer)
+    // para evitar que o cache local do Firestore retorne dados desatualizados
+    // e aplique perfil errado ao usuário no primeiro login após criação/edição.
     try {
-      const _uDoc = await getDoc(doc(db,'config','usuarios'));
-      if(_uDoc.exists() && _uDoc.data().data) USUARIOS = JSON.parse(_uDoc.data().data);
-    } catch(_e){ console.warn('fbLoad: erro ao carregar usuarios:', _e.message); }
+      const usrDocFirst = await getDocFromServer(doc(db,'config','usuarios'));
+      if(usrDocFirst.exists() && usrDocFirst.data().data){
+        USUARIOS = JSON.parse(usrDocFirst.data().data);
+      }
+    } catch(e){
+      // Fallback para cache local se o servidor não responder
+      try {
+        const usrDocCache = await getDoc(doc(db,'config','usuarios'));
+        if(usrDocCache.exists() && usrDocCache.data().data){
+          USUARIOS = JSON.parse(usrDocCache.data().data);
+        }
+      } catch(e2){ console.warn('fbLoad: erro ao carregar usuarios:', e2.message); }
+    }
 
     // processos
     const pSnap = await getDocs(collection(db,'processos'));
