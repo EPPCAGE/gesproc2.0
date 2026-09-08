@@ -10835,6 +10835,75 @@ async function _bpmnGetSvg(which,p){
   });
 }
 
+function _bpmnPdfRootInfo(root,index){
+  const bo=root?.businessObject||root;
+  const tipo=bo?.$type||root?.type||'';
+  const isSubProcess=tipo==='bpmn:SubProcess'||tipo.endsWith(':SubProcess');
+  let depth=0,parent=bo?.$parent;
+  while(parent){
+    if(parent.$type==='bpmn:SubProcess'||String(parent.$type||'').endsWith(':SubProcess'))depth++;
+    parent=parent.$parent;
+  }
+  return {
+    root,
+    id:bo?.id||root?.id||('bpmn-root-'+index),
+    nome:(bo?.name||'').trim()||(isSubProcess?'Subprocesso '+(index+1):'Fluxo principal'),
+    isSubProcess,
+    depth,
+    index,
+  };
+}
+
+// O saveSVG exporta apenas a raiz atualmente aberta. Para o PDF, percorre
+// também as raízes criadas pelo bpmn-js para subprocessos com drill-down.
+async function _bpmnRenderAllRoots(xml){
+  if(!xml||typeof BpmnJS==='undefined')return[];
+  const tmp=document.createElement('div');
+  tmp.style.cssText='position:fixed;left:-9999px;top:0;width:1600px;height:900px;overflow:hidden;';
+  document.body.appendChild(tmp);
+  let viewer;
+  try{
+    viewer=new BpmnJS({container:tmp});
+    await Promise.race([
+      viewer.importXML(xml),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout ao renderizar BPMN')),20000)),
+    ]);
+    const canvas=viewer.get('canvas');
+    const roots=(canvas.getRootElements?.()||[])
+      .map(_bpmnPdfRootInfo)
+      .sort((a,b)=>Number(a.isSubProcess)-Number(b.isSubProcess)||a.depth-b.depth||a.index-b.index);
+    const diagrams=[];
+    for(const info of roots){
+      try{
+        canvas.setRootElement(info.root);
+        canvas.zoom('fit-viewport');
+        const {svg}=await viewer.saveSVG();
+        if(svg)diagrams.push({...info,svg,root:undefined});
+      }catch(e){console.warn('_bpmnRenderAllRoots root failed',info.id,e);}
+    }
+    return diagrams;
+  }catch(e){
+    console.warn('_bpmnRenderAllRoots failed',e);
+    return[];
+  }finally{
+    try{viewer?.destroy();}catch{}
+    tmp.remove();
+  }
+}
+
+async function _bpmnGetPdfDiagrams(which,p){
+  const xmlKey=which==='asis'?'bpmnAsIs':'bpmnToBe';
+  let xml=p?.mod?.[xmlKey]||null;
+  const modeler=bpmnModelers[which];
+  if(modeler&&bpmnProcIds[which]===p?.id){
+    try{const saved=await modeler.saveXML({format:true});if(saved?.xml)xml=saved.xml;}catch{}
+  }
+  const diagrams=await _bpmnRenderAllRoots(xml);
+  if(diagrams.length)return diagrams;
+  const svg=await _bpmnGetSvg(which,p);
+  return svg?[{id:which+'-main',nome:'Fluxo principal',isSubProcess:false,depth:0,index:0,svg}]:[];
+}
+
 // Converte SVG string para PNG via canvas.
 // Usa FileReader para obter data URL (permitido pelo CSP img-src) em vez de blob: URL.
 function svgStringToPng(svg){
@@ -11070,15 +11139,28 @@ async function _popPdfAnexo(p){
     const _svgToPngOrInline=async(svg)=>{const png=await svgStringToPng(svg);return png?_wrapPng(png):_wrapSvg(svg);};
     let bpInner=`<div style="font-size:15px;font-weight:700;color:#1a1a2e;border-bottom:3px solid #1e6bfa;padding-bottom:8px;margin-bottom:1.2rem;font-family:'Segoe UI',Arial,sans-serif">10.0 Desenho do Processo</div>`;
     let hasDiagramContent=false;
+    const _appendDiagrams=async(diagrams)=>{
+      for(let i=0;i<diagrams.length;i++){
+        const d=diagrams[i];
+        const titulo=d.isSubProcess?`Subprocesso — ${_esc(d.nome)}`:'Fluxo principal';
+        const numero=`10.${i+1}`;
+        const diagram=await _svgToPngOrInline(d.svg);
+        bpInner+=`<div class="bpmn-diagram-page${i?' bpmn-subprocess-page':''}">
+          <div style="font-size:13px;font-weight:700;color:#4a4a6a;margin:0 0 .7rem;font-family:'Segoe UI',Arial,sans-serif">${numero} ${titulo}</div>
+          ${diagram}
+        </div>`;
+        hasDiagramContent=true;
+      }
+    };
     if(hasBpmnT){
-      const svg=await _bpmnGetSvg('tobe',p);
-      if(svg){bpInner+=await _svgToPngOrInline(svg);hasDiagramContent=true;}
+      const diagrams=await _bpmnGetPdfDiagrams('tobe',p);
+      if(diagrams.length)await _appendDiagrams(diagrams);
       else{const png=await _getFluxogramaToBePng(p);if(png){bpInner+=_wrapPng(png);hasDiagramContent=true;}}
     }
     // Fallback para AS IS se TO BE não renderizou (XML inválido, sem diagrama visual, etc.)
     if(!hasDiagramContent&&hasFluxoA){
-      const svg=await _bpmnGetSvg('asis',p);
-      if(svg){bpInner+=await _svgToPngOrInline(svg);hasDiagramContent=true;}
+      const diagrams=await _bpmnGetPdfDiagrams('asis',p);
+      if(diagrams.length)await _appendDiagrams(diagrams);
       else{const png=await _getFluxogramaAsIsPng(p);if(png){bpInner+=_wrapPng(png);hasDiagramContent=true;}}
     }
     if(!hasDiagramContent){
@@ -11138,6 +11220,7 @@ async function gerarPopPdf(){
     ${_pgHdr}
     @page landscape-page{size:A4 landscape;margin:22mm 18mm}
     .bpmn-landscape{page:landscape-page;page-break-before:always}
+    .bpmn-subprocess-page{break-before:page;page-break-before:always}
     ${cageLogo?`.pop-doc-hdr{background-image:url("${cageLogo}");background-repeat:no-repeat;background-position:right 16px center;background-size:auto 48px;padding-right:110px}`:''}
     @media print{.pop-pdf-bar{display:none!important}[data-popsec]>div:first-child{break-after:avoid}}
   </style>
@@ -11175,6 +11258,7 @@ async function gerarPopPdfDireto(){
     ${_pgHdr}
     @page landscape-page{size:A4 landscape;margin:22mm 18mm}
     .bpmn-landscape{page:landscape-page;page-break-before:always}
+    .bpmn-subprocess-page{break-before:page;page-break-before:always}
     ${cageLogo?`.pop-doc-hdr{background-image:url("${cageLogo}");background-repeat:no-repeat;background-position:right 16px center;background-size:auto 48px;padding-right:110px}`:''}
     @media print{.pop-pdf-bar{display:none!important}[data-popsec]>div:first-child{break-after:avoid}}
   </style>
