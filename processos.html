@@ -9500,6 +9500,7 @@ function renderEtapaDetalheConteudo(e){
 }
 
 function salvarEtapa(id){
+  _syncRetrabalhosConfirmados(curProc, _ekey()==='etapas_proc_tobe'?'tobe':'asis');
   toggleEtapaDetalhe(id); // collapse the panel
   fbAutoSave('salvarEtapa');
   toast('Etapa salva');
@@ -9596,7 +9597,9 @@ function remEtapaProc(id){
   const key=_ekey(); if(!curProc?.mod?.[key])return;
   curProc.mod[key]=curProc.mod[key].filter(e=>e.id!==id);
   curProc.mod[key].forEach((e,i)=>e.seq=i+1);
+  _syncRetrabalhosConfirmados(curProc, key==='etapas_proc_tobe'?'tobe':'asis');
   _refreshEtapasList();
+  fbAutoSave('remEtapaProc');
 }
 
 // ── DRAG-AND-DROP REORDERING ─────────────────
@@ -10014,6 +10017,14 @@ function _ilpGetAllAtividades(etapas){
   if(!etapas||!etapas.length)return[];
   return etapas.filter(e=>!e.tipo||e.tipo==='Atividade');
 }
+// Confirmações são válidas somente enquanto a etapa existe, continua sendo uma
+// atividade candidata a retrabalho e não aparece duplicada na lista persistida.
+function _ilpGetRetrabalhosConfirmadosValidos(etapas,confirmados){
+  if(!Array.isArray(confirmados)||!confirmados.length)return[];
+  const candidatos=new Set(_ilpDetectarRetrabalhos(_ilpGetAllAtividades(etapas)).map(e=>e.id));
+  const vistos=new Set();
+  return confirmados.filter(id=>candidatos.has(id)&&!vistos.has(id)&&vistos.add(id));
+}
 function calcILPFromEtapas(etapas,retrabalhosConfirmados=undefined){
   if(!etapas||!etapas.length)return null;
   const linkedGatewayMap=_ilpBuildLinkedGatewayMap(etapas);
@@ -10041,8 +10052,9 @@ function calcILPFromEtapas(etapas,retrabalhosConfirmados=undefined){
   const _indexA=((nSemi*50)+(nAuto*100))/total;
   const _indexT=Math.min(100,Math.max(0,((10-nAtores)/9)*100));
   const _indexG=Math.max(0,100-gxorDiv);
-  const hasR=Array.isArray(retrabalhosConfirmados);
-  const qtdR=hasR?retrabalhosConfirmados.length:0;
+  const confirmadosValidos=_ilpGetRetrabalhosConfirmadosValidos(etapas,retrabalhosConfirmados);
+  const qtdR=confirmadosValidos.length;
+  const hasR=qtdR>0;
   const _indexR=hasR?Math.max(0,100-qtdR*ILP_REWORK_PENALTY):null;
   const indexR=_indexR;
   const ilp=hasR
@@ -10140,8 +10152,9 @@ function calcILPFromBpmn(bpmnXml, etapas, retrabalhosConfirmados=undefined){
   const _indexA=((nSemi*50)+(nAuto*100))/total;
   const _indexT=Math.min(100,Math.max(0,((10-nAtores)/9)*100));
   const _indexG=Math.max(0,100-gxorDiv);
-  const hasR=Array.isArray(retrabalhosConfirmados);
-  const qtdR=hasR?retrabalhosConfirmados.length:0;
+  const confirmadosValidos=_ilpGetRetrabalhosConfirmadosValidos(etapas,retrabalhosConfirmados);
+  const qtdR=confirmadosValidos.length;
+  const hasR=qtdR>0;
   const _indexR=hasR?Math.max(0,100-qtdR*ILP_REWORK_PENALTY):null;
   const indexR=_indexR;
   const ilp=hasR
@@ -10312,11 +10325,19 @@ function _rEntMatBadges(e){
   }).join('');
 }
 // Monta o objeto reworkData para passar ao renderEtapasProc
+function _syncRetrabalhosConfirmados(p,which){
+  if(!p?.mod)return[];
+  const etapasKey=which==='asis'?'etapas_proc':'etapas_proc_tobe';
+  const confKey=which==='asis'?'retrabalhos_confirmados':'retrabalhos_confirmados_tobe';
+  const validos=_ilpGetRetrabalhosConfirmadosValidos(p.mod[etapasKey]||[],p.mod[confKey]);
+  if(Array.isArray(p.mod[confKey]))p.mod[confKey]=validos;
+  return validos;
+}
 function _mkReworkData(p, which){
   const etapasKey=which==='asis'?'etapas_proc':'etapas_proc_tobe';
   const confKey=which==='asis'?'retrabalhos_confirmados':'retrabalhos_confirmados_tobe';
   const lista=_ilpDetectarRetrabalhos(_ilpGetAllAtividades(p.mod?.[etapasKey]||[]));
-  const conf=p.mod?.[confKey];
+  const conf=_ilpGetRetrabalhosConfirmadosValidos(p.mod?.[etapasKey]||[],p.mod?.[confKey]);
   return {
     suspeitos: new Set(lista.map(a=>a.id)),
     confirmados: new Set(Array.isArray(conf)?conf:[]),
@@ -10326,11 +10347,12 @@ function _mkReworkData(p, which){
 // Alterna confirmação de retrabalho ao clicar no badge inline
 function _toggleRetrabalho(id, which){
   const p=curProc; if(!p.mod)p.mod={};
+  const etapasKey=which==='asis'?'etapas_proc':'etapas_proc_tobe';
   const confKey=which==='asis'?'retrabalhos_confirmados':'retrabalhos_confirmados_tobe';
-  const conf=Array.isArray(p.mod[confKey])?[...p.mod[confKey]]:[];
+  const conf=_ilpGetRetrabalhosConfirmadosValidos(p.mod[etapasKey]||[],p.mod[confKey]);
   const idx=conf.indexOf(id);
   if(idx>=0) conf.splice(idx,1); else conf.push(id);
-  p.mod[confKey]=conf;
+  p.mod[confKey]=_ilpGetRetrabalhosConfirmadosValidos(p.mod[etapasKey]||[],conf);
   fbAutoSave('toggleRetrabalho');
   // Re-renderiza só a lista (mais leve que rForm)
   const key=_ekey();
