@@ -5852,6 +5852,7 @@ const ACOES = {
     <div style="display:flex;gap:8px;margin-bottom:.8rem;flex-wrap:wrap">
       <button type="button" class="btn btn-t" onclick="extrairBpmn()">⚡ Extrair etapas do BPMN TO BE</button>
       <button type="button" class="btn" onclick="addEtapaProc()">+ Adicionar manualmente</button>
+      <button type="button" class="btn" style="font-size:11px;padding:3px 10px" onclick="exportarEtapasToBeXlsx()" title="Exportar todas as etapas TO BE para planilha Excel">⬇ Exportar Excel</button>
     </div>
     <div id="etapas-proc-list">${renderEtapasProc(p.mod.etapas_proc_tobe||[], _mkReworkData(p,'tobe'))}</div>
     <div id="tobe-relatorio-outer" style="margin-top:.4rem;border:1px solid var(--bdr);border-radius:var(--r);padding:.8rem;background:var(--bg2)">
@@ -9399,9 +9400,10 @@ function _renderEtapaEventoFields(e, id){
     </select>
   </div>`;
 }
-function exportarEtapasAsIsXlsx(){
+function exportarEtapasXlsx(which='asis'){
   if(!curProc){ toast('Nenhum processo selecionado.','var(--amber)'); return; }
-  const etapas = curProc.mod?.etapas_proc||[];
+  const isTobe=which==='tobe';
+  const etapas = curProc.mod?.[isTobe?'etapas_proc_tobe':'etapas_proc']||[];
   if(!etapas.length){ toast('Nenhuma etapa cadastrada.','var(--amber)'); return; }
 
   const rows = [];
@@ -9433,11 +9435,13 @@ function exportarEtapasAsIsXlsx(){
   // Header style (bold) - column widths
   ws['!cols'] = [{wch:6},{wch:35},{wch:14},{wch:18},{wch:18},{wch:18},{wch:22},{wch:50}];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'AS IS');
+  XLSX.utils.book_append_sheet(wb, ws, isTobe?'TO BE':'AS IS');
   const nome = (curProc.nome||'processo').replaceAll(/\s+/g,'_').slice(0,40);
-  XLSX.writeFile(wb, nome+'_etapas_asis.xlsx');
+  XLSX.writeFile(wb, nome+(isTobe?'_etapas_tobe.xlsx':'_etapas_asis.xlsx'));
   toast('Planilha exportada com sucesso.');
 }
+function exportarEtapasAsIsXlsx(){return exportarEtapasXlsx('asis');}
+function exportarEtapasToBeXlsx(){return exportarEtapasXlsx('tobe');}
 
 function _renderVinculoGwField(e, id){
   const etapas=curProc?.mod?.[_ekey()]||[];
